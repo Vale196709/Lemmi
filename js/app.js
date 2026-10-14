@@ -38,6 +38,21 @@
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
     return m ? m[3] + '/' + m[2] + '/' + m[1] : esc(iso);
   };
+  const isoToIt = (iso) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
+  };
+  // gg/mm/aaaa -> aaaa-mm-gg ; vuoto -> null ; non valida -> 'ERR'
+  const itToIso = (txt) => {
+    const t = String(txt || '').trim();
+    if (!t) return null;
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t);
+    if (!m) return 'ERR';
+    const g = +m[1], me = +m[2], a = +m[3];
+    const d = new Date(Date.UTC(a, me - 1, g));
+    if (d.getUTCFullYear() !== a || d.getUTCMonth() !== me - 1 || d.getUTCDate() !== g || a < 1900 || a > 2200) return 'ERR';
+    return m[3] + '-' + m[2] + '-' + m[1];
+  };
   const oggi = () => new Date().toISOString().slice(0, 10);
   const canEdit = () => ['amministratore', 'segretario'].includes(state.profilo && state.profilo.ruolo);
   const isAdmin = () => state.profilo && state.profilo.ruolo === 'amministratore';
@@ -258,8 +273,11 @@
   /* ---------- modulo bussante ---------- */
   const campo = (nome, label, val, o) => {
     o = o || {};
-    return `<div class="f ${o.cls || 's4'}"><label for="x-${nome}">${label}</label>
-      <input id="x-${nome}" name="${nome}" type="${o.type || 'text'}" value="${esc(val)}" ${o.req ? 'required' : ''} ${o.max ? 'maxlength="' + o.max + '"' : ''} ${o.ph ? 'placeholder="' + esc(o.ph) + '"' : ''} ${o.up ? 'style="text-transform:uppercase"' : ''}></div>`;
+    const data = o.type === 'date';
+    return `<div class="f ${o.cls || 's4'}"><label for="x-${nome}">${label}${o.req ? ' <span class="req">*</span>' : ''}</label>
+      <input id="x-${nome}" name="${nome}" type="${data ? 'text' : (o.type || 'text')}" value="${esc(data ? isoToIt(val) : val)}"
+        ${o.req ? 'data-req="1"' : ''} ${data ? 'data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"' : ''}
+        ${o.max ? 'maxlength="' + o.max + '"' : ''} ${o.ph ? 'placeholder="' + esc(o.ph) + '"' : ''} ${o.up ? 'style="text-transform:uppercase"' : ''}></div>`;
   };
 
   function dividiVia(ind) { return window.LemmiPDF.dividiVia(ind); }
@@ -278,41 +296,42 @@
       <div class="crumb"><a href="#/bussanti">Bussanti</a> › ${id ? 'Modifica' : 'Nuovo'}</div>
       <div class="page-head"><h1>${id ? 'Modifica pratica' : 'Nuovo bussante'}</h1></div>
       <form id="f-b" novalidate><div class="card"><div class="form-grid">
+        <div class="f hint" style="margin-bottom:-6px">I campi contrassegnati con <span class="req">*</span> sono obbligatori. Le date si scrivono nel formato gg/mm/aaaa.</div>
         <div class="section-title">Domanda</div>
         <div class="f s4"><label for="x-tipo_domanda">Tipo di domanda</label><select id="x-tipo_domanda" name="tipo_domanda">
           ${Object.entries(TIPI_DOMANDA).map(([k, t]) => `<option value="${k}" ${b.tipo_domanda === k ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
-        ${campo('data_domanda', 'Data della domanda', b.data_domanda, { type: 'date', cls: 's3' })}
+        ${campo('data_domanda', 'Data della domanda', b.data_domanda, { type: 'date', cls: 's3', req: 1 })}
         <div class="f s5"><label for="x-presentatore_id">Fratello presentatore</label><select id="x-presentatore_id" name="presentatore_id">
           <option value="">— non indicato —</option>
           ${fratelli.map((f) => `<option value="${esc(f.id)}" ${b.presentatore_id === f.id ? 'selected' : ''}>${esc(f.cognome)} ${esc(f.nome)}</option>`).join('')}</select></div>
 
         <div class="section-title">Anagrafica</div>
-        ${campo('cognome', 'Cognome *', b.cognome, { req: 1, cls: 's4' })}
-        ${campo('nome', 'Nome *', b.nome, { req: 1, cls: 's4' })}
-        ${campo('codice_fiscale', 'Codice fiscale', b.codice_fiscale, { max: 16, up: 1, cls: 's4' })}
-        ${campo('luogo_nascita', 'Luogo di nascita', b.luogo_nascita, { cls: 's5' })}
-        ${campo('provincia_nascita', 'Prov.', b.provincia_nascita, { max: 2, up: 1, cls: 's2' })}
-        ${campo('data_nascita', 'Data di nascita', b.data_nascita, { type: 'date', cls: 's5' })}
-        ${campo('cellulare', 'Telefono', b.cellulare, { type: 'tel', cls: 's4' })}
-        ${campo('email', 'E-mail', b.email, { type: 'email', cls: 's8' })}
-        ${campo('titolo_studio', 'Titolo di studio', b.titolo_studio, { cls: 's6' })}
-        ${campo('professione', 'Professione', b.professione, { cls: 's6' })}
+        ${campo('cognome', 'Cognome', b.cognome, { req: 1, cls: 's4' })}
+        ${campo('nome', 'Nome', b.nome, { req: 1, cls: 's4' })}
+        ${campo('codice_fiscale', 'Codice fiscale', b.codice_fiscale, { max: 16, up: 1, cls: 's4', req: 1 })}
+        ${campo('luogo_nascita', 'Luogo di nascita', b.luogo_nascita, { cls: 's5', req: 1 })}
+        ${campo('provincia_nascita', 'Prov.', b.provincia_nascita, { max: 2, up: 1, cls: 's2', req: 1 })}
+        ${campo('data_nascita', 'Data di nascita', b.data_nascita, { type: 'date', cls: 's5', req: 1 })}
+        ${campo('cellulare', 'Telefono', b.cellulare, { type: 'tel', cls: 's4', req: 1 })}
+        ${campo('email', 'E-mail', b.email, { type: 'email', cls: 's8', req: 1 })}
+        ${campo('titolo_studio', 'Titolo di studio', b.titolo_studio, { cls: 's6', req: 1 })}
+        ${campo('professione', 'Professione', b.professione, { cls: 's6', req: 1 })}
 
         <div class="section-title">Residenza</div>
-        ${campo('via', 'Via / piazza', via, { cls: 's6' })}
-        ${campo('civ', 'N°', civ, { cls: 's2' })}
-        ${campo('cap', 'CAP', b.cap, { max: 5, cls: 's4' })}
-        ${campo('citta', 'Città', b.citta, { cls: 's8' })}
-        ${campo('provincia', 'Prov.', b.provincia, { max: 2, up: 1, cls: 's4' })}
+        ${campo('via', 'Via / piazza', via, { cls: 's6', req: 1 })}
+        ${campo('civ', 'N°', civ, { cls: 's2', req: 1 })}
+        ${campo('cap', 'CAP', b.cap, { max: 5, cls: 's4', req: 1 })}
+        ${campo('citta', 'Città', b.citta, { cls: 's8', req: 1 })}
+        ${campo('provincia', 'Prov.', b.provincia, { max: 2, up: 1, cls: 's4', req: 1 })}
 
         <div class="section-title">Domicilio</div>
         <div class="f"><label class="check"><input type="checkbox" id="x-dom_same" name="dom_same" ${domVuoto ? 'checked' : ''}> Coincide con la residenza</label></div>
         <div id="blocco-dom" class="form-grid ${domVuoto ? 'hidden' : ''}" style="grid-column:span 12">
-          ${campo('dvia', 'Via / piazza', dvia, { cls: 's6' })}
-          ${campo('dciv', 'N°', dciv, { cls: 's2' })}
-          ${campo('dcap', 'CAP', b.domicilio_cap, { max: 5, cls: 's4' })}
-          ${campo('dcitta', 'Città', b.domicilio_citta, { cls: 's8' })}
-          ${campo('dprov', 'Prov.', b.domicilio_provincia, { max: 2, up: 1, cls: 's4' })}
+          ${campo('dvia', 'Domicilio: via / piazza', dvia, { cls: 's6', req: 1 })}
+          ${campo('dciv', 'N°', dciv, { cls: 's2', req: 1 })}
+          ${campo('dcap', 'CAP', b.domicilio_cap, { max: 5, cls: 's4', req: 1 })}
+          ${campo('dcitta', 'Città', b.domicilio_citta, { cls: 's8', req: 1 })}
+          ${campo('dprov', 'Prov.', b.domicilio_provincia, { max: 2, up: 1, cls: 's4', req: 1 })}
         </div>
 
         <div class="section-title">Competenza territoriale (C/1, pag. 2)</div>
@@ -329,8 +348,8 @@
             ${campo('p_grado', 'Con il grado di', pv.grado, { cls: 's6' })}
           </div>
           <div data-p="cancellazione_pena" class="form-grid" style="grid-column:span 12">
-            ${campo('p_espulso_sentenza_del', 'Espulso con sentenza del', pv.espulso_sentenza_del, { type: 'date', cls: 's4' })}
-            ${campo('p_espulso_definitiva_il', 'Definitiva il', pv.espulso_definitiva_il, { type: 'date', cls: 's4' })}
+            ${campo('p_espulso_sentenza_del', 'Espulso con sentenza del', pv.espulso_sentenza_del, { type: 'date', cls: 's4', req: 1 })}
+            ${campo('p_espulso_definitiva_il', 'Definitiva il', pv.espulso_definitiva_il, { type: 'date', cls: 's4', req: 1 })}
             ${campo('p_grado_ricoperto', 'Ricopriva il grado di', pv.grado_ricoperto, { cls: 's4' })}
           </div>
           <div data-p="affiliazione_estero" class="form-grid" style="grid-column:span 12">
@@ -349,9 +368,9 @@
         <div class="section-title">Date dell’iter</div>
         ${campo('data_presa_in_considerazione', 'Presa in considerazione', b.data_presa_in_considerazione, { type: 'date', cls: 's3' })}
         ${campo('data_comunicazione_collegio', 'Comunicata al Collegio', b.data_comunicazione_collegio, { type: 'date', cls: 's3' })}
-        ${campo('data_prima_votazione', 'Prima votazione', b.data_prima_votazione, { type: 'date', cls: 's3' })}
-        <div id="wrap-seconda" class="f s3"><label for="x-data_seconda_votazione">Seconda votazione</label>
-          <input id="x-data_seconda_votazione" name="data_seconda_votazione" type="date" value="${esc(b.data_seconda_votazione)}"></div>
+        ${campo('data_prima_votazione', 'Prima votazione', b.data_prima_votazione, { type: 'date', cls: 's3', req: 1 })}
+        <div id="wrap-seconda" class="f s3"><label for="x-data_seconda_votazione">Seconda votazione <span class="req">*</span></label>
+          <input id="x-data_seconda_votazione" name="data_seconda_votazione" type="text" data-req="1" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off" value="${esc(isoToIt(b.data_seconda_votazione))}"></div>
         <div class="f hint">Il C/1 va presentato indicando le date delle votazioni con almeno 60 giorni di margine (30 per le riammissioni).</div>
       </div></div>
       <div class="sticky-bar"><button class="btn gold" type="submit">Salva pratica</button>
@@ -369,12 +388,48 @@
     f.elements.dom_same.addEventListener('change', aggiorna);
     aggiorna();
 
+    // maschera gg/mm/aaaa: inserisce le barre mentre si scrive
+    $$('[data-date]', f).forEach((inp) => inp.addEventListener('input', () => {
+      let d = inp.value.replace(/\D/g, '').slice(0, 8);
+      if (d.length > 4) d = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4);
+      else if (d.length > 2) d = d.slice(0, 2) + '/' + d.slice(2);
+      inp.value = d;
+      inp.classList.remove('invalid');
+    }));
+    $$('input', f).forEach((inp) => inp.addEventListener('input', () => inp.classList.remove('invalid')));
+
     f.addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const err = $('#f-err'); err.textContent = '';
+      $$('.invalid', f).forEach((el) => el.classList.remove('invalid'));
+      const visibile = (el) => !el.closest('.hidden');
+      const nomeCampo = (el) => { const l = $('label[for="' + el.id + '"]', f); return l ? l.textContent.replace('*', '').trim() : el.name; };
+      const segnala = (el, msg) => { el.classList.add('invalid'); err.textContent = msg; el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+
+      const vuoti = $$('[data-req]', f).filter((el) => visibile(el) && !el.value.trim());
+      if (vuoti.length) {
+        vuoti.forEach((el) => el.classList.add('invalid'));
+        return segnala(vuoti[0], vuoti.length === 1 ? 'Campo obbligatorio mancante: ' + nomeCampo(vuoti[0]) + '.' : 'Mancano ' + vuoti.length + ' campi obbligatori, a partire da: ' + nomeCampo(vuoti[0]) + '.');
+      }
+      const dateErrate = $$('[data-date]', f).filter((el) => visibile(el) && el.value.trim() && itToIso(el.value) === 'ERR');
+      if (dateErrate.length) return segnala(dateErrate[0], 'Data non valida in “' + nomeCampo(dateErrate[0]) + '”: usa il formato gg/mm/aaaa (es. 14/03/1978).');
+
       const dati = leggiForm(f);
-      if (!dati.cognome || !dati.nome) { err.textContent = 'Cognome e nome sono obbligatori.'; return; }
-      if (dati.codice_fiscale && !/^[A-Z0-9]{16}$/.test(dati.codice_fiscale)) { err.textContent = 'Il codice fiscale deve avere 16 caratteri (lettere e cifre).'; return; }
+      const ctrl = [
+        ['codice_fiscale', dati.codice_fiscale && !/^[A-Z0-9]{16}$/.test(dati.codice_fiscale), 'Il codice fiscale deve avere 16 caratteri (lettere e cifre).'],
+        ['provincia_nascita', dati.provincia_nascita && !/^[A-Z]{2}$/.test(dati.provincia_nascita), 'La provincia di nascita va indicata con la sigla di 2 lettere (es. RM).'],
+        ['provincia', dati.provincia && !/^[A-Z]{2}$/.test(dati.provincia), 'La provincia di residenza va indicata con la sigla di 2 lettere (es. RM).'],
+        ['cap', dati.cap && !/^\d{5}$/.test(dati.cap), 'Il CAP deve essere di 5 cifre.'],
+        ['email', dati.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dati.email), 'L’indirizzo e-mail non è valido.'],
+        ['data_nascita', dati.data_nascita && dati.data_nascita >= oggi(), 'La data di nascita deve essere nel passato.'],
+        ['data_seconda_votazione', dati.data_seconda_votazione && dati.data_prima_votazione && dati.data_seconda_votazione < dati.data_prima_votazione, 'La seconda votazione non può precedere la prima.'],
+      ];
+      if (!f.elements.dom_same.checked) {
+        ctrl.push(['dprov', dati.domicilio_provincia && !/^[A-Z]{2}$/.test(dati.domicilio_provincia), 'La provincia del domicilio va indicata con la sigla di 2 lettere.']);
+        ctrl.push(['dcap', dati.domicilio_cap && !/^\d{5}$/.test(dati.domicilio_cap), 'Il CAP del domicilio deve essere di 5 cifre.']);
+      }
+      const ko = ctrl.find((c) => c[1]);
+      if (ko) return segnala(f.elements[ko[0]], ko[2]);
       const btn = $('button[type=submit]', f); btn.disabled = true;
       try {
         let rid = id;
@@ -389,22 +444,23 @@
   function leggiForm(f) {
     const val = (n) => (f.elements[n] ? String(f.elements[n].value).trim() : '');
     const nul = (n) => val(n) || null;
+    const dt = (n) => { const r = itToIso(val(n)); return r === 'ERR' ? null : r; };
     const maius = (n) => (val(n) ? val(n).toUpperCase() : null);
     const indirizzo = (a, b) => { const x = val(a), y = val(b); return x ? (y ? x + ', ' + y : x) : null; };
     const tipo = val('tipo_domanda');
     const stessa = f.elements.dom_same.checked;
     let prov = {};
     if (tipo === 'regolarizzazione') prov = { obbedienza: val('p_obbedienza'), grado: val('p_grado') };
-    if (tipo === 'cancellazione_pena') prov = { espulso_sentenza_del: val('p_espulso_sentenza_del'), espulso_definitiva_il: val('p_espulso_definitiva_il'), grado_ricoperto: val('p_grado_ricoperto') };
+    if (tipo === 'cancellazione_pena') prov = { espulso_sentenza_del: dt('p_espulso_sentenza_del'), espulso_definitiva_il: dt('p_espulso_definitiva_il'), grado_ricoperto: val('p_grado_ricoperto') };
     if (tipo === 'affiliazione_estero') prov = { rl_nome: val('p_rl_nome'), rl_oriente: val('p_rl_oriente'), gran_loggia: val('p_gran_loggia'), grado_estero: val('p_grado_estero') };
     Object.keys(prov).forEach((k) => { if (!prov[k]) delete prov[k]; });
     return {
       tipo_domanda: tipo,
-      data_domanda: nul('data_domanda'),
+      data_domanda: dt('data_domanda'),
       presentatore_id: nul('presentatore_id'),
       cognome: val('cognome'), nome: val('nome'),
       codice_fiscale: maius('codice_fiscale'),
-      luogo_nascita: nul('luogo_nascita'), provincia_nascita: maius('provincia_nascita'), data_nascita: nul('data_nascita'),
+      luogo_nascita: nul('luogo_nascita'), provincia_nascita: maius('provincia_nascita'), data_nascita: dt('data_nascita'),
       cellulare: nul('cellulare'), email: nul('email'), titolo_studio: nul('titolo_studio'), professione: nul('professione'),
       indirizzo: indirizzo('via', 'civ'), cap: nul('cap'), citta: nul('citta'), provincia: maius('provincia'),
       domicilio_indirizzo: stessa ? null : indirizzo('dvia', 'dciv'), domicilio_cap: stessa ? null : nul('dcap'),
@@ -413,10 +469,10 @@
       note_dichiarazioni: nul('note_dichiarazioni'),
       referenti: [1, 2, 3].map((i) => ({ nome: val('ref_nome_' + i), indirizzo: val('ref_ind_' + i) })).filter((r) => r.nome || r.indirizzo),
       provenienza: prov,
-      data_presa_in_considerazione: nul('data_presa_in_considerazione'),
-      data_comunicazione_collegio: nul('data_comunicazione_collegio'),
-      data_prima_votazione: nul('data_prima_votazione'),
-      data_seconda_votazione: tipo === 'iniziazione' ? nul('data_seconda_votazione') : null,
+      data_presa_in_considerazione: dt('data_presa_in_considerazione'),
+      data_comunicazione_collegio: dt('data_comunicazione_collegio'),
+      data_prima_votazione: dt('data_prima_votazione'),
+      data_seconda_votazione: tipo === 'iniziazione' ? dt('data_seconda_votazione') : null,
     };
   }
 

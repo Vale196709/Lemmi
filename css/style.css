@@ -219,3 +219,6 @@ input[type=file] { display: none; }
   .f.half { grid-column: span 6; }
 }
 @media print { .side, #toasts, .actions, .sticky-bar { display: none !important; } .shell { display: block; } }
+
+.req { color: var(--bad); font-weight: 700; }
+input.invalid, select.invalid { border-color: var(--bad); box-shadow: 0 0 0 3px rgba(209, 68, 81, .15); background: #fffafa; }
