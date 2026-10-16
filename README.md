@@ -10,10 +10,13 @@ Nessun server da mantenere e nessun abbonamento.
 - **Bussanti**: elenco con ricerca, inserimento e modifica della pratica.
 - **Moduli GOI precompilati**: genera **A/1** e **C/1** (ed. 2024) scrivendo i dati sui PDF originali, anche in un unico PDF. Opzione "copia per il Collegio" (A/1 senza pagina 5).
 - **Documenti allegati**: caricamento di certificati, curriculum, foto e moduli firmati in un archivio privato; apertura con link temporaneo di 2 minuti.
+- **Pagamenti e quote**: scadenze della capitazione (per fasce d'età, in unica rata o in due), aumenti di salario, iniziazioni; registrazione dei versamenti, anche per il Tronco della Vedova; riepilogo per voce e per Fratello. Richiede l'esecuzione dello script `lemmi_pagamenti.sql` su Supabase.
+- **Conto di Loggia** (dentro Pagamenti): importazione dell'estratto conto della banca (xls, xlsx, csv) senza doppioni, categorie di entrata e di costo che si possono aggiungere (es. rimborso partecipazione Gran Loggia), movimenti inseriti a mano e collegamento dei bonifici dei Fratelli ai versamenti. Richiede lo script `lemmi_pagamenti_2.sql`.
+- **Storia**: cariche ricoperte dai Fratelli per anno di competenza, consultabili per anno o per Fratello, con note.
 - **Fratelli**: consultazione dell'anagrafica (sola lettura).
 - **Loggia**: nome, numero e Oriente che intestano i moduli (solo amministratore).
 
-Permessi: amministratore e Segretario inseriscono e modificano; il Venerabile consulta; solo l'amministratore elimina. Il Tesoriere non ha accesso. Le regole sono applicate dal database (RLS), non solo dall'interfaccia.
+Permessi: amministratore e Segretario inseriscono e modificano i bussanti; il Venerabile consulta; solo l'amministratore elimina. Il Tesoriere vede solo Pagamenti e Loggia: insieme all'amministratore registra scadenze e versamenti, mentre Venerabile e Segretario consultano. Le regole sono applicate dal database (RLS), non solo dall'interfaccia.
 
 ## 1. Configurazione
 
@@ -57,8 +60,12 @@ css/style.css       stile
 js/config.js        configurazione Supabase
 js/app.js           schermate, accesso, documenti
 js/pdf.js           compilazione di A/1 e C/1 sopra i PDF originali
+js/pagamenti.js     scadenze, versamenti e riepilogo
+js/estratto.js      lettura degli estratti conto della banca
+js/conto.js         scheda Conto di Loggia
+js/storia.js        storia delle cariche dei Fratelli
 templates/          A1.pdf e C1.pdf (modelli ufficiali ed. 2024)
-vendor/             librerie incluse (supabase-js, pdf-lib): nessun CDN
+vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file Excel): nessun CDN
 ```
 
 ## Note sui moduli
@@ -68,3 +75,9 @@ vendor/             librerie incluse (supabase-js, pdf-lib): nessun CDN
 - Se un testo non entra in un campo, il corpo del carattere si riduce automaticamente.
 - Le posizioni dei campi sono nel file `js/pdf.js` (coordinate in punti, misurate dall'alto della pagina): se un campo risulta spostato si corregge lì.
 - Se il GOI pubblica una nuova edizione dei modelli, basta sostituire i PDF in `templates/` e ricontrollare le coordinate.
+
+## Estratti conto
+
+- Il file viene letto nel browser, sul computer di chi lo carica: non passa da altri servizi. Il programma riconosce da solo la riga delle intestazioni e le colonne (data, descrizione, importo oppure dare/avere, saldo); se non ci riesce, le colonne si indicano a mano nella finestra di importazione.
+- Importando lo stesso periodo più volte i movimenti già presenti vengono ignorati.
+- La libreria per i file Excel è SheetJS 0.18.5, l'ultima pubblicata sul registro npm. Usa l'importazione solo con file scaricati direttamente dalla tua banca.

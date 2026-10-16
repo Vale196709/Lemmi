@@ -236,3 +236,6 @@ tfoot td { background: #f8f9fd; border-top: 1px solid var(--line); }
 .modal-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #fff; z-index: 1; }
 .modal-b { padding: 20px 22px 22px; }
 .f.s12 { grid-column: span 12; }
+
+input[type=file].vis { display: block; padding: 9px; background: #f7f9fd; border-style: dashed; }
+details > summary { color: var(--navy); }

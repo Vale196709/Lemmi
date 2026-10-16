@@ -15,7 +15,22 @@
   const MODALITA = ['contanti', 'bonifico', 'carta', 'assegno', 'altro'];
   const pag = { anno: new Date().getFullYear(), righe: [], vers: [], coll: [], voci: [], anni: [], fratelli: null, filtri: { q: '', stato: '', voce: '' } };
 
+  L.tabsPagamenti = [];
+
   /* ---------- utilità ---------- */
+  // Campo "Fratello": si scrive il cognome e si sceglie dall'elenco
+  function campoFratello(frat, o) {
+    o = Object.assign({ nome: 'fratello', id: 'm-fratello', label: 'Fratello', req: true, cls: 's6', wid: '' }, o || {});
+    return `<div class="f ${o.cls}" ${o.wid ? `id="${o.wid}"` : ''}><label for="${o.id}">${o.label}${o.req ? ' <span class="req">*</span>' : ''}</label>
+      <input id="${o.id}" name="${o.nome}" list="dl-${o.id}" autocomplete="off" placeholder="Scrivi il cognome e scegli dall’elenco">
+      <datalist id="dl-${o.id}">${frat.map((x) => `<option value="${esc(x.cognome + ' ' + x.nome)}"></option>`).join('')}</datalist></div>`;
+  }
+  function idFratello(frat, testo) {
+    const t = String(testo || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!t) return null;
+    const m = frat.find((x) => (x.cognome + ' ' + x.nome).toLowerCase() === t || (x.nome + ' ' + x.cognome).toLowerCase() === t);
+    return m ? m.id : null;
+  }
   function leggiImporto(s) {            // "600", "600,50", "1.000,50" -> numero ; vuoto -> null ; errore -> NaN
     let t = String(s || '').trim().replace(/\s/g, '');
     if (!t) return null;
@@ -104,7 +119,7 @@
     const corpo = `<div class="form-grid">
       ${sc ? `<div class="f"><div class="kv"><div><span>Fratello</span><b>${esc(sc.fratello)}</b></div><div><span>Voce</span><b>${esc(sc.voce)}${sc.rate_totali > 1 ? ' · rata ' + sc.rata_n + '/' + sc.rate_totali : ''}</b></div><div><span>Residuo</span><b>${eur(sc.residuo)}</b></div></div></div>` : `
         <div class="f s6"><label for="m-voce">Voce</label><select id="m-voce" name="voce">${opzioni(personali.map((x) => ({ v: x.id, t: x.nome })), '')}</select></div>
-        <div class="f s6" id="w-frat"><label for="m-fratello">Fratello</label><select id="m-fratello" name="fratello"><option value="">— scegli —</option>${opzioni(frat.map((x) => ({ v: x.id, t: x.cognome + ' ' + x.nome })), '')}</select></div>
+        ${campoFratello(frat, { wid: 'w-frat' })}
         <div class="f s4" id="w-anno"><label for="m-anno">Anno della quota</label><input id="m-anno" name="anno" inputmode="numeric" maxlength="4" value="${pag.anno}"></div>
         <div class="f s8" id="w-scad"><label for="m-scad">Scadenza da saldare</label><select id="m-scad" name="scadenza"></select></div>`}
       ${campo('data', 'Data del versamento', oggi(), { type: 'date', cls: 's4' })}
@@ -131,9 +146,10 @@
           pay.voce_id = v.id;
           if (v.personale) {
             const anno = Number(f.elements.anno.value);
-            if (!f.elements.fratello.value) return errore('Scegli il Fratello.');
+            const fid = idFratello(frat, f.elements.fratello.value);
+            if (!fid) return errore('Indica il nome del Fratello: scrivi il cognome e scegli dall’elenco.');
             if (!Number.isInteger(anno) || anno < 2000 || anno > 2100) return errore('Anno non valido (4 cifre).');
-            Object.assign(pay, { fratello_id: f.elements.fratello.value, anno, scadenza_id: f.elements.scadenza.value || null });
+            Object.assign(pay, { fratello_id: fid, anno, scadenza_id: f.elements.scadenza.value || null });
           } else {
             Object.assign(pay, { fratello_id: null, anno: Number(data.slice(0, 4)), scadenza_id: null });
           }
@@ -147,14 +163,17 @@
     const aggiorna = () => {
       const v = pag.voci.find((x) => x.id === f.elements.voce.value);
       const pers = v ? v.personale : true;
-      ['w-frat', 'w-anno', 'w-scad'].forEach((id) => $('#' + id, f).classList.toggle('hidden', !pers));
-      if (!pers) return;
-      const aperte = pag.righe.filter((r) => r.fratello_id === f.elements.fratello.value && v && r.voce_codice === v.codice && r.anno === Number(f.elements.anno.value) && num(r.residuo) > 0);
+      ['w-anno', 'w-scad'].forEach((id) => $('#' + id, f).classList.toggle('hidden', !pers));
+      f.elements.fratello.disabled = !pers;
+      f.elements.fratello.placeholder = pers ? 'Scrivi il cognome e scegli dall’elenco' : 'Voce collettiva: non serve indicare il Fratello';
+      if (!pers) { f.elements.fratello.value = ''; return; }
+      const aperte = pag.righe.filter((r) => r.fratello_id === idFratello(frat, f.elements.fratello.value) && v && r.voce_codice === v.codice && r.anno === Number(f.elements.anno.value) && num(r.residuo) > 0);
       f.elements.scadenza.innerHTML = '<option value="">— nessuna (acconto non collegato) —</option>' + aperte.map((r) =>
         `<option value="${esc(r.id)}">${fmtData(r.data_scadenza)}${r.rate_totali > 1 ? ' · rata ' + r.rata_n + '/' + r.rate_totali : ''} · residuo ${eur(r.residuo)}</option>`).join('');
       if (aperte.length === 1) { f.elements.scadenza.value = aperte[0].id; if (!f.elements.importo.value) f.elements.importo.value = fmtInput(aperte[0].residuo); }
     };
     ['voce', 'fratello', 'anno'].forEach((n) => f.elements[n].addEventListener('change', aggiorna));
+    f.elements.fratello.addEventListener('input', aggiorna);
     f.elements.anno.addEventListener('input', aggiorna);
     f.elements.scadenza.addEventListener('change', () => {
       const r = pag.righe.find((x) => x.id === f.elements.scadenza.value);
@@ -205,7 +224,7 @@
     const fisso0 = voci[0].importo_fisso;
     const corpo = `<div class="form-grid">
       <div class="f s6"><label for="n-voce">Voce</label><select id="n-voce" name="voce">${opzioni(voci.map((x) => ({ v: x.codice, t: x.nome })), '')}</select></div>
-      <div class="f s6"><label for="n-frat">Fratello</label><select id="n-frat" name="fratello"><option value="">— scegli —</option>${opzioni(frat.map((x) => ({ v: x.id, t: x.cognome + ' ' + x.nome })), '')}</select></div>
+      ${campoFratello(frat, { id: 'n-frat' })}
       <div class="f s3"><label for="n-anno">Anno</label><input id="n-anno" name="anno" inputmode="numeric" maxlength="4" value="${pag.anno}"></div>
       ${campo('importo', 'Importo (€)', fisso0 !== null && fisso0 !== undefined ? fisso0 : '', { cls: 's4', ph: 'es. 260,00' }).replace(`value="${esc(fisso0)}"`, `value="${esc(fmtInput(fisso0))}"`)}
       ${campo('scadenza', 'Scadenza (facoltativa)', '', { type: 'date', cls: 's5' })}
@@ -216,7 +235,8 @@
       conferma: 'Crea scadenza',
       onSubmit: async (f, chiudi, errore) => {
         const anno = Number(f.elements.anno.value);
-        if (!f.elements.fratello.value) return errore('Scegli il Fratello.');
+        const fid = idFratello(frat, f.elements.fratello.value);
+        if (!fid) return errore('Indica il nome del Fratello: scrivi il cognome e scegli dall’elenco.');
         if (!Number.isInteger(anno) || anno < 2000 || anno > 2100) return errore('Anno non valido (4 cifre).');
         const v = voci.find((x) => x.codice === f.elements.voce.value);
         const imp = leggiImporto(f.elements.importo.value);
@@ -228,7 +248,7 @@
         const motivo = f.elements.motivo.value.trim();
         if (diverso && !motivo) return errore('Indica il motivo dell’eccezione: l’importo è diverso da quello previsto.');
         chk(await state.sb.rpc('crea_scadenza_singola', {
-          p_voce_codice: v.codice, p_fratello: f.elements.fratello.value, p_anno: anno, p_importo: imp,
+          p_voce_codice: v.codice, p_fratello: fid, p_anno: anno, p_importo: imp,
           p_data_scadenza: dt, p_motivo_eccezione: motivo || null, p_note: f.elements.note.value.trim() || null,
         }));
         chiudi(); toast('Scadenza creata', 'ok'); L.route();
@@ -375,9 +395,13 @@
     disegna();
   }
 
+  L.pagamenti = { pag, modal, avviso, leggiImporto, fmtInput, opzioni, fratelliPag, eur, num, canPay, BADGE, campoFratello, idFratello, vocePerCodice };
+
   /* ---------- vista principale ---------- */
   L.viste.pagamenti = async function (v, parti) {
-    const tab = ['versamenti', 'riepilogo'].includes(parti[1]) ? parti[1] : 'scadenze';
+    const extra = L.tabsPagamenti.filter((t) => t.ruoli.includes(state.profilo.ruolo));
+    const tab = ['versamenti', 'riepilogo'].concat(extra.map((t) => t.id)).includes(parti[1]) ? parti[1] : 'scadenze';
+    const tabExtra = extra.find((t) => t.id === tab);
     await carica(pag.anno);
     v.innerHTML = `
       <div class="page-head"><div><h1>Pagamenti e quote</h1><p>Capitazione, aumenti di salario, iniziazioni e Tronco della Vedova</p></div>
@@ -385,10 +409,11 @@
           <label class="lbl" for="p-anno">Anno</label><select id="p-anno" style="width:auto">${pag.anni.map((a) => `<option value="${a}" ${a === pag.anno ? 'selected' : ''}>${a}</option>`).join('')}</select>
           ${canPay() ? `<button class="btn gold" id="b-nver">${IC.plus} Nuovo versamento</button><button class="btn ghost" id="b-nsc">Nuova scadenza</button><button class="btn ghost" id="b-gen">Genera capitazione</button>` : ''}
         </div></div>
-      ${kpi()}
+      ${tabExtra && tabExtra.senzaKpi ? '' : kpi()}
       <div class="tabs"><a class="tab ${tab === 'scadenze' ? 'on' : ''}" href="#/pagamenti">Scadenze</a>
         <a class="tab ${tab === 'versamenti' ? 'on' : ''}" href="#/pagamenti/versamenti">Versamenti</a>
-        <a class="tab ${tab === 'riepilogo' ? 'on' : ''}" href="#/pagamenti/riepilogo">Riepilogo</a></div>
+        <a class="tab ${tab === 'riepilogo' ? 'on' : ''}" href="#/pagamenti/riepilogo">Riepilogo</a>
+        ${extra.map((t) => `<a class="tab ${tab === t.id ? 'on' : ''}" href="#/pagamenti/${esc(t.id)}">${esc(t.titolo)}</a>`).join('')}</div>
       <div id="p-corpo"></div>`;
     $('#p-anno').addEventListener('change', (e) => { pag.anno = Number(e.target.value); pag.filtri = { q: '', stato: '', voce: '' }; L.route(); });
     if (canPay()) {
@@ -396,6 +421,7 @@
       $('#b-nsc').onclick = () => apriNuovaScadenza().catch((e) => toast(messaggioErrore(e), 'bad'));
       $('#b-gen').onclick = () => apriGenera().catch((e) => toast(messaggioErrore(e), 'bad'));
     }
-    if (tab === 'scadenze') tabScadenze(); else if (tab === 'versamenti') tabVersamenti(); else tabRiepilogo();
+    if (tabExtra) await tabExtra.render($('#p-corpo'), L.pagamenti);
+    else if (tab === 'scadenze') tabScadenze(); else if (tab === 'versamenti') tabVersamenti(); else tabRiepilogo();
   };
 })();
