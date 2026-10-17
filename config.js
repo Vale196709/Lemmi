@@ -6,5 +6,5 @@
  * NON inserire mai qui la chiave "service_role". */
 window.LEMMI_CONFIG = {
   SUPABASE_URL: 'https://ykdxvxklppidopqultpw.supabase.co/rest/v1/',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZHh2eGtscHBpZG9wcXVsdHB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4MDYwMzEsImV4cCI6MjEwNzM4MjAzMX0.TycYJyHXQteU6kiGzoTVjvYZ841wtuMucp-wc81hyCQ',
+  SUPABASE_ANON_KEY: 'sb_publishable_EqrOtAz9c2ZqhHFn8i7xCw_gwCjojbx',
 };
