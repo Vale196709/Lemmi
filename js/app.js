@@ -265,14 +265,14 @@
     v.innerHTML = '<div class="loading"><span class="spin"></span></div>';
     window.scrollTo(0, 0);
     try {
-      if (sez === 'home') await vistaCruscotto(v);
+      if (API.viste[sez]) await API.viste[sez](v, parti);
+      else if (sez === 'home') await vistaCruscotto(v);
       else if (sez === 'bussanti' && parti[1] === 'nuovo') await vistaForm(v, null);
       else if (sez === 'bussanti' && parti[1] && parti[2] === 'modifica') await vistaForm(v, parti[1]);
       else if (sez === 'bussanti' && parti[1]) await vistaDettaglio(v, parti[1]);
       else if (sez === 'bussanti') await vistaBussanti(v);
       else if (sez === 'fratelli') await vistaFratelli(v);
       else if (sez === 'loggia') await vistaLoggia(v);
-      else if (API.viste[sez]) await API.viste[sez](v, parti);
       else v.innerHTML = '<div class="card empty">Pagina non trovata.</div>';
     } catch (e) {
       v.innerHTML = `<div class="notice bad"><b>Si è verificato un errore.</b><br>${esc(messaggioErrore(e))}</div>`;

@@ -239,3 +239,17 @@ tfoot td { background: #f8f9fd; border-top: 1px solid var(--line); }
 
 input[type=file].vis { display: block; padding: 9px; background: #f7f9fd; border-style: dashed; }
 details > summary { color: var(--navy); }
+
+/* ---------- Fratelli: ordinamento e storia ---------- */
+th.sort { cursor: pointer; user-select: none; }
+th.sort:hover { color: var(--ink); background: #eff2fa; }
+th.sort .arr { display: inline-block; min-width: 1em; color: var(--gold); }
+a.nome { color: var(--ink); font-weight: 700; }
+a.nome:hover { color: var(--info); }
+.timeline { display: flex; flex-direction: column; }
+.tl-item { display: grid; grid-template-columns: 96px 1fr auto; gap: 0 14px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+.tl-item:last-child { border-bottom: 0; }
+.tl-anno { font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
+.tl-body b { display: block; }
+.tl-tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--gold); font-weight: 700; margin-bottom: 2px; }
+@media (max-width: 880px) { .tl-item { grid-template-columns: 70px 1fr; } .tl-item .act { grid-column: 2; text-align: left; } }

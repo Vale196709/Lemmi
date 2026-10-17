@@ -69,6 +69,9 @@
     };
   }
 
+  // usata anche dalla scheda del Fratello
+  L.storia = { apriCarica: async (c, predefinito) => { await carica(); apriCarica(c, predefinito); } };
+
   /* ---------- vista ---------- */
   L.viste.storia = async function (v) {
     await carica();
@@ -96,7 +99,7 @@
         const lista = st.cariche.filter((x) => x.anno_dal <= st.anno && (x.anno_al || x.anno_dal) >= st.anno)
           .sort((a, b) => ordineCarica(a.carica) - ordineCarica(b.carica) || nominativo(a.fratello_id).localeCompare(nominativo(b.fratello_id)));
         $('#h-conta').textContent = lista.length + (lista.length === 1 ? ' carica' : ' cariche');
-        $('#h-righe').innerHTML = lista.length ? lista.map((x) => `<tr><td><b>${esc(x.carica)}</b></td><td>${esc(nominativo(x.fratello_id))}</td><td>${periodo(x)}</td><td>${esc(x.note || '')}</td><td class="act">${azioni(x)}</td></tr>`).join('')
+        $('#h-righe').innerHTML = lista.length ? lista.map((x) => `<tr><td><b>${esc(x.carica)}</b></td><td><a class="nome" href="#/fratelli/${esc(x.fratello_id)}">${esc(nominativo(x.fratello_id))}</a></td><td>${periodo(x)}</td><td>${esc(x.note || '')}</td><td class="act">${azioni(x)}</td></tr>`).join('')
           : `<tr><td colspan="5"><div class="empty">${IC.inbox}<div>Nessuna carica registrata per il ${st.anno}.</div></div></td></tr>`;
         lega();
       };

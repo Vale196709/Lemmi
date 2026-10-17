@@ -14,7 +14,7 @@ Nessun server da mantenere e nessun abbonamento.
 - **Conto di Loggia** (dentro Pagamenti): importazione dell'estratto conto della banca (xls, xlsx, csv) senza doppioni, categorie di entrata e di costo che si possono aggiungere (es. rimborso partecipazione Gran Loggia), movimenti inseriti a mano e collegamento dei bonifici dei Fratelli ai versamenti. Richiede lo script `lemmi_pagamenti_2.sql`.
 - **Copia di sicurezza** (pagina Loggia, solo amministratore): scarica tutti i dati in un unico file Excel, un foglio per tabella.
 - **Storia**: cariche ricoperte dai Fratelli per anno di competenza, consultabili per anno o per Fratello, con note.
-- **Fratelli**: consultazione dell'anagrafica (sola lettura).
+- **Fratelli**: elenco con intestazioni ordinabili (clic sul titolo della colonna), ricerca e filtri per stato e grado. Ogni nome apre la **scheda del Fratello**: dati anagrafici e storia in ordine cronologico (iniziazione, passaggi di grado, cariche). Amministratore e Segretario possono aggiungere e correggere cariche, passaggi di grado e date di nascita e di iniziazione.
 - **Loggia**: nome, numero e Oriente che intestano i moduli (solo amministratore).
 
 Permessi: amministratore e Segretario inseriscono e modificano i bussanti; il Venerabile consulta; solo l'amministratore elimina. Il Tesoriere vede solo Pagamenti e Loggia: insieme all'amministratore registra scadenze e versamenti, mentre Venerabile e Segretario consultano. Le regole sono applicate dal database (RLS), non solo dall'interfaccia.
@@ -66,6 +66,7 @@ js/pagamenti.js     scadenze, versamenti e riepilogo
 js/estratto.js      lettura degli estratti conto della banca
 js/conto.js         scheda Conto di Loggia
 js/storia.js        storia delle cariche dei Fratelli
+js/fratelli.js      elenco Fratelli e scheda con la storia
 js/backup.js        copia di sicurezza in Excel
 templates/          A1.pdf e C1.pdf (modelli ufficiali ed. 2024)
 vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file Excel): nessun CDN
