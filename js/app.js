@@ -99,11 +99,24 @@
     window.addEventListener('hashchange', () => { if (state.user && state.profilo) route(); });
     const url = cfg.SUPABASE_URL || '';
     if (!url || url.includes('XXXX') || !cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_ANON_KEY.startsWith('INCOLLA')) return renderSetup();
+    const recupero = /type=recovery/.test(location.hash);
+    const erroreLink = /error_description=/.test(location.hash);
     state.sb = window.supabase.createClient(url, cfg.SUPABASE_ANON_KEY);
     state.sb.auth.onAuthStateChange((ev) => {
+      if (ev === 'PASSWORD_RECOVERY') { state.recupero = true; renderNuovaPassword(); }
       if (ev === 'SIGNED_OUT') { state.user = null; state.profilo = null; state.fratelli = null; renderLogin(); }
     });
     const { data } = await state.sb.auth.getSession();
+    if (recupero) {
+      state.recupero = true;
+      if (data && data.session) renderNuovaPassword(); else renderLogin('Il link di recupero non è valido o è scaduto: richiedine uno nuovo.');
+      return;
+    }
+    if (erroreLink) {
+      history.replaceState(null, '', location.pathname + location.search);
+      renderLogin('Il link non è valido o è scaduto: richiedi un nuovo link di recupero.');
+      return;
+    }
     if (data && data.session) await avvia(data.session.user); else renderLogin();
   }
 
@@ -146,7 +159,9 @@
         <div class="f"><label for="pw">Password</label><input id="pw" name="password" type="password" required autocomplete="current-password"></div>
         <div class="err" id="login-err">${esc(errore || '')}</div>
         <button class="btn gold" type="submit">Accedi</button>
+        <a href="javascript:void(0)" id="l-forgot" style="text-align:center;font-size:.88rem">Password dimenticata?</a>
       </form></div></div>`;
+    $('#l-forgot').addEventListener('click', () => renderRecupero());
     $('#f-login').addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const btn = $('button', ev.target); btn.disabled = true;
@@ -154,6 +169,48 @@
       const { data, error } = await state.sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.password.value });
       btn.disabled = false;
       if (error) { $('#login-err').textContent = messaggioErrore(error); return; }
+      await avvia(data.user);
+    });
+  }
+
+  function renderRecupero(messaggio, ok) {
+    $('#app').innerHTML = `<div class="login"><div class="login-card">
+      <div class="logo-mark">${logoSvg()}</div><h1>Recupero password</h1><p>Ti invieremo un’e-mail con il link per sceglierne una nuova</p>
+      <form id="f-rec"><div class="f"><label for="rc-em">E-mail</label><input id="rc-em" name="email" type="email" required autocomplete="username" autofocus></div>
+        <div class="${ok ? 'notice' : 'err'}" id="rc-msg">${esc(messaggio || '')}</div>
+        <button class="btn gold" type="submit">Invia il link</button>
+        <a href="javascript:void(0)" id="rc-back" style="text-align:center;font-size:.88rem">Torna all’accesso</a></form></div></div>`;
+    $('#rc-back').addEventListener('click', () => renderLogin());
+    $('#f-rec').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const btn = $('button', ev.target); btn.disabled = true;
+      const email = ev.target.elements.email.value.trim();
+      const { error } = await state.sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+      btn.disabled = false;
+      if (error) { const m = $('#rc-msg'); m.className = 'err'; m.textContent = messaggioErrore(error); return; }
+      renderRecupero('Se l’indirizzo è registrato, riceverai a breve un’e-mail con il link. Controlla anche la cartella dello spam.', true);
+    });
+  }
+
+  function renderNuovaPassword(errore) {
+    $('#app').innerHTML = `<div class="login"><div class="login-card">
+      <div class="logo-mark">${logoSvg()}</div><h1>Nuova password</h1><p>Scegli la nuova password di accesso</p>
+      <form id="f-np"><div class="f"><label for="np1">Nuova password (almeno 8 caratteri)</label><input id="np1" name="p1" type="password" required autocomplete="new-password" autofocus></div>
+        <div class="f"><label for="np2">Ripeti la password</label><input id="np2" name="p2" type="password" required autocomplete="new-password"></div>
+        <div class="err" id="np-err">${esc(errore || '')}</div>
+        <button class="btn gold" type="submit">Salva la password</button></form></div></div>`;
+    $('#f-np').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const f = ev.target.elements; const err = $('#np-err');
+      if (f.p1.value.length < 8) { err.textContent = 'La password deve avere almeno 8 caratteri.'; return; }
+      if (f.p1.value !== f.p2.value) { err.textContent = 'Le due password non coincidono.'; return; }
+      const btn = $('button', ev.target); btn.disabled = true;
+      const { data, error } = await state.sb.auth.updateUser({ password: f.p1.value });
+      btn.disabled = false;
+      if (error) { err.textContent = messaggioErrore(error); return; }
+      state.recupero = false;
+      history.replaceState(null, '', location.pathname + location.search);
+      toast('Password aggiornata', 'ok');
       await avvia(data.user);
     });
   }
@@ -683,6 +740,7 @@
         <div class="f s4"><label for="l-or">Oriente di</label><input id="l-or" name="oriente" value="${esc(l.oriente)}" ${modifica ? '' : 'disabled'}></div>
       </div></div>
       ${modifica ? '<div class="actions"><button class="btn gold" type="submit">Salva</button></div>' : '<p class="muted">Solo l’amministratore può modificare questi dati.</p>'}</form>`;
+    API.estensioniLoggia.forEach((fn) => fn(v));
     if (!modifica) return;
     $('#f-l').addEventListener('submit', async (ev) => {
       ev.preventDefault();
@@ -708,7 +766,27 @@
   }
 
   // Interfaccia messa a disposizione dei moduli aggiuntivi (es. js/pagamenti.js)
-  const API = window.Lemmi = { state, $, $$, esc, chk, toast, messaggioErrore, fmtData, isoToIt, itToIso, oggi, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {} };
+  const API = window.Lemmi = { state, $, $$, esc, chk, toast, messaggioErrore, fmtData, isoToIt, itToIso, oggi, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
+  API.estensioniLoggia.push(schedaPassword);
+
+  function schedaPassword(v) {
+    v.insertAdjacentHTML('beforeend', `<div class="card" style="margin-top:18px"><h2>Il tuo accesso</h2>
+      <form id="f-pw" class="form-grid">
+        <div class="f s4"><label for="pw1">Nuova password (almeno 8 caratteri)</label><input id="pw1" name="p1" type="password" autocomplete="new-password"></div>
+        <div class="f s4"><label for="pw2">Ripeti la password</label><input id="pw2" name="p2" type="password" autocomplete="new-password"></div>
+        <div class="f s4"><label>&nbsp;</label><button class="btn ghost" type="submit">Cambia password</button></div>
+        <div class="f err" id="pw-err"></div></form></div>`);
+    $('#f-pw').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const f = ev.target.elements; const err = $('#pw-err'); err.textContent = '';
+      if (f.p1.value.length < 8) { err.textContent = 'La password deve avere almeno 8 caratteri.'; return; }
+      if (f.p1.value !== f.p2.value) { err.textContent = 'Le due password non coincidono.'; return; }
+      const { error } = await state.sb.auth.updateUser({ password: f.p1.value });
+      if (error) { err.textContent = messaggioErrore(error); return; }
+      f.p1.value = ''; f.p2.value = '';
+      toast('Password aggiornata', 'ok');
+    });
+  }
 
   document.addEventListener('DOMContentLoaded', init);
 })();

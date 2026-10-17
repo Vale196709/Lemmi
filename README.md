@@ -5,13 +5,14 @@ Nessun server da mantenere e nessun abbonamento.
 
 ## Cosa fa (versione 0.1)
 
-- **Accesso** con e-mail e password (utenti già creati su Supabase).
+- **Accesso** con e-mail e password (utenti già creati su Supabase), con recupero della password via e-mail e cambio password dalla pagina Loggia.
 - **Cruscotto** con contatori e prossime votazioni.
 - **Bussanti**: elenco con ricerca, inserimento e modifica della pratica.
 - **Moduli GOI precompilati**: genera **A/1** e **C/1** (ed. 2024) scrivendo i dati sui PDF originali, anche in un unico PDF. Opzione "copia per il Collegio" (A/1 senza pagina 5).
 - **Documenti allegati**: caricamento di certificati, curriculum, foto e moduli firmati in un archivio privato; apertura con link temporaneo di 2 minuti.
 - **Pagamenti e quote**: scadenze della capitazione (per fasce d'età, in unica rata o in due), aumenti di salario, iniziazioni; registrazione dei versamenti, anche per il Tronco della Vedova; riepilogo per voce e per Fratello. Richiede l'esecuzione dello script `lemmi_pagamenti.sql` su Supabase.
 - **Conto di Loggia** (dentro Pagamenti): importazione dell'estratto conto della banca (xls, xlsx, csv) senza doppioni, categorie di entrata e di costo che si possono aggiungere (es. rimborso partecipazione Gran Loggia), movimenti inseriti a mano e collegamento dei bonifici dei Fratelli ai versamenti. Richiede lo script `lemmi_pagamenti_2.sql`.
+- **Copia di sicurezza** (pagina Loggia, solo amministratore): scarica tutti i dati in un unico file Excel, un foglio per tabella.
 - **Storia**: cariche ricoperte dai Fratelli per anno di competenza, consultabili per anno o per Fratello, con note.
 - **Fratelli**: consultazione dell'anagrafica (sola lettura).
 - **Loggia**: nome, numero e Oriente che intestano i moduli (solo amministratore).
@@ -48,9 +49,10 @@ Nota: sul piano gratuito GitHub Pages richiede un repository **pubblico**. Nel r
 
 ## 4. Sicurezza su Supabase (consigliato)
 
-- *Authentication → Sign In / Providers → Email*: disattiva **Allow new users to sign up**, così nessuno può registrarsi da solo.
-- Gli utenti si creano dal pannello (*Authentication → Users*) e il ruolo si assegna nella tabella `profili`.
-- Se in futuro userai link via e-mail o reimpostazione password: *Authentication → URL Configuration* → imposta come **Site URL** l'indirizzo dell'app.
+- **Registrazioni libere:** in *Authentication → Sign In / Providers → Email* disattiva **Allow new users to sign up**, così nessuno può registrarsi da solo. Gli utenti si creano dal pannello (*Authentication → Users*) e il ruolo si assegna nella tabella `profili`.
+- **Recupero password:** in *Authentication → URL Configuration* imposta come **Site URL** l'indirizzo dell'app (es. `https://TUO-UTENTE.github.io/lemmi/`) e aggiungilo anche tra i **Redirect URLs**. Senza questo passaggio il link ricevuto per e-mail non riporta all'app.
+- **Chiave di accesso:** Supabase sta sostituendo le chiavi `anon` con le chiavi **publishable** (iniziano con `sb_publishable_`). La libreria inclusa (supabase-js 2.117.2) le accetta. Per passare: *Project Settings → API Keys → Publishable and secret API keys*, copia la chiave publishable e incollala in `js/config.js` al posto della chiave `anon`. Fallo dopo aver verificato che l'accesso funzioni, e mai con chiavi `secret` o `service_role`.
+- **Copia di sicurezza:** scaricala dalla pagina Loggia una volta al mese e prima di ogni aggiornamento.
 
 ## Struttura
 
@@ -64,6 +66,7 @@ js/pagamenti.js     scadenze, versamenti e riepilogo
 js/estratto.js      lettura degli estratti conto della banca
 js/conto.js         scheda Conto di Loggia
 js/storia.js        storia delle cariche dei Fratelli
+js/backup.js        copia di sicurezza in Excel
 templates/          A1.pdf e C1.pdf (modelli ufficiali ed. 2024)
 vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file Excel): nessun CDN
 ```
