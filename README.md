@@ -15,6 +15,7 @@ Nessun server da mantenere e nessun abbonamento.
 - **Copia di sicurezza** (pagina Loggia, solo amministratore): scarica tutti i dati in un unico file Excel, un foglio per tabella.
 - **Storia**: cariche ricoperte dai Fratelli per anno di competenza, consultabili per anno o per Fratello, con note.
 - **Fratelli**: elenco con intestazioni ordinabili (clic sul titolo della colonna), ricerca e filtri per stato e grado. Ogni nome apre la **scheda del Fratello**: dati anagrafici e storia in ordine cronologico (iniziazione, passaggi di grado, cariche). Amministratore e Segretario possono aggiungere e correggere cariche, passaggi di grado e date di nascita e di iniziazione.
+- **Calendario**: tornate ordinarie (1° e 3° mercoledì), informali via web (2° e 4° lunedì), straordinarie e agapi. Il pulsante "Genera calendario" crea le date dell'anno saltando le sospensioni (estate e feste di fine anno, modificabili); ogni tornata ha ora, grado (scelto di volta in volta), luogo o collegamento online, ordine del giorno, relatore e stato. Amministratore, Venerabile e Segretario inseriscono e modificano; amministratore e Segretario eliminano; tutti i ruoli consultano. Richiede lo script `lemmi_officina_calendario.sql`.
 - **Loggia**: nome, numero e Oriente che intestano i moduli (solo amministratore).
 
 Permessi: amministratore e Segretario inseriscono e modificano i bussanti; il Venerabile consulta; solo l'amministratore elimina. Il Tesoriere vede solo Pagamenti e Loggia: insieme all'amministratore registra scadenze e versamenti, mentre Venerabile e Segretario consultano. Le regole sono applicate dal database (RLS), non solo dall'interfaccia.
@@ -67,6 +68,7 @@ js/estratto.js      lettura degli estratti conto della banca
 js/conto.js         scheda Conto di Loggia
 js/storia.js        storia delle cariche dei Fratelli
 js/fratelli.js      elenco Fratelli e scheda con la storia
+js/calendario.js    calendario delle tornate
 js/backup.js        copia di sicurezza in Excel
 templates/          A1.pdf e C1.pdf (modelli ufficiali ed. 2024)
 vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file Excel): nessun CDN

@@ -13,7 +13,7 @@
     ['scadenze', 'creato_il'], ['versamenti', 'data_versamento'], ['categorie_movimento', 'nome'],
     ['import_estratti', 'creato_il'], ['conto_movimenti', 'data_operazione'],
     ['modelli_messaggio', 'codice'], ['messaggi', 'creato_il'], ['messaggi_destinatari', 'id'],
-    ['cronologia_modifiche', 'id'],
+    ['cronologia_modifiche', 'id'], ['tornate', 'data'],
   ];
   const BLOCCO = 1000;
   const MAX_RIGHE = { cronologia_modifiche: 20000 };

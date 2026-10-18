@@ -8,7 +8,7 @@
   const RUOLI_ACCESSO = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const TUTTI = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const SOCI = ['amministratore', 'venerabile', 'segretario'];
-  const ACCESSO_SEZ = { home: SOCI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, pagamenti: TUTTI, loggia: TUTTI };
+  const ACCESSO_SEZ = { home: SOCI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: TUTTI, pagamenti: TUTTI, loggia: TUTTI };
   const ETICHETTA_RUOLO = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere' };
 
   const TIPI_DOMANDA = {
@@ -72,6 +72,7 @@
     pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 14h6M9 17h4"/></svg>',
     up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>',
     storia: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5M9 7h6M9 11h6"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>',
     euro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 6.5a6.5 6.5 0 100 11"/><path d="M4 10.5h9M4 13.5h9"/></svg>',
     inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6z"/></svg>',
   };
@@ -229,7 +230,7 @@
       <aside class="side">
         <div class="brand"><div class="logo-mark">${logoSvg()}</div><div><b>Lemmi</b><small>${esc(state.loggia.nome || 'Gestione di Loggia')}</small></div></div>
         <nav class="nav">
-          ${[['home', '#/', 'Cruscotto', IC.home], ['bussanti', '#/bussanti', 'Bussanti', IC.user], ['fratelli', '#/fratelli', 'Fratelli', IC.users], ['storia', '#/storia', 'Storia', IC.storia],
+          ${[['home', '#/', 'Cruscotto', IC.home], ['bussanti', '#/bussanti', 'Bussanti', IC.user], ['fratelli', '#/fratelli', 'Fratelli', IC.users], ['storia', '#/storia', 'Storia', IC.storia], ['calendario', '#/calendario', 'Calendario', IC.calendar],
              ['pagamenti', '#/pagamenti', 'Pagamenti', IC.euro], ['loggia', '#/loggia', 'Loggia', IC.building]]
             .filter((x) => ACCESSO_SEZ[x[0]].includes(p.ruolo))
             .map((x) => `<a href="${x[1]}" data-nav="${x[0]}">${x[3]}<span>${x[2]}</span></a>`).join('')}
