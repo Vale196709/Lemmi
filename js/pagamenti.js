@@ -228,7 +228,7 @@
       <div class="f s3"><label for="n-anno">Anno</label><input id="n-anno" name="anno" inputmode="numeric" maxlength="4" value="${pag.anno}"></div>
       ${campo('importo', 'Importo (€)', fisso0 !== null && fisso0 !== undefined ? fisso0 : '', { cls: 's4', ph: 'es. 260,00' }).replace(`value="${esc(fisso0)}"`, `value="${esc(fmtInput(fisso0))}"`)}
       ${campo('scadenza', 'Scadenza (facoltativa)', '', { type: 'date', cls: 's5' })}
-      <div class="f hidden" id="w-motivo"><label for="n-motivo">Motivo dell’eccezione <span class="req">*</span></label><input id="n-motivo" name="motivo" placeholder="es. minore di 30 anni"></div>
+      <div class="f hidden" id="w-motivo"><label for="n-motivo">Motivo dell’importo diverso da quello previsto <span class="req">*</span></label><input id="n-motivo" name="motivo" placeholder="es. importo concordato con il Venerabile"></div>
       ${campo('note', 'Note', '', { cls: 's12' })}
       <div class="f hint" id="n-hint"></div></div>`;
     const m = modal('Nuova scadenza', corpo, {
@@ -246,12 +246,26 @@
         if (dt === 'ERR') return errore('Scadenza non valida: usa il formato gg/mm/aaaa.');
         const diverso = imp !== null && v.importo_fisso !== null && v.importo_fisso !== undefined && imp !== num(v.importo_fisso);
         const motivo = f.elements.motivo.value.trim();
-        if (diverso && !motivo) return errore('Indica il motivo dell’eccezione: l’importo è diverso da quello previsto.');
-        chk(await state.sb.rpc('crea_scadenza_singola', {
+        if (diverso && !motivo) return errore('Indica il motivo dell’importo diverso da quello previsto.');
+        const nuovoId = chk(await state.sb.rpc('crea_scadenza_singola', {
           p_voce_codice: v.codice, p_fratello: fid, p_anno: anno, p_importo: imp,
           p_data_scadenza: dt, p_motivo_eccezione: motivo || null, p_note: f.elements.note.value.trim() || null,
         }));
-        chiudi(); toast('Scadenza creata', 'ok'); L.route();
+        chiudi();
+        // Se la scadenza è nata con un'esenzione per età, lo si comunica subito
+        let esente = null;
+        try {
+          const rr = chk(await state.sb.from('v_scadenze_stato').select('fratello,voce,importo_base,sconto,motivo_eccezione').eq('id', nuovoId).single());
+          if (num(rr.sconto) > 0) esente = rr;
+        } catch (e) { /* l'avviso è facoltativo */ }
+        if (esente) {
+          avviso('Scadenza creata con esenzione',
+            `<div class="notice"><b>${esc(esente.fratello)}</b> · ${esc(esente.voce)}<br>Importo previsto ${eur(esente.importo_base)}, sconto applicato ${eur(esente.sconto)}.<br>${esc(esente.motivo_eccezione || '')}</div>
+             <p class="muted">L’esenzione per età è automatica. Se non va applicata, apri la scadenza con «Modifica» e azzera lo sconto.</p>`);
+        } else {
+          toast('Scadenza creata', 'ok');
+        }
+        L.route();
       },
     });
     const f = m.f;
@@ -261,7 +275,8 @@
       const imp = leggiImporto(f.elements.importo.value);
       const diverso = v && v.importo_fisso !== null && v.importo_fisso !== undefined && imp !== null && !Number.isNaN(imp) && imp !== num(v.importo_fisso);
       $('#w-motivo', f).classList.toggle('hidden', !diverso);
-      $('#n-hint').textContent = v && v.note ? v.note : '';
+      const esenz = v && v.esenzione_eta_sotto ? ' L’esenzione per età si applica in automatico alla creazione (si può togliere da «Modifica»).' : '';
+      $('#n-hint').textContent = v ? ((v.note || '') + esenz).trim() : '';
     };
     f.elements.voce.addEventListener('change', () => aggiorna(true));
     f.elements.importo.addEventListener('input', () => aggiorna(false));
