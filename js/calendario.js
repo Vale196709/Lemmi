@@ -19,7 +19,7 @@
   const MESI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
   const GIORNI = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
 
-  const st = { righe: [], anno: new Date().getFullYear(), tipo: '', nascondiAnnullate: false };
+  const st = { righe: [], lavori: {}, anno: new Date().getFullYear(), tipo: '', nascondiAnnullate: false };
 
   const giornoSettimana = (iso) => { const [a, m, g] = iso.split('-').map(Number); return GIORNI[new Date(Date.UTC(a, m - 1, g)).getUTCDay()]; };
   const hhmm = (t) => (t ? String(t).slice(0, 5) : '');
@@ -30,6 +30,21 @@
   async function carica() {
     const dal = st.anno + '-01-01', al = st.anno + '-12-31';
     st.righe = chk(await state.sb.from('tornate').select('*').gte('data', dal).lte('data', al).order('data').order('ora'));
+    // lavori e tavole collegati (solo per chi può vederli; per gli altri resta vuoto)
+    st.lavori = {};
+    if (puoScrivere()) {
+      try {
+        const ids = st.righe.map((t) => t.id);
+        if (ids.length) {
+          const [lav, fra] = await Promise.all([
+            state.sb.from('lavori').select('titolo,tornata_id,fratello_id,autore_esterno').in('tornata_id', ids),
+            state.sb.from('fratelli').select('id,cognome,nome'),
+          ]);
+          const nomi = {}; chk(fra).forEach((f) => { nomi[f.id] = f.cognome + ' ' + f.nome; });
+          chk(lav).forEach((l) => { (st.lavori[l.tornata_id] = st.lavori[l.tornata_id] || []).push(l.titolo + ' — ' + (l.fratello_id ? nomi[l.fratello_id] || '' : l.autore_esterno || '')); });
+        }
+      } catch (e) { st.lavori = {}; }
+    }
   }
 
   /* ---------- finestra generica ---------- */
@@ -198,7 +213,7 @@
             ? (link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Apri collegamento</a>` : '<span class="muted">collegamento da indicare</span>')
             : esc(t.luogo || '—');
           const segni = [t.di_famiglia ? '<span class="badge gold">di Famiglia</span>' : '', t.formazione ? '<span class="badge info">formazione</span>' : '', t.solennita ? `<span class="badge gray">${esc(t.solennita)}</span>` : ''].filter(Boolean).join(' ');
-          const extra = [t.relatore ? 'Relatore: ' + esc(t.relatore) : '', t.ordine_del_giorno ? esc(t.ordine_del_giorno).replace(/\n/g, '<br>') : ''].filter(Boolean).join('<br>');
+          const extra = [t.relatore ? 'Relatore: ' + esc(t.relatore) : '', ...(st.lavori[t.id] || []).map((x) => 'Lavoro: ' + esc(x)), t.ordine_del_giorno ? esc(t.ordine_del_giorno).replace(/\n/g, '<br>') : ''].filter(Boolean).join('<br>');
           const passata = t.data < oggiIso;
           return `<tr style="${t.stato === 'annullata' ? 'opacity:.55;' : ''}">
             <td><b>${fmtData(t.data)}</b><br><span class="muted">${giornoSettimana(t.data)}</span>${t.data === oggiIso ? ' <span class="badge ok">oggi</span>' : ''}</td>

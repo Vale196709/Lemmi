@@ -134,6 +134,8 @@
         else L.storia.apriCarica(cariche.find((x) => x.id === b.dataset.id)).catch((x) => toast(messaggioErrore(x), 'bad'));
       }));
     }
+    // riquadri aggiuntivi (es. Lavori e tavole): un errore qui non deve rompere la scheda
+    for (const fn of (L.schedaExtra || [])) { try { await fn(v, id); } catch (e) { /* facoltativo */ } }
   }
 
   /* ---------- passaggio di grado ---------- */
