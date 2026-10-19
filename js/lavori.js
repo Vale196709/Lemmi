@@ -85,13 +85,17 @@
   const rimuoviOggetto = async (path) => { if (path) { try { await state.sb.storage.from(BUCKET).remove([path]); } catch (e) { /* si ripulisce a mano se serve */ } } };
 
   /* ---------- nuovo / modifica ---------- */
-  async function apriLavoro(l) {
+  async function apriLavoro(l, predef) {
     const nuovo = !l;
-    const x = l || { titolo: '', tema: '', tipo: 'tavola', fratello_id: null, autore_esterno: '', grado_autore: '', grado_tornata: '', tornata_id: '', data_assegnazione: oggi(), data_consegna_prevista: '', data_presentazione: '', stato: 'assegnato', note: '' };
+    if (!lv.fratelli.length) lv.fratelli = chk(await state.sb.from('fratelli').select('id,cognome,nome,stato').order('cognome'));
+    const x = l || Object.assign({ titolo: '', tema: '', tipo: 'tavola', fratello_id: null, autore_esterno: '', grado_autore: '', grado_tornata: '', tornata_id: '', data_assegnazione: oggi(), data_consegna_prevista: '', data_presentazione: '', stato: 'assegnato', note: '' }, predef || {});
     // tornate selezionabili: dagli ultimi 4 mesi in avanti, più quella già collegata
     const da = new Date(); da.setMonth(da.getMonth() - 4);
     const tor = chk(await state.sb.from('tornate').select('id,data,tipo,grado').gte('data', da.toISOString().slice(0, 10)).neq('stato', 'annullata').order('data').limit(250));
-    if (x.tornata_id && !tor.find((t) => t.id === x.tornata_id) && lv.tornate[x.tornata_id]) tor.push(lv.tornate[x.tornata_id]);
+    if (x.tornata_id && !tor.find((t) => t.id === x.tornata_id)) {
+      const gia = lv.tornate[x.tornata_id] || chk(await state.sb.from('tornate').select('id,data,tipo,grado').eq('id', x.tornata_id).maybeSingle());
+      if (gia) tor.push(gia);
+    }
     tor.sort((a, b) => a.data.localeCompare(b.data));
     const esterno = !!(x.autore_esterno && !x.fratello_id);
 
@@ -203,6 +207,8 @@
       if (t && t.grado && !m.f.elements.grado_tornata.value) m.f.elements.grado_tornata.value = t.grado;
     });
 
+    if (nuovo && x.fratello_id) proponiGrado();
+
     const del = $('[data-del]', m.ov);
     if (del) del.onclick = async () => {
       if (!window.confirm('Eliminare definitivamente questo lavoro e il file allegato?')) return;
@@ -213,6 +219,8 @@
       } catch (er) { m.errore(messaggioErrore(er)); }
     };
   }
+
+  L.lavori = { apri: apriLavoro, scarica: scaricaFile };
 
   /* ---------- vista ---------- */
   L.viste.lavori = async function (v) {
@@ -269,20 +277,33 @@
     disegna();
   };
 
-  /* ---------- riquadro nella scheda del Fratello ---------- */
+  /* ---------- fascicolo nella scheda del Fratello ---------- */
   L.schedaExtra = L.schedaExtra || [];
   L.schedaExtra.push(async (v, fratelloId) => {
     if (!puoGestire()) return;
-    const righe = chk(await state.sb.from('lavori').select('id,titolo,tipo,stato,tornata_id,data_presentazione').eq('fratello_id', fratelloId).order('created_at', { ascending: false }));
+    const righe = chk(await state.sb.from('lavori').select('*').eq('fratello_id', fratelloId).order('created_at', { ascending: false }));
     const ids = Array.from(new Set(righe.map((r) => r.tornata_id).filter(Boolean)));
     const tor = {};
-    if (ids.length) chk(await state.sb.from('tornate').select('id,data').in('id', ids)).forEach((t) => { tor[t.id] = t; });
-    const html = `<div class="card"><h2>Lavori e tavole <small>${righe.length}</small></h2>
-      ${righe.length ? `<div class="table-wrap"><table><tbody>${righe.map((r) => `<tr><td><b>${esc(r.titolo)}</b><div class="hint">${esc(TIPI[r.tipo] || r.tipo)}</div></td>
-        <td>${tor[r.tornata_id] ? fmtData(tor[r.tornata_id].data) : '<span class="muted">data da stabilire</span>'}</td>
-        <td><span class="badge ${STATO_BADGE[r.stato]}">${esc(STATI[r.stato])}</span></td></tr>`).join('')}</tbody></table></div>`
+    if (ids.length) chk(await state.sb.from('tornate').select('id,data,tipo,grado').in('id', ids)).forEach((t) => { tor[t.id] = t; });
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0;flex:1">Fascicolo dei lavori e delle tavole <small>${righe.length}</small></h2>
+        <button class="btn gold small" data-nuovo>${IC.plus} Aggiungi lavoro</button></div>
+      ${righe.length ? `<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Lavoro</th><th>Tornata</th><th>Stato</th><th>File</th><th></th></tr></thead><tbody>${righe.map((r) => `<tr>
+        <td><b>${esc(r.titolo)}</b><div class="hint">${esc(TIPI[r.tipo] || r.tipo)}${r.tema ? ' · ' + esc(r.tema) : ''}</div></td>
+        <td>${tor[r.tornata_id] ? esc(etichettaTornata(tor[r.tornata_id])) : '<span class="muted">da stabilire</span>'}</td>
+        <td><span class="badge ${STATO_BADGE[r.stato]}">${esc(STATI[r.stato])}</span>${r.data_presentazione ? `<div class="hint">${fmtData(r.data_presentazione)}</div>` : ''}</td>
+        <td>${r.file_path ? `<button class="btn ghost small" data-dl="${esc(r.id)}" title="${esc(r.file_nome || '')}">Scarica</button>` : '<span class="muted">—</span>'}</td>
+        <td class="act"><button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button></td></tr>`).join('')}</tbody></table></div>`
         : `<div class="empty">${IC.inbox}<div>Nessun lavoro registrato per questo Fratello.</div></div>`}
-      <div style="margin-top:10px"><a href="#/lavori">Vai a Lavori e tavole</a></div></div>`;
-    v.insertAdjacentHTML('beforeend', html);
+      <div style="margin-top:10px"><a href="#/lavori">Vai all’elenco completo</a></div>`;
+    v.appendChild(card);
+    $('[data-nuovo]', card).onclick = () => apriLavoro(null, { fratello_id: fratelloId }).catch((e) => toast(messaggioErrore(e), 'bad'));
+    $$('[data-mod]', card).forEach((b) => b.addEventListener('click', () => apriLavoro(righe.find((x) => x.id === b.dataset.mod)).catch((e) => toast(messaggioErrore(e), 'bad'))));
+    $$('[data-dl]', card).forEach((b) => b.addEventListener('click', async () => {
+      b.disabled = true;
+      try { await scaricaFile(righe.find((x) => x.id === b.dataset.dl)); } catch (e) { toast(messaggioErrore(e), 'bad'); }
+      b.disabled = false;
+    }));
   });
 })();

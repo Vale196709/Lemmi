@@ -74,6 +74,12 @@ a:hover { text-decoration: underline; }
 .nav .nav-head:hover { background: rgba(255, 255, 255, .07); }
 .nav .nav-head::after { content: ''; margin-left: auto; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; opacity: .7; }
 .nav .nav-group.open > .nav-head::after { transform: rotate(45deg); }
+.nav .nav-top { display: flex; align-items: center; gap: 2px; }
+.nav .nav-top > a { flex: 1; min-width: 0; }
+.nav .nav-tog { flex: none; width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: #cfd7ee; cursor: pointer; position: relative; }
+.nav .nav-tog:hover { background: rgba(255, 255, 255, .07); }
+.nav .nav-tog::after { content: ''; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -5px 0 0 -4px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; opacity: .75; }
+.nav .nav-group.open > .nav-top > .nav-tog::after { transform: rotate(45deg); }
 .nav .nav-sub a.sub { margin-left: 18px; padding: 8px 12px; font-size: .92rem; }
 .nav .nav-sub a.sub svg { width: 16px; height: 16px; }
 .nav .nav-group.chiudibile:not(.open) > .nav-sub { display: none; }
@@ -226,6 +232,8 @@ input[type=file] { display: none; }
   .nav a span { display: none; }
   .nav .nav-group { display: contents; }
   .nav .nav-head { display: none; }
+  .nav .nav-top { display: contents; }
+  .nav .nav-tog { display: none; }
   .nav .nav-group.chiudibile:not(.open) > .nav-sub { display: contents; }
   .nav .nav-sub { display: contents; }
   .nav .nav-sub a.sub { margin: 0; padding: 8px 10px; }

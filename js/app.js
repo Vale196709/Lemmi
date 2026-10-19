@@ -230,9 +230,9 @@
   // è una pagina (Fratelli), altrimenti è solo un contenitore che si apre e si chiude (Configurazione).
   const MENU = [
     { sez: 'home', href: '#/', t: 'Cruscotto', ic: IC.home },
-    { sez: 'calendario', href: '#/calendario', t: 'Calendario', ic: IC.calendar, sub: [{ sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }] },
+    { sez: 'calendario', href: '#/calendario', t: 'Calendario', ic: IC.calendar },
     { sez: 'pagamenti', href: '#/pagamenti', t: 'Pagamenti', ic: IC.euro },
-    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli', ic: IC.users, sub: [{ sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }] },
+    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli', ic: IC.users, sub: [{ sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }] },
     { sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user },
     { gruppo: 'config', t: 'Configurazione', ic: IC.gear, sub: [{ sez: 'loggia', href: '#/loggia', t: 'Loggia', ic: IC.building }] },
   ];
@@ -245,10 +245,10 @@
       const subs = x.sub.filter((s) => puo(s.sez));
       const conPagina = !!x.sez;
       const testa = conPagina
-        ? (puo(x.sez) ? link(x) : '')
+        ? (puo(x.sez) ? `<div class="nav-top">${link(x)}<button type="button" class="nav-tog" aria-expanded="false" aria-label="Apri o chiudi le sottovoci di ${esc(x.t)}"></button></div>` : '')
         : (subs.length ? `<button type="button" class="nav-head" aria-expanded="false">${x.ic}<span>${esc(x.t)}</span></button>` : '');
       if (!testa && !subs.length) return '';
-      return `<div class="nav-group ${conPagina ? 'fisso' : 'chiudibile'}" data-grp="${esc(x.sez || x.gruppo)}">${testa}<div class="nav-sub">${subs.map((s) => link(s, 'sub')).join('')}</div></div>`;
+      return `<div class="nav-group chiudibile" data-grp="${esc(x.sez || x.gruppo)}">${testa}<div class="nav-sub">${subs.map((s) => link(s, 'sub')).join('')}</div></div>`;
     }).join('');
   }
 
@@ -263,7 +263,7 @@
       </aside>
       <main id="view"></main></div>`;
     $('#b-logout').onclick = () => state.sb.auth.signOut();
-    $$('.nav-head').forEach((b) => b.addEventListener('click', () => {
+    $$('.nav-head, .nav-tog').forEach((b) => b.addEventListener('click', () => {
       const g = b.closest('.nav-group');
       const aperto = g.classList.toggle('open');
       b.setAttribute('aria-expanded', aperto ? 'true' : 'false');
@@ -287,7 +287,7 @@
     const sez = parti[0] || 'home';
     $$('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.nav === sez));
     $$('.nav-group.chiudibile').forEach((g) => {
-      if (g.querySelector('a.active')) { g.classList.add('open'); const h = $('.nav-head', g); if (h) h.setAttribute('aria-expanded', 'true'); }
+      if (g.querySelector('a.active')) { g.classList.add('open'); const h = $('.nav-head, .nav-tog', g); if (h) h.setAttribute('aria-expanded', 'true'); }
     });
     if (sez === 'home' && !ACCESSO_SEZ.home.includes(state.profilo.ruolo)) { location.hash = '#/pagamenti'; return; }
     const v = $('#view');

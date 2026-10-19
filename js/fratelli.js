@@ -82,7 +82,7 @@
     return a;
   };
 
-  function eventi(f, passaggi, cariche) {
+  function eventi(f, passaggi, cariche, extra) {
     const ev = [];
     if (f.data_iniziazione || f.anno_iniziazione) {
       const anno = f.anno_iniziazione || Number(String(f.data_iniziazione).slice(0, 4));
@@ -90,7 +90,40 @@
     }
     passaggi.forEach((p) => ev.push({ tipo: 1, anno: p.anno, chiave: p.data || '', etichetta: String(p.anno), titolo: rango(p.grado) <= 1 ? 'Grado di ' + cap(p.grado) : 'Passaggio a ' + cap(p.grado), dettaglio: p.data ? fmtData(p.data) : '', modifica: 'grado', id: p.id }));
     cariche.forEach((c) => ev.push({ tipo: 2, anno: c.anno_dal, chiave: '', etichetta: c.anno_al && c.anno_al !== c.anno_dal ? c.anno_dal + '–' + c.anno_al : String(c.anno_dal), titolo: c.carica, dettaglio: c.note || '', modifica: 'carica', id: c.id }));
-    return ev.sort((a, b) => a.anno - b.anno || a.tipo - b.tipo || String(a.chiave).localeCompare(String(b.chiave)));
+    (extra || []).forEach((e) => ev.push(e));
+    const ORD = [0, 1, 2, -1, 3];   // a pari anno: Bussante, Iniziazione, Grado, Carica, Tavola
+    return ev.sort((a, b) => a.anno - b.anno || ORD[a.tipo] - ORD[b.tipo] || String(a.chiave).localeCompare(String(b.chiave)));
+  }
+
+  // Eventi che arrivano da altri registri: la domanda da Bussante e le tavole presentate
+  const norm = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  async function eventiAggiuntivi(f) {
+    const sb = state.sb, ev = [];
+    try {   // Bussante: stessa persona = stesso cognome e nome (e, se noti a entrambi, stessa data di nascita)
+      const bu = chk(await sb.from('bussanti').select('id,cognome,nome,data_nascita,tipo_domanda,data_domanda,data_presa_in_considerazione,data_prima_votazione,data_seconda_votazione'));
+      bu.filter((b) => norm(b.cognome) === norm(f.cognome) && norm(b.nome) === norm(f.nome) && (!b.data_nascita || !f.data_nascita || b.data_nascita === f.data_nascita)).forEach((b) => {
+        const d = b.data_domanda || b.data_presa_in_considerazione || b.data_prima_votazione;
+        if (!d) return;
+        const tipo = String(b.tipo_domanda || 'iniziazione').replace(/_/g, ' ');
+        const parti = [b.data_domanda && 'domanda del ' + fmtData(b.data_domanda), b.data_presa_in_considerazione && 'presa in considerazione il ' + fmtData(b.data_presa_in_considerazione),
+          b.data_prima_votazione && '1ª votazione il ' + fmtData(b.data_prima_votazione), b.data_seconda_votazione && '2ª votazione il ' + fmtData(b.data_seconda_votazione)].filter(Boolean);
+        ev.push({ tipo: 3, anno: Number(String(d).slice(0, 4)), chiave: d, etichetta: String(String(d).slice(0, 4)), titolo: 'Bussante · domanda di ' + tipo, dettaglio: parti.join(' · '), bussante: b.id });
+      });
+    } catch (e) { /* facoltativo */ }
+    try {   // Tavole scolpite: lavori già presentati o archiviati
+      const lav = chk(await sb.from('lavori').select('*').eq('fratello_id', f.id).in('stato', ['presentato', 'archiviato']));
+      const ids = Array.from(new Set(lav.map((l) => l.tornata_id).filter(Boolean)));
+      const tor = {};
+      if (ids.length) chk(await sb.from('tornate').select('id,data').in('id', ids)).forEach((t) => { tor[t.id] = t.data; });
+      const tipi = { tavola: 'Tavola', formazione: 'Tornata di formazione', relazione: 'Relazione', altro: 'Lavoro' };
+      lav.forEach((l) => {
+        const d = l.data_presentazione || tor[l.tornata_id] || l.data_consegna_prevista || l.data_assegnazione;
+        if (!d) return;
+        ev.push({ tipo: 4, anno: Number(String(d).slice(0, 4)), chiave: d, etichetta: String(String(d).slice(0, 4)), titolo: l.titolo, id: l.id, lav: l,
+          dettaglio: [tipi[l.tipo] || 'Lavoro', l.grado_tornata && 'grado di ' + l.grado_tornata, 'presentato il ' + fmtData(d)].filter(Boolean).join(' · ') });
+      });
+    } catch (e) { /* facoltativo */ }
+    return ev;
   }
 
   async function scheda(v, id) {
@@ -106,7 +139,7 @@
     const kv = (l, x) => `<div><span>${l}</span><b>${x ? esc(x) : '—'}</b></div>`;
     const e = eta(f.data_nascita);
     const residenza = [f.indirizzo, [f.cap, f.citta].filter(Boolean).join(' ') + (f.provincia ? ' (' + f.provincia + ')' : '')].filter((x) => x && x.trim()).join(', ');
-    const storia = eventi(f, passaggi, cariche);
+    const storia = eventi(f, passaggi, cariche, await eventiAggiuntivi(f));
     v.innerHTML = `
       <div class="crumb"><a href="#/fratelli">Fratelli</a> › ${esc(f.cognome)} ${esc(f.nome)}</div>
       <div class="page-head"><div><h1>${esc(f.cognome)} ${esc(f.nome)}</h1>
@@ -120,8 +153,8 @@
 
       <div class="card"><h2>Storia <small>${storia.length} ${storia.length === 1 ? 'evento' : 'eventi'}</small></h2>
         ${storia.length ? `<div class="timeline">${storia.map((x) => `<div class="tl-item"><div class="tl-anno">${esc(x.etichetta)}</div>
-          <div class="tl-body"><span class="tl-tag">${['Iniziazione', 'Grado', 'Carica'][x.tipo]}</span><b>${esc(x.titolo)}</b>${x.dettaglio ? `<div class="hint">${esc(x.dettaglio)}</div>` : ''}</div>
-          <div class="act">${canEdit() ? `<button class="btn ghost small" data-ev="${x.modifica}" data-id="${esc(x.id || '')}">Modifica</button>` : ''}</div></div>`).join('')}</div>`
+          <div class="tl-body"><span class="tl-tag">${['Iniziazione', 'Grado', 'Carica', 'Bussante', 'Tavola'][x.tipo]}</span><b>${esc(x.titolo)}</b>${x.dettaglio ? `<div class="hint">${esc(x.dettaglio)}</div>` : ''}</div>
+          <div class="act">${x.tipo === 3 ? `<a class="btn ghost small" href="#/bussanti/${esc(x.bussante)}">Apri</a>` : x.tipo === 4 ? (x.lav && x.lav.file_path ? `<button class="btn ghost small" data-tav="${esc(x.id)}">Scarica</button>` : '') : canEdit() ? `<button class="btn ghost small" data-ev="${x.modifica}" data-id="${esc(x.id || '')}">Modifica</button>` : ''}</div></div>`).join('')}</div>`
           : `<div class="empty">${IC.storia}<div>Nessun evento registrato.${canEdit() ? ' Usa i pulsanti in alto per aggiungere cariche, passaggi di grado e date.' : ''}</div></div>`}</div>`;
 
     if (canEdit()) {
@@ -134,6 +167,13 @@
         else L.storia.apriCarica(cariche.find((x) => x.id === b.dataset.id)).catch((x) => toast(messaggioErrore(x), 'bad'));
       }));
     }
+    $$('[data-tav]', v).forEach((b) => b.addEventListener('click', async () => {
+      const ev = storia.find((x) => x.tipo === 4 && x.id === b.dataset.tav);
+      if (!ev || !L.lavori) return;
+      b.disabled = true;
+      try { await L.lavori.scarica(ev.lav); } catch (e) { toast(messaggioErrore(e), 'bad'); }
+      b.disabled = false;
+    }));
     // riquadri aggiuntivi (es. Lavori e tavole): un errore qui non deve rompere la scheda
     for (const fn of (L.schedaExtra || [])) { try { await fn(v, id); } catch (e) { /* facoltativo */ } }
   }
