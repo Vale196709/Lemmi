@@ -66,6 +66,7 @@
     home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
     user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
     users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7"/><path d="M18 14.7c2.3.6 4 2.2 4 5.3"/></svg>',
+    gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5h0a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
     building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-5h6v5M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
@@ -224,22 +225,48 @@
     $('#b-out').onclick = () => state.sb.auth.signOut();
   }
 
+  // Struttura del menu laterale. Le voci con "sub" sono gruppi: se hanno "sez" la voce principale
+  // è una pagina (Fratelli), altrimenti è solo un contenitore che si apre e si chiude (Configurazione).
+  const MENU = [
+    { sez: 'home', href: '#/', t: 'Cruscotto', ic: IC.home },
+    { sez: 'calendario', href: '#/calendario', t: 'Calendario', ic: IC.calendar },
+    { sez: 'pagamenti', href: '#/pagamenti', t: 'Pagamenti', ic: IC.euro },
+    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli', ic: IC.users, sub: [{ sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }] },
+    { sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user },
+    { gruppo: 'config', t: 'Configurazione', ic: IC.gear, sub: [{ sez: 'loggia', href: '#/loggia', t: 'Loggia', ic: IC.building }] },
+  ];
+
+  function menuHtml(p) {
+    const puo = (sez) => ACCESSO_SEZ[sez].includes(p.ruolo);
+    const link = (x, cls) => `<a href="${x.href}" data-nav="${x.sez}"${cls ? ` class="${cls}"` : ''}>${x.ic}<span>${esc(x.t)}</span></a>`;
+    return MENU.map((x) => {
+      if (!x.sub) return puo(x.sez) ? link(x) : '';
+      const subs = x.sub.filter((s) => puo(s.sez));
+      const conPagina = !!x.sez;
+      const testa = conPagina
+        ? (puo(x.sez) ? link(x) : '')
+        : (subs.length ? `<button type="button" class="nav-head" aria-expanded="false">${x.ic}<span>${esc(x.t)}</span></button>` : '');
+      if (!testa && !subs.length) return '';
+      return `<div class="nav-group ${conPagina ? 'fisso' : 'chiudibile'}" data-grp="${esc(x.sez || x.gruppo)}">${testa}<div class="nav-sub">${subs.map((s) => link(s, 'sub')).join('')}</div></div>`;
+    }).join('');
+  }
+
   function renderShell() {
     const p = state.profilo;
     $('#app').innerHTML = `<div class="shell">
       <aside class="side">
         <div class="brand"><div class="logo-mark">${logoSvg()}</div><div><b>Lemmi</b><small>${esc(state.loggia.nome || 'Gestione di Loggia')}</small></div></div>
-        <nav class="nav">
-          ${[['home', '#/', 'Cruscotto', IC.home], ['bussanti', '#/bussanti', 'Bussanti', IC.user], ['fratelli', '#/fratelli', 'Fratelli', IC.users], ['storia', '#/storia', 'Storia', IC.storia], ['calendario', '#/calendario', 'Calendario', IC.calendar],
-             ['pagamenti', '#/pagamenti', 'Pagamenti', IC.euro], ['loggia', '#/loggia', 'Loggia', IC.building]]
-            .filter((x) => ACCESSO_SEZ[x[0]].includes(p.ruolo))
-            .map((x) => `<a href="${x[1]}" data-nav="${x[0]}">${x[3]}<span>${x[2]}</span></a>`).join('')}
-        </nav>
+        <nav class="nav">${menuHtml(p)}</nav>
         <div class="who"><b>${esc(p.nome_visualizzato || state.user.email)}</b><span>${esc(ETICHETTA_RUOLO[p.ruolo] || p.ruolo)}</span>
           <button class="btn ghost small" id="b-logout">Esci</button></div>
       </aside>
       <main id="view"></main></div>`;
     $('#b-logout').onclick = () => state.sb.auth.signOut();
+    $$('.nav-head').forEach((b) => b.addEventListener('click', () => {
+      const g = b.closest('.nav-group');
+      const aperto = g.classList.toggle('open');
+      b.setAttribute('aria-expanded', aperto ? 'true' : 'false');
+    }));
   }
 
   /* ---------- router ---------- */
@@ -258,6 +285,9 @@
     const parti = (location.hash.replace(/^#\/?/, '') || '').split('/');
     const sez = parti[0] || 'home';
     $$('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.nav === sez));
+    $$('.nav-group.chiudibile').forEach((g) => {
+      if (g.querySelector('a.active')) { g.classList.add('open'); const h = $('.nav-head', g); if (h) h.setAttribute('aria-expanded', 'true'); }
+    });
     if (sez === 'home' && !ACCESSO_SEZ.home.includes(state.profilo.ruolo)) { location.hash = '#/pagamenti'; return; }
     const v = $('#view');
     if (ACCESSO_SEZ[sez] && !ACCESSO_SEZ[sez].includes(state.profilo.ruolo)) {
