@@ -29,13 +29,42 @@
   const catPerTipo = (tipo, conFratelli) => cs.cat.filter((c) => c.attiva && c.tipo === tipo && (conFratelli || c.nome !== CAT_FRATELLI));
   const catPerNome = (nome) => cs.cat.find((c) => c.nome === nome && c.attiva);
 
-  /* Categoria suggerita in fase di import (solo per voci riconoscibili con certezza) */
-  function suggerisciCategoria(m) {
-    if (m.importo >= 0) return null;
-    const d = String(m.descrizione || '').toLowerCase();
-    if (/tenuta conto|canone.*conto|spese.*conto|spese di gestione/.test(d)) return catPerNome('Spese di tenuta conto');
-    if (/rimborso/.test(d) && /gran loggia/.test(d)) return catPerNome('Rimborso partecipazione Gran Loggia');
-    return null;
+  /* Categorie suggerite in fase di import: regole sul testo del movimento (modificabili a mano dopo l'import).
+   * Le categorie che non esistono ancora vengono create al momento dell'importazione. */
+  const REGOLE = [
+    { tipo: 'uscita', re: /tenuta conto|canone (del )?conto|canone carta|commissioni utenze|imposta di bollo|spese.*conto|spese di gestione/, cat: 'Spese di tenuta conto' },
+    { tipo: 'uscita', re: /(?=.*rimborso)(?=.*gran loggia)/, cat: 'Rimborso partecipazione Gran Loggia' },
+    { tipo: 'uscita', re: /(?=.*grande oriente)(?=.*ammissione)/, cat: 'Quota di ammissione GOI (bussanti)' },
+    { tipo: 'uscita', re: /(?=.*grande oriente)(?=.*(saldo estratto|capitazion))/, cat: 'Versamento capitazioni al GOI' },
+    { tipo: 'uscita', re: /collegio dei mm/, cat: 'Quote Collegio dei MM.VV.' },
+    { tipo: 'uscita', re: /rimborso/, cat: 'Rimborsi spese ai Fratelli' },
+    { tipo: 'uscita', re: /\bcena\b|agape|ristorante|villa grant|catering/, cat: 'Agapi e cene' },
+    { tipo: 'entrata', re: /quota (di )?(ingresso|iscrizione)/, cat: 'Quote di ingresso bussanti' },
+    { tipo: 'entrata', re: /agape|festa della luce|\bcena\b/, cat: 'Quote agapi ed eventi' },
+  ];
+  function regolaPer(m) {
+    const d = E.norm(m.descrizione);
+    const tipo = Number(m.importo) < 0 ? 'uscita' : 'entrata';
+    return REGOLE.find((r) => r.tipo === tipo && r.re.test(d)) || null;
+  }
+  function suggerisciCategoria(m) { const r = regolaPer(m); return r ? (catPerNome(r.cat) || null) : null; }
+  function categorieMancanti(movs) {
+    const viste = new Set(), out = [];
+    movs.forEach((m) => { const r = regolaPer(m); if (r && !catPerNome(r.cat) && !viste.has(r.cat)) { viste.add(r.cat); out.push({ nome: r.cat, tipo: r.tipo }); } });
+    return out;
+  }
+  function nomeCategoriaSuggerita(m) { const r = regolaPer(m); return r ? r.cat : null; }
+
+  /* Lettore PDF (pdf.js): si carica solo quando serve */
+  function caricaPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    return new Promise((ok, ko) => {
+      const sc = document.createElement('script');
+      sc.src = 'vendor/pdf.min.js';
+      sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js'; ok(window.pdfjsLib); };
+      sc.onerror = () => ko(new Error('Lettore PDF non caricato: controlla che la cartella vendor sia stata pubblicata e ricarica la pagina.'));
+      document.head.appendChild(sc);
+    });
   }
 
   /* Fratello suggerito dal testo di un bonifico (cognome e nome presenti nella descrizione) */
@@ -125,13 +154,16 @@
     if (!E || !window.XLSX) { toast('Lettore di file Excel non caricato: ricarica la pagina.', 'bad'); return; }
     let an = null; let nomeFile = '';
     const corpo = `<div class="form-grid">
-      <div class="f"><label for="i-file">File dell’estratto conto (.xls, .xlsx o .csv)</label><input id="i-file" class="vis" type="file" accept=".xls,.xlsx,.csv,.txt"></div>
+      <div class="f"><label for="i-file">File dell’estratto conto (PDF di BancoPosta, oppure .xls, .xlsx o .csv)</label><input id="i-file" class="vis" type="file" accept=".pdf,.xls,.xlsx,.csv,.txt"></div>
       <div class="f hint">Il file viene letto sul tuo computer. I movimenti già importati in precedenza vengono riconosciuti e non si duplicano.</div>
       <div class="f" id="i-esito"></div></div>`;
     const m = P.modal('Importa estratto conto', corpo, {
       conferma: 'Importa i movimenti',
       onSubmit: async (f, chiudi, errore) => {
         if (!an || !an.movimenti.length) return errore('Scegli un file e controlla che i movimenti siano stati riconosciuti.');
+        if (an.pdf && !an.verifica.ok && !($('#i-forza', m.ov) && $('#i-forza', m.ov).checked)) return errore('I movimenti non quadrano con i totali dell’estratto: controlla il file oppure spunta «Importa comunque».');
+        const nuove = categorieMancanti(an.movimenti);
+        if (nuove.length) { const cr = chk(await state.sb.from('categorie_movimento').insert(nuove).select('*')); cs.cat = cs.cat.concat(cr); }
         const righe = an.movimenti.map((x) => { const k = suggerisciCategoria(x); return Object.assign({}, x, { categoria_id: k ? k.id : null }); });
         const auto = righe.filter((x) => x.categoria_id).length;
         const r = chk(await state.sb.rpc('importa_movimenti', { p_nome_file: nomeFile, p_righe: righe }));
@@ -143,6 +175,12 @@
     });
     const esito = $('#i-esito', m.ov);
 
+    const verificaPdf = () => {
+      const v = an.verifica, b = an.banca;
+      if (v.ok) return `<div class="notice" style="margin-top:10px;background:var(--ok-bg);color:#145c40"><b>Quadra con l’estratto della banca</b> (${v.verificati.join(', ')}): entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}${b.saldoFinale !== null ? ', saldo finale ' + P.eur(b.saldoFinale) : ''}.</div>`;
+      return `<div class="notice bad" style="margin-top:10px"><b>Attenzione: i movimenti letti non quadrano con i totali dell’estratto.</b> ${v.falliti.length ? 'Non tornano: ' + v.falliti.join(', ') + '. ' : ''}${v.senzaTotali ? 'Nel PDF non ho trovato i totali per il controllo. ' : ''}Letto: entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}.
+        <label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-top:8px"><input type="checkbox" id="i-forza"> Importa comunque (dopo aver controllato i movimenti)</label></div>`;
+    };
     const disegna = () => {
       const r = E.riepilogo(an.movimenti);
       const opt = (sel) => `<option value="">— nessuna —</option>${an.etichette.map((t, i) => `<option value="${i}" ${sel === i ? 'selected' : ''}>${E.lettera(i)} · ${esc(t)}</option>`).join('')}`;
@@ -151,7 +189,7 @@
         ${an.movimenti.length
           ? `<div class="notice" style="background:var(--ok-bg);color:#145c40"><b>${r.righe} movimenti</b> dal ${fmtData(r.dal)} al ${fmtData(r.al)} · entrate ${P.eur(r.entrate)} · uscite ${P.eur(r.uscite)}${an.scartate ? ` · ${an.scartate} righe non valide ignorate (totali, intestazioni…)` : ''}</div>`
           : '<div class="notice bad">Non sono riuscito a riconoscere i movimenti: indica qui sotto quali colonne contengono data e importo.</div>'}
-        <details ${an.movimenti.length ? '' : 'open'} style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Controlla il riconoscimento delle colonne</summary>
+        ${an.pdf ? '' : `<details ${an.movimenti.length ? '' : 'open'} style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Controlla il riconoscimento delle colonne</summary>
           <div class="form-grid" style="margin-top:12px">
             <div class="f s4"><label for="k-riga">Riga delle intestazioni</label><input id="k-riga" type="number" min="1" max="200" value="${an.rigaIntestazione + 1}"></div>
             <div class="f s4"><label for="k-data">Data dell’operazione</label><select id="k-data">${opt(mp.data)}</select></div>
@@ -162,11 +200,12 @@
             <div class="f s4"><label for="k-imp">Importo (con segno)</label><select id="k-imp">${opt(mp.importo)}</select></div>
             <div class="f s4"><label for="k-dare">Dare / uscite</label><select id="k-dare">${opt(mp.dare)}</select></div>
             <div class="f s4"><label for="k-avere">Avere / entrate</label><select id="k-avere">${opt(mp.avere)}</select></div>
-            <div class="f hint">Usa «Importo» se la banca ha una sola colonna con il segno, oppure «Dare» e «Avere» se sono separate.</div></div></details>
-        ${an.movimenti.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Data</th><th>Descrizione</th><th class="num">Importo</th></tr></thead><tbody>
-          ${an.movimenti.slice(0, 5).map((x) => `<tr><td>${fmtData(x.data_operazione)}</td><td>${esc(x.descrizione)}</td><td class="num">${P.eur(x.importo)}</td></tr>`).join('')}
-          ${an.movimenti.length > 5 ? `<tr><td colspan="3" class="muted">… e altri ${an.movimenti.length - 5} movimenti</td></tr>` : ''}</tbody></table></div>` : ''}`;
-      $$('select, input', esito).forEach((el) => el.addEventListener('change', ricalcola));
+            <div class="f hint">Usa «Importo» se la banca ha una sola colonna con il segno, oppure «Dare» e «Avere» se sono separate.</div></div></details>`}
+        ${an.pdf ? verificaPdf() : ''}
+        ${an.movimenti.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria suggerita</th><th class="num">Importo</th></tr></thead><tbody>
+          ${an.movimenti.slice(0, 6).map((x) => { const cn = nomeCategoriaSuggerita(x); return `<tr><td>${fmtData(x.data_operazione)}</td><td>${esc(x.descrizione.length > 110 ? x.descrizione.slice(0, 107) + '…' : x.descrizione)}</td><td>${cn ? esc(cn) + (catPerNome(cn) ? '' : ' <span class="badge info">nuova</span>') : '<span class="muted">—</span>'}</td><td class="num">${P.eur(x.importo)}</td></tr>`; }).join('')}
+          ${an.movimenti.length > 6 ? `<tr><td colspan="4" class="muted">… e altri ${an.movimenti.length - 6} movimenti</td></tr>` : ''}</tbody></table></div>` : ''}`;
+      if (!an.pdf) $$('select, input', esito).forEach((el) => el.addEventListener('change', ricalcola));
     };
 
     const ricalcola = () => {
@@ -185,8 +224,15 @@
       nomeFile = file.name;
       esito.innerHTML = '<div class="loading" style="padding:20px"><span class="spin"></span></div>';
       try {
-        const griglia = E.leggiFile(await file.arrayBuffer(), file.name);
-        an = E.analizza(griglia);
+        if (/\.pdf$/i.test(file.name)) {
+          if (!window.LemmiEstrattoPdf) throw new Error('Modulo di lettura PDF non caricato: ricarica la pagina.');
+          const r = await window.LemmiEstrattoPdf.leggi(await file.arrayBuffer(), await caricaPdfJs());
+          if (!r.movimenti.length) throw new Error('Non ho trovato movimenti nel PDF: è l’estratto conto BancoPosta originale? In alternativa usa il file Excel o CSV.');
+          an = { pdf: true, movimenti: r.movimenti, scartate: 0, verifica: r.verifica, banca: r.banca, griglia: [], etichette: [], mappa: { descrizione: [] }, rigaIntestazione: 0 };
+        } else {
+          const griglia = E.leggiFile(await file.arrayBuffer(), file.name);
+          an = E.analizza(griglia);
+        }
         disegna();
       } catch (e) {
         an = null;
