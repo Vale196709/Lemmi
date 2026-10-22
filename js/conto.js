@@ -4,10 +4,10 @@
   'use strict';
   const L = window.Lemmi;
   if (!L || !L.tabsPagamenti) return;
-  const { state, $, $$, esc, chk, toast, messaggioErrore, fmtData, itToIso, oggi, isAdmin, IC, campo } = L;
+  const { state, $, $$, esc, chk, toast, messaggioErrore, fmtData, isoToIt, itToIso, oggi, isAdmin, IC, campo } = L;
   const E = window.LemmiEstratto;
 
-  const cs = { cat: [], mov: [], filtri: { q: '', stato: '', cat: '', tipo: '' } };
+  const cs = { cat: [], mov: [], eventi: [], bussanti: [], tesoreria2: false, filtri: { q: '', stato: '', cat: '', tipo: '' } };
   const STATO = { da_riconciliare: ['Da riconciliare', 'warn'], riconciliato: ['Riconciliato', 'ok'], ignorato: ['Ignorato', 'gray'] };
   const CAT_FRATELLI = 'Versamenti dei Fratelli';
   const uuid = () => (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2));
@@ -20,6 +20,17 @@
         state.sb.from('categorie_movimento').select('*').order('nome'),
       ]);
       cs.mov = chk(m); cs.cat = chk(k);
+      cs.eventi = []; cs.bussanti = []; cs.tesoreria2 = false;
+      try {   // eventi e collegamenti ai bussanti (script lemmi_tesoreria_2.sql)
+        const [ex, ev] = await Promise.all([
+          state.sb.from('conto_movimenti').select('id,evento_id,bussante_id').gte('data_operazione', anno + '-01-01').lte('data_operazione', anno + '-12-31'),
+          state.sb.from('eventi_conto').select('*').order('nome'),
+        ]);
+        const mappa = {}; chk(ex).forEach((x) => { mappa[x.id] = x; });
+        cs.mov.forEach((x) => { const e = mappa[x.id]; x.evento_id = e ? e.evento_id : null; x.bussante_id = e ? e.bussante_id : null; });
+        cs.eventi = chk(ev); cs.tesoreria2 = true;
+      } catch (e) { cs.tesoreria2 = false; }
+      try { cs.bussanti = chk(await state.sb.from('bussanti').select('id,cognome,nome')); } catch (e) { cs.bussanti = []; }
     } catch (e) {
       if (/schema cache|does not exist|Could not find/i.test((e && e.message) || '')) throw new Error('Mancano le tabelle del conto di Loggia: esegui lo script lemmi_pagamenti_2.sql nell\'editor SQL di Supabase.');
       throw e;
@@ -100,7 +111,7 @@
         <select id="c-stato" style="width:auto"><option value="">Tutti gli stati</option>${Object.entries(STATO).map(([k, v]) => `<option value="${k}" ${cs.filtri.stato === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
         <select id="c-cat" style="width:auto"><option value="">Tutte le categorie</option><option value="-" ${cs.filtri.cat === '-' ? 'selected' : ''}>Senza categoria</option>${cs.cat.map((k) => `<option value="${esc(k.id)}" ${cs.filtri.cat === k.id ? 'selected' : ''}>${esc(k.nome)}</option>`).join('')}</select>
         <span class="muted" id="c-conta"></span>
-        ${canPay() ? `<span class="right actions"><button class="btn gold" id="c-imp">${IC.up} Importa estratto conto</button><button class="btn ghost" id="c-man">Nuovo movimento</button><button class="btn ghost" id="c-cat-g">Categorie</button></span>` : ''}
+        ${canPay() ? `<span class="right actions"><button class="btn gold" id="c-imp">${IC.up} Importa estratto conto</button><button class="btn ghost" id="c-man">Nuovo movimento</button><button class="btn ghost" id="c-cat-g">Categorie</button>${cs.tesoreria2 ? '<button class="btn ghost" id="c-evt-g">Eventi</button>' : ''}</span>` : ''}
       </div>
       <div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria</th><th class="num">Importo</th><th>Stato</th><th></th></tr></thead><tbody id="c-righe"></tbody></table></div>`;
 
@@ -114,15 +125,16 @@
       $('#c-righe').innerHTML = f.length ? f.map((x) => {
         const entrata = Number(x.importo) > 0; const st = STATO[x.stato_riconciliazione] || ['—', 'gray'];
         return `<tr><td>${fmtData(x.data_operazione)}</td>
-          <td>${esc(x.descrizione)}${x.fratello ? ` <span class="badge info">${esc(x.fratello)}</span>` : ''}${x.origine === 'manuale' ? ' <span class="badge gray">manuale</span>' : ''}${x.note ? `<div class="hint">${esc(x.note)}</div>` : ''}</td>
+          <td>${esc(x.descrizione)}${x.fratello ? ` <span class="badge info">${esc(x.fratello)}</span>` : ''}${x.evento_id && nomeEvento(x.evento_id) ? ` <span class="badge gold">${esc(nomeEvento(x.evento_id))}</span>` : ''}${x.bussante_id && nomeBussante(x.bussante_id) ? ` <span class="badge gray">Bussante: ${esc(nomeBussante(x.bussante_id))}</span>` : ''}${x.origine === 'manuale' ? ' <span class="badge gray">manuale</span>' : ''}${x.note ? `<div class="hint">${esc(x.note)}</div>` : ''}</td>
           <td>${x.categoria ? esc(x.categoria) : '<span class="muted">—</span>'}</td>
           <td class="num" style="color:${entrata ? 'var(--ok)' : 'var(--bad)'}"><b>${eur(x.importo)}</b></td>
           <td><span class="badge ${st[1]}">${st[0]}</span></td>
-          <td class="act">${canPay() ? `${entrata && x.stato_riconciliazione === 'da_riconciliare' ? `<button class="btn ghost small" data-lega="${esc(x.id)}">Collega versamento</button> ` : ''}${x.stato_riconciliazione !== 'ignorato' && (!entrata || x.stato_riconciliazione === 'da_riconciliare') ? `<button class="btn ghost small" data-cat="${esc(x.id)}">Categoria</button> ` : ''}${x.stato_riconciliazione === 'da_riconciliare' ? `<button class="btn ghost small" data-ign="${esc(x.id)}">Ignora</button>` : ''}${x.stato_riconciliazione === 'ignorato' ? `<button class="btn ghost small" data-rip="${esc(x.id)}">Ripristina</button>` : ''}${isAdmin() && x.origine === 'manuale' ? ` <button class="btn danger small" data-delm="${esc(x.id)}">Elimina</button>` : ''}` : ''}</td></tr>`;
+          <td class="act">${canPay() ? `${entrata && x.stato_riconciliazione === 'da_riconciliare' ? `<button class="btn ghost small" data-lega="${esc(x.id)}">Collega versamento</button> ` : ''}${x.stato_riconciliazione !== 'ignorato' && (!entrata || x.stato_riconciliazione === 'da_riconciliare') ? `<button class="btn ghost small" data-cat="${esc(x.id)}">Categoria</button> ` : ''}${cs.tesoreria2 ? `<button class="btn ghost small" data-evt="${esc(x.id)}">Evento</button> ` : ''}${x.stato_riconciliazione === 'da_riconciliare' ? `<button class="btn ghost small" data-ign="${esc(x.id)}">Ignora</button>` : ''}${x.stato_riconciliazione === 'ignorato' ? `<button class="btn ghost small" data-rip="${esc(x.id)}">Ripristina</button>` : ''}${isAdmin() && x.origine === 'manuale' ? ` <button class="btn danger small" data-delm="${esc(x.id)}">Elimina</button>` : ''}` : ''}</td></tr>`;
       }).join('') : `<tr><td colspan="6"><div class="empty">${IC.inbox}<div>${cs.mov.length ? 'Nessun risultato.' : 'Nessun movimento nel ' + P.pag.anno + '.' + (canPay() ? ' Importa l’estratto conto della banca per iniziare.' : '')}</div></div></td></tr>`;
       const trova = (id) => cs.mov.find((x) => x.id === id);
       $$('[data-lega]', c).forEach((b) => b.addEventListener('click', () => apriCollega(trova(b.dataset.lega), P).catch((e) => toast(messaggioErrore(e), 'bad'))));
       $$('[data-cat]', c).forEach((b) => b.addEventListener('click', () => apriCategoria(trova(b.dataset.cat), P).catch((e) => toast(messaggioErrore(e), 'bad'))));
+      $$('[data-evt]', c).forEach((b) => b.addEventListener('click', () => apriEvento(trova(b.dataset.evt), P)));
       $$('[data-ign]', c).forEach((b) => b.addEventListener('click', () => cambiaStato(b.dataset.ign, 'ignorato')));
       $$('[data-rip]', c).forEach((b) => b.addEventListener('click', () => cambiaStato(b.dataset.rip, 'da_riconciliare')));
       $$('[data-delm]', c).forEach((b) => b.addEventListener('click', () => eliminaManuale(b.dataset.delm)));
@@ -135,6 +147,7 @@
       $('#c-imp').onclick = () => apriImporta(P);
       $('#c-man').onclick = () => apriManuale(P).catch((e) => toast(messaggioErrore(e), 'bad'));
       $('#c-cat-g').onclick = () => apriCategorie(P);
+      if ($('#c-evt-g')) $('#c-evt-g').onclick = () => apriEventi(P);
     }
     disegna();
   }
@@ -167,9 +180,10 @@
         const righe = an.movimenti.map((x) => { const k = suggerisciCategoria(x); return Object.assign({}, x, { categoria_id: k ? k.id : null }); });
         const auto = righe.filter((x) => x.categoria_id).length;
         const r = chk(await state.sb.rpc('importa_movimenti', { p_nome_file: nomeFile, p_righe: righe }));
+        const extra = await collegaAutomatico(righe, an);
         chiudi();
         P.avviso('Estratto conto importato', `<div class="kv"><div><span>Movimenti nuovi</span><b>${Number(r.righe_nuove)}</b></div><div><span>Già presenti (ignorati)</span><b>${Number(r.righe_gia_presenti)}</b></div><div><span>Categorizzati in automatico</span><b>${auto}</b></div></div>
-          <div class="notice" style="margin-top:14px">Ora assegna una categoria alle uscite rimaste e collega i bonifici dei Fratelli ai versamenti con «Collega versamento».</div>`);
+          <div class="notice" style="margin-top:14px">Ora assegna una categoria alle uscite rimaste e collega i bonifici dei Fratelli ai versamenti con «Collega versamento».</div>${extra}`);
         L.route();
       },
     });
@@ -242,6 +256,159 @@
   }
 
   /* ---------- categoria di un movimento ---------- */
+  /* ---------- eventi, bussanti e saldi (script lemmi_tesoreria_2.sql) ---------- */
+  const nomeEvento = (id) => { const e = cs.eventi.find((x) => x.id === id); return e ? e.nome : ''; };
+  const nomeBussante = (id) => { const b = cs.bussanti.find((x) => x.id === id); return b ? b.cognome + ' ' + b.nome : ''; };
+  const paroleChiave = (ev) => String(ev.parole_chiave || '').split(',').map((t) => E.norm(t)).filter((t) => t.length >= 3);
+  const eventoPerTesto = (descr) => { const d = E.norm(descr); return cs.eventi.find((ev) => paroleChiave(ev).some((k) => d.includes(k))) || null; };
+  function bussantePerTesto(descr) {
+    const d = ' ' + E.norm(descr).replace(/[^a-z0-9 ]/g, ' ') + ' ';
+    const t = cs.bussanti.filter((b) => d.includes(' ' + E.norm(b.cognome).replace(/[^a-z0-9 ]/g, ' ') + ' ') && d.includes(' ' + E.norm(b.nome).replace(/[^a-z0-9 ]/g, ' ') + ' '));
+    return t.length === 1 ? t[0] : null;
+  }
+  const CAT_BUSSANTI = ['Quote di ingresso bussanti', 'Quota di ammissione GOI (bussanti)'];
+
+  async function aggiornaPerImpronte(campo, valore, impronte) {
+    for (let i = 0; i < impronte.length; i += 80) chk(await state.sb.from('conto_movimenti').update({ [campo]: valore }).in('impronta', impronte.slice(i, i + 80)));
+  }
+  /* Dopo l'importazione: assegna gli eventi (parole chiave), collega i versamenti dei bussanti e registra i saldi della banca */
+  async function collegaAutomatico(righe, an) {
+    let html = '';
+    try {
+      if (cs.tesoreria2) {
+        const perEvento = {}, perBussante = {};
+        righe.forEach((x) => {
+          const ev = eventoPerTesto(x.descrizione); if (ev) (perEvento[ev.id] = perEvento[ev.id] || []).push(x.impronta);
+          const r = regolaPer(x);
+          if (r && CAT_BUSSANTI.includes(r.cat)) { const b = bussantePerTesto(x.descrizione); if (b) (perBussante[b.id] = perBussante[b.id] || []).push(x.impronta); }
+        });
+        for (const id of Object.keys(perEvento)) await aggiornaPerImpronte('evento_id', id, perEvento[id]);
+        for (const id of Object.keys(perBussante)) await aggiornaPerImpronte('bussante_id', id, perBussante[id]);
+        const nEv = Object.values(perEvento).reduce((a, l) => a + l.length, 0), nBu = Object.values(perBussante).reduce((a, l) => a + l.length, 0);
+        if (nEv || nBu) html += `<div class="kv" style="margin-top:12px"><div><span>Assegnati a un evento</span><b>${nEv}</b></div><div><span>Collegati a un bussante</span><b>${nBu}</b></div></div>`;
+      }
+    } catch (e) { html += `<div class="notice" style="margin-top:12px">Collegamenti automatici non riusciti: ${esc(messaggioErrore(e))}</div>`; }
+    try {
+      if (an.pdf && an.banca) {
+        const sal = [];
+        if (an.banca.saldoIniziale !== null && an.banca.dataSaldoIniziale) sal.push({ data: an.banca.dataSaldoIniziale, saldo: an.banca.saldoIniziale, fonte: 'estratto PDF' });
+        if (an.banca.saldoFinale !== null && an.banca.dataSaldoFinale) sal.push({ data: an.banca.dataSaldoFinale, saldo: an.banca.saldoFinale, fonte: 'estratto PDF' });
+        if (sal.length) chk(await state.sb.from('conto_saldi').upsert(sal, { onConflict: 'data' }));
+      }
+    } catch (e) { /* senza la tabella dei saldi il Cruscotto userà solo i movimenti */ }
+    return html;
+  }
+
+  function apriEvento(mov, P) {
+    if (!mov) return;
+    const corpo = `<div class="form-grid">
+      <div class="f"><div class="kv"><div><span>Movimento</span><b>${esc(mov.descrizione.length > 90 ? mov.descrizione.slice(0, 87) + '…' : mov.descrizione)}</b></div><div><span>Importo</span><b>${P.eur(mov.importo)}</b></div></div></div>
+      <div class="f s6"><label for="ev-sel">Evento</label><select id="ev-sel" name="evento"><option value="">— nessuno —</option>${cs.eventi.map((x) => `<option value="${esc(x.id)}" ${x.id === mov.evento_id ? 'selected' : ''}>${esc(x.nome)}</option>`).join('')}<option value="_nuovo">+ Nuovo evento…</option></select></div>
+      <div class="f s6 hidden" id="ev-nw"><label for="ev-nome">Nome del nuovo evento</label><input id="ev-nome" name="nuovo" placeholder="es. Festa della Luce 2026"></div>
+      ${cs.bussanti.length ? `<div class="f"><label for="ev-bus">Bussante a cui riferire il movimento (facoltativo)</label><input id="ev-bus" name="bussante" list="dl-ev-bus" autocomplete="off" value="${esc(mov.bussante_id ? nomeBussante(mov.bussante_id) : '')}" placeholder="Scrivi il cognome e scegli dall’elenco"><datalist id="dl-ev-bus">${cs.bussanti.map((b) => `<option value="${esc(b.cognome + ' ' + b.nome)}"></option>`).join('')}</datalist></div>` : ''}</div>`;
+    const m = P.modal('Evento e bussante', corpo, {
+      onSubmit: async (f, chiudi, errore) => {
+        let evento_id = f.elements.evento.value || null;
+        if (evento_id === '_nuovo') {
+          const nome = f.elements.nuovo.value.trim();
+          if (!nome) return errore('Indica il nome del nuovo evento.');
+          const cr = chk(await state.sb.from('eventi_conto').insert({ nome }).select('*'));
+          evento_id = cr[0].id;
+        }
+        let bussante_id = null;
+        if (f.elements.bussante) {
+          const t = E.norm(f.elements.bussante.value);
+          if (t) {
+            const b = cs.bussanti.find((x) => E.norm(x.cognome + ' ' + x.nome) === t || E.norm(x.nome + ' ' + x.cognome) === t);
+            if (!b) return errore('Bussante non trovato: scegli dall’elenco oppure lascia vuoto.');
+            bussante_id = b.id;
+          }
+        }
+        chk(await state.sb.from('conto_movimenti').update({ evento_id, bussante_id }).eq('id', mov.id));
+        chiudi(); toast('Movimento aggiornato', 'ok'); L.route();
+      },
+    });
+    const sel = m.f.elements.evento;
+    sel.addEventListener('change', () => $('#ev-nw', m.f).classList.toggle('hidden', sel.value !== '_nuovo'));
+  }
+
+  function totaliEvento(id) {
+    const l = cs.mov.filter((x) => x.evento_id === id);
+    const ent = l.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0);
+    const usc = l.filter((x) => Number(x.importo) < 0).reduce((a, x) => a - Number(x.importo), 0);
+    return { n: l.length, ent, usc, ris: ent - usc };
+  }
+
+  function apriEventi(P) {
+    const righe = cs.eventi.map((ev) => { const t = totaliEvento(ev.id); return `<tr><td><b>${esc(ev.nome)}</b>${ev.data_evento ? `<div class="hint">${fmtData(ev.data_evento)}</div>` : ''}${ev.parole_chiave ? `<div class="hint">Parole chiave: ${esc(ev.parole_chiave)}</div>` : ''}</td>
+      <td class="num">${t.n}</td><td class="num">${P.eur(t.ent)}</td><td class="num">${P.eur(t.usc)}</td><td class="num" style="color:${t.ris >= 0 ? 'var(--ok)' : 'var(--bad)'}"><b>${P.eur(t.ris)}</b></td>
+      <td class="act"><button class="btn ghost small" data-ev-mod="${esc(ev.id)}">Modifica</button></td></tr>`; }).join('');
+    const corpo = `<p class="muted" style="margin-top:0">Un evento raggruppa entrate e uscite di una stessa occasione (agape, festa, cena) e ne mostra il risultato. Le <b>parole chiave</b> servono ad assegnare da soli i movimenti all’importazione (es. «festa della luce, bomarzo, villa grant»).</p>
+      <div class="table-wrap"><table><thead><tr><th>Evento</th><th class="num">Mov.</th><th class="num">Entrate</th><th class="num">Uscite</th><th class="num">Risultato</th><th></th></tr></thead><tbody>
+      ${righe || '<tr><td colspan="6"><div class="empty">Nessun evento: creane uno con «Nuovo evento».</div></td></tr>'}</tbody></table></div>
+      <div class="actions" style="margin-top:12px"><button class="btn gold" type="button" data-ev-new>Nuovo evento</button><button class="btn ghost" type="button" data-ev-appl>Applica le parole chiave ai movimenti senza evento</button></div>`;
+    const m = P.modal('Eventi del ' + P.pag.anno, corpo, { senzaConferma: true });
+    $('[data-ev-new]', m.ov).onclick = () => { m.chiudi(); apriEventoForm(null, P); };
+    $$('[data-ev-mod]', m.ov).forEach((b) => b.addEventListener('click', () => { m.chiudi(); apriEventoForm(cs.eventi.find((x) => x.id === b.dataset.evMod), P); }));
+    $('[data-ev-appl]', m.ov).onclick = async () => {
+      try {
+        const per = {};
+        cs.mov.filter((x) => !x.evento_id).forEach((x) => { const ev = eventoPerTesto(x.descrizione); if (ev) (per[ev.id] = per[ev.id] || []).push(x.id); });
+        let n = 0;
+        for (const id of Object.keys(per)) { chk(await state.sb.from('conto_movimenti').update({ evento_id: id }).in('id', per[id])); n += per[id].length; }
+        m.chiudi(); toast(n ? n + (n === 1 ? ' movimento assegnato' : ' movimenti assegnati') : 'Nessun movimento da assegnare', 'ok'); L.route();
+      } catch (e) { toast(messaggioErrore(e), 'bad'); }
+    };
+  }
+
+  function apriEventoForm(ev, P) {
+    const corpo = `<div class="form-grid">
+      <div class="f s8"><label for="ef-nome">Nome <span class="req">*</span></label><input id="ef-nome" name="nome" value="${esc(ev ? ev.nome : '')}" placeholder="es. Festa della Luce 2026"></div>
+      <div class="f s4"><label for="ef-data">Data</label><input id="ef-data" name="data" value="${esc(ev ? isoToIt(ev.data_evento) : '')}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
+      <div class="f s12"><label for="ef-kw">Parole chiave (separate da virgola)</label><input id="ef-kw" name="kw" value="${esc(ev ? ev.parole_chiave || '' : '')}" placeholder="es. festa della luce, bomarzo, villa grant"></div>
+      <div class="f s12"><label for="ef-note">Note</label><input id="ef-note" name="note" value="${esc(ev ? ev.note || '' : '')}"></div></div>`;
+    const extra = ev ? '<button class="btn danger" type="button" data-ef-del>Elimina evento</button>' : '';
+    const m = P.modal(ev ? 'Modifica evento' : 'Nuovo evento', corpo, {
+      extra,
+      onSubmit: async (f, chiudi, errore) => {
+        const nome = f.elements.nome.value.trim();
+        if (!nome) return errore('Indica il nome dell’evento.');
+        const d = itToIso(f.elements.data.value);
+        if (d === 'ERR') return errore('Data non valida: usa gg/mm/aaaa.');
+        const dati = { nome, data_evento: d, parole_chiave: f.elements.kw.value.trim() || null, note: f.elements.note.value.trim() || null };
+        if (ev) chk(await state.sb.from('eventi_conto').update(dati).eq('id', ev.id)); else chk(await state.sb.from('eventi_conto').insert(dati));
+        chiudi(); toast('Evento salvato', 'ok'); L.route();
+      },
+    });
+    const del = $('[data-ef-del]', m.ov);
+    if (del) del.onclick = async () => {
+      if (!window.confirm('Eliminare questo evento? I movimenti restano, ma non saranno più assegnati a un evento.')) return;
+      try { chk(await state.sb.from('eventi_conto').delete().eq('id', ev.id)); m.chiudi(); toast('Evento eliminato', 'ok'); L.route(); }
+      catch (e) { toast(messaggioErrore(e), 'bad'); }
+    };
+  }
+
+  /* riquadro "Pagamenti" nella scheda del bussante */
+  L.bussanteExtra = L.bussanteExtra || [];
+  L.bussanteExtra.push(async (v, id) => {
+    const [mv, ct] = await Promise.all([
+      state.sb.from('conto_movimenti').select('data_operazione,descrizione,importo,categoria_id').eq('bussante_id', id).order('data_operazione'),
+      state.sb.from('categorie_movimento').select('id,nome'),
+    ]);
+    const righe = chk(mv), cat = {}; chk(ct).forEach((k) => { cat[k.id] = k.nome; });
+    const eurFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+    const ent = righe.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0);
+    const usc = righe.filter((x) => Number(x.importo) < 0).reduce((a, x) => a - Number(x.importo), 0);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<h2>Pagamenti del bussante <small>${righe.length}</small></h2>
+      ${righe.length ? `<div class="table-wrap"><table><tbody>${righe.map((x) => `<tr><td>${fmtData(x.data_operazione)}</td><td>${esc(x.descrizione.length > 80 ? x.descrizione.slice(0, 77) + '…' : x.descrizione)}<div class="hint">${esc(cat[x.categoria_id] || '')}</div></td>
+        <td class="num" style="color:${Number(x.importo) > 0 ? 'var(--ok)' : 'var(--bad)'}"><b>${eurFmt.format(Number(x.importo))}</b></td></tr>`).join('')}</tbody></table></div>
+        <div class="kv" style="margin-top:10px"><div><span>Incassato dal bussante</span><b>${eurFmt.format(ent)}</b></div><div><span>Girato al GOI</span><b>${eurFmt.format(usc)}</b></div><div><span>Resta alla Loggia</span><b>${eurFmt.format(ent - usc)}</b></div></div>`
+        : '<div class="empty"><div>Nessun bonifico collegato. In Conto di Loggia, il pulsante «Evento» di un movimento permette di riferirlo a questo bussante.</div></div>'}`;
+    v.appendChild(card);
+  });
+
   async function apriCategoria(mov, P) {
     const frat = await P.fratelliPag();
     const tipo = Number(mov.importo) > 0 ? 'entrata' : 'uscita';

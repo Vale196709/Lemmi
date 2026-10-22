@@ -25,7 +25,7 @@
   /* pagine: [{ larghezza, items: [{ s, x, y, w }] }]  (coordinate PDF: y cresce verso l'alto) */
   function analizzaPagine(pagine) {
     const movimenti = [];
-    const banca = { saldoIniziale: null, saldoFinale: null, totaleEntrate: null, totaleUscite: null };
+    const banca = { saldoIniziale: null, saldoFinale: null, totaleEntrate: null, totaleUscite: null, dataSaldoIniziale: null, dataSaldoFinale: null };
     let corrente = null;           // movimento in costruzione (per le righe di continuazione)
     let yPrec = null;
 
@@ -53,8 +53,8 @@
           const valore = imp ? num(imp.s.trim()) : null;
           const credito = imp ? imp.x + imp.w > xSplit : false;
           const d = norm(desc);
-          if (/^saldo iniziale/.test(d)) { banca.saldoIniziale = valore; corrente = null; return; }
-          if (/^saldo finale/.test(d)) { banca.saldoFinale = valore; corrente = null; return; }
+          if (/^saldo iniziale/.test(d)) { banca.saldoIniziale = valore; banca.dataSaldoIniziale = iso(date[0].s.trim()); corrente = null; return; }
+          if (/^saldo finale/.test(d)) { banca.saldoFinale = valore; banca.dataSaldoFinale = iso(date[0].s.trim()); corrente = null; return; }
           if (/^totale uscite/.test(d)) { banca.totaleUscite = valore; corrente = null; return; }
           if (/^totale entrate/.test(d)) { banca.totaleEntrate = valore; corrente = null; return; }
           if (valore === null || valore === 0) { corrente = null; return; }

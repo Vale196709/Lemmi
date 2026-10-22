@@ -8,7 +8,7 @@
   const RUOLI_ACCESSO = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const TUTTI = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const SOCI = ['amministratore', 'venerabile', 'segretario'];
-  const ACCESSO_SEZ = { home: SOCI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: TUTTI, lavori: SOCI, elezioni: SOCI, pagamenti: TUTTI, loggia: TUTTI };
+  const ACCESSO_SEZ = { home: TUTTI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: TUTTI, lavori: SOCI, elezioni: SOCI, pagamenti: TUTTI, loggia: TUTTI };
   const ETICHETTA_RUOLO = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere' };
 
   const TIPI_DOMANDA = {
@@ -319,6 +319,11 @@
 
   /* ---------- cruscotto ---------- */
   async function vistaCruscotto(v) {
+    if (!SOCI.includes(state.profilo.ruolo)) {   // il Tesoriere vede solo la parte economica
+      v.innerHTML = `<div class="page-head"><div><h1>Cruscotto</h1><p>${esc(state.loggia.nome || 'La tua Loggia')}${state.loggia.oriente ? ' · Oriente di ' + esc(state.loggia.oriente) : ''}</p></div></div>`;
+      await estraCruscotto(v);
+      return;
+    }
     const [bus, fr] = await Promise.all([
       state.sb.from('bussanti').select('id,cognome,nome,tipo_domanda,data_prima_votazione,data_seconda_votazione').order('cognome'),
       state.sb.from('fratelli').select('stato'),
@@ -350,6 +355,13 @@
         </div>
       </div>
       ${canEdit() ? `<div class="actions"><a class="btn gold" href="#/bussanti/nuovo">${IC.plus} Nuovo bussante</a></div>` : ''}`;
+    collegaRighe(v);
+    await estraCruscotto(v);
+  }
+
+  // riquadri aggiuntivi del Cruscotto (es. vista economica): un errore qui non deve rompere la pagina
+  async function estraCruscotto(v) {
+    for (const fn of (API.cruscottoExtra || [])) { try { await fn(v); } catch (e) { /* facoltativo */ } }
     collegaRighe(v);
   }
 
@@ -653,6 +665,7 @@
     $$('[data-deldoc]', v).forEach((btn) => btn.addEventListener('click', () => eliminaDoc(btn.dataset.deldoc, btn.dataset.path, id)));
     const del = $('#b-del');
     if (del) del.addEventListener('click', () => eliminaBussante(b, docs));
+    for (const fn of (API.bussanteExtra || [])) { try { await fn(v, id, b); } catch (e) { /* facoltativo */ } }
   }
 
   /* ---------- documenti ---------- */
