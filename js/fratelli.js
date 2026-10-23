@@ -144,7 +144,7 @@
       <div class="crumb"><a href="#/fratelli">Fratelli</a> › ${esc(f.cognome)} ${esc(f.nome)}</div>
       <div class="page-head"><div><h1>${esc(f.cognome)} ${esc(f.nome)}</h1>
         <p>${f.stato ? `<span class="badge ${f.stato === 'attivo' ? 'ok' : 'gray'}">${esc(cap(f.stato))}</span> ` : ''}${att.grado_attuale ? `<span class="badge gold">${esc(cap(att.grado_attuale))}</span> ` : ''}${att.carica_attuale ? `<span class="badge info">${esc(att.carica_attuale)}</span>` : ''}</p></div>
-        ${canEdit() ? `<div class="right actions"><button class="btn gold" id="s-car">${IC.plus} Aggiungi carica</button><button class="btn ghost" id="s-gra">Passaggio di grado</button><button class="btn ghost" id="s-dat">Modifica date</button></div>` : ''}</div>
+        ${canEdit() ? `<div class="right actions"><button class="btn gold" id="s-car">${IC.plus} Aggiungi carica</button><button class="btn ghost" id="s-gra">Passaggio di grado</button><button class="btn ghost" id="s-ana">Modifica anagrafica</button></div>` : ''}</div>
 
       <div class="card"><h2>Dati</h2><div class="kv">
         ${kv('Matricola', f.matricola)}${kv('Data di nascita', f.data_nascita ? fmtData(f.data_nascita) + (e !== null ? ' · ' + e + ' anni' : '') : '')}
@@ -160,7 +160,7 @@
     if (canEdit()) {
       $('#s-car').onclick = () => L.storia.apriCarica(null, { fratello_id: id }).catch((x) => toast(messaggioErrore(x), 'bad'));
       $('#s-gra').onclick = () => apriPassaggio(null, id);
-      $('#s-dat').onclick = () => apriDate(f);
+      $('#s-ana').onclick = () => apriAnagrafica(f).catch((e) => toast(messaggioErrore(e), 'bad'));
       $$('[data-ev]', v).forEach((b) => b.addEventListener('click', () => {
         if (b.dataset.ev === 'date') apriDate(f);
         else if (b.dataset.ev === 'grado') apriPassaggio(passaggi.find((x) => x.id === b.dataset.id), id);
@@ -212,6 +212,51 @@
   }
 
   /* ---------- date: nascita e iniziazione ---------- */
+  /* Anagrafica completa: tutti i campi modificabili da amministratore e Segretario */
+  const CAMPI_ANAG = [
+    { k: 'cognome', t: 'Cognome', c: 's6', req: true }, { k: 'nome', t: 'Nome', c: 's6', req: true },
+    { k: 'data_nascita', t: 'Data di nascita', c: 's4', d: true }, { k: 'luogo_nascita', t: 'Luogo di nascita', c: 's5' }, { k: 'provincia_nascita', t: 'Prov. nascita', c: 's3', sigla: true },
+    { k: 'codice_fiscale', t: 'Codice fiscale', c: 's6', cf: true }, { k: 'professione', t: 'Professione', c: 's6' },
+    { k: 'indirizzo', t: 'Indirizzo', c: 's6' }, { k: 'cap', t: 'CAP', c: 's2', cap: true }, { k: 'citta', t: 'Città', c: 's4' }, { k: 'provincia', t: 'Prov.', c: 's2', sigla: true },
+    { k: 'cellulare', t: 'Cellulare', c: 's6' }, { k: 'email', t: 'E-mail', c: 's6', mail: true },
+    { k: 'matricola', t: 'Matricola', c: 's4' }, { k: 'stato', t: 'Stato', c: 's4', lista: true },
+    { k: 'data_iniziazione', t: 'Data di iniziazione', c: 's4', d: true }, { k: 'anno_iniziazione', t: 'Anno di iniziazione', c: 's4', anno: true },
+  ];
+  async function apriAnagrafica(f) {
+    const riga = chk(await state.sb.from('fratelli').select('*').eq('id', f.id).maybeSingle());
+    if (!riga) throw new Error('Fratello non trovato.');
+    const stati = Array.from(new Set((chk(await state.sb.from('fratelli').select('stato')) || []).map((x) => x.stato).filter(Boolean)));
+    const campi = CAMPI_ANAG.filter((c) => c.k in riga);
+    const corpo = `<div class="form-grid">${campi.map((c) => c.d
+      ? campo(c.k, c.t + (c.req ? ' *' : ''), riga[c.k], { type: 'date', cls: c.c })
+      : campo(c.k, c.t + (c.req ? ' *' : ''), riga[c.k] == null ? '' : riga[c.k], { cls: c.c })).join('')}
+      ${stati.length ? `<datalist id="dl-stati">${stati.map((x) => `<option value="${esc(x)}"></option>`).join('')}</datalist>` : ''}
+      <div class="f hint">La data di nascita serve alla fascia d’età della capitazione e alle esenzioni; luogo di nascita e codice fiscale compaiono nelle autocertificazioni delle elezioni.</div></div>`;
+    const m = P.modal('Anagrafica di ' + riga.cognome + ' ' + riga.nome, corpo, {
+      onSubmit: async (fm, chiudi, errore) => {
+        const dati = {};
+        for (const c of campi) {
+          const el = fm.elements[c.k]; let v = el ? String(el.value).trim() : '';
+          if (c.d) { const i = itToIso(v); if (i === 'ERR') return errore(c.t + ': data non valida, usa gg/mm/aaaa.'); dati[c.k] = i; continue; }
+          if (c.req && !v) return errore(c.t + ' è obbligatorio.');
+          if (c.mail && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return errore('E-mail non valida.');
+          if (c.cap && v && !/^\d{5}$/.test(v)) return errore('Il CAP deve avere 5 cifre.');
+          if (c.sigla && v) { if (!/^[A-Za-z]{2}$/.test(v)) return errore(c.t + ': usa la sigla di due lettere.'); v = v.toUpperCase(); }
+          if (c.cf && v) { v = v.replace(/\s/g, '').toUpperCase(); if (!/^[A-Z0-9]{16}$/.test(v)) return errore('Il codice fiscale deve avere 16 caratteri.'); }
+          if (c.anno) { if (v && (!/^\d{4}$/.test(v) || Number(v) < 1900 || Number(v) > 2100)) return errore('Anno di iniziazione non valido (4 cifre).'); dati[c.k] = v ? Number(v) : null; continue; }
+          dati[c.k] = v || null;
+        }
+        if ('data_nascita' in dati && dati.data_nascita && dati.data_nascita >= new Date().toISOString().slice(0, 10)) return errore('La data di nascita deve essere nel passato.');
+        if (dati.data_nascita && dati.data_iniziazione && dati.data_iniziazione < dati.data_nascita) return errore('L’iniziazione non può precedere la nascita.');
+        if (dati.data_iniziazione && 'anno_iniziazione' in dati) dati.anno_iniziazione = Number(dati.data_iniziazione.slice(0, 4));
+        const r = chk(await state.sb.from('fratelli').update(dati).eq('id', f.id).select('id'));
+        if (!r || !r.length) return errore('Modifica non consentita dal database: esegui lo script lemmi_utenti_permessi.sql (permessi di modifica del Segretario).');
+        chiudi(); toast('Anagrafica aggiornata', 'ok'); L.route();
+      },
+    });
+    const st = m.f.elements.stato; if (st) st.setAttribute('list', 'dl-stati');
+  }
+
   function apriDate(f) {
     const corpo = `<div class="form-grid">
       ${campo('nascita', 'Data di nascita', f.data_nascita, { type: 'date', cls: 's4' })}

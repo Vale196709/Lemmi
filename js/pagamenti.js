@@ -7,8 +7,7 @@
   const { state, $, $$, esc, chk, toast, messaggioErrore, fmtData, isoToIt, itToIso, oggi, isAdmin, IC, campo } = L;
 
   const canPay = () => ['amministratore', 'tesoriere'].includes(state.profilo.ruolo);
-  const euro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
-  const eur = (x) => euro.format(Number(x || 0));
+  const eur = (x) => L.eur(x);
   const num = (x) => Number(x || 0);
   const STATI = ['Scaduto', 'Da pagare', 'Parziale', 'Pagato', 'Esente'];
   const BADGE = { Pagato: 'ok', Scaduto: 'bad', Parziale: 'warn', 'Da pagare': 'info', Esente: 'gray', 'In regola': 'ok', 'Con scaduti': 'bad', 'In attesa': 'warn' };
@@ -38,7 +37,7 @@
     if (!/^\d+(\.\d{1,2})?$/.test(t)) return NaN;
     return Number(t);
   }
-  const fmtInput = (x) => (x === null || x === undefined || x === '' ? '' : String(Number(x).toFixed(2)).replace('.', ','));
+  const fmtInput = (x) => (x === null || x === undefined || x === '' ? '' : L.eur(x).replace(/\s*€$/, ''));
   const opzioni = (lista, sel) => lista.map((o) => `<option value="${esc(o.v)}" ${o.v === sel ? 'selected' : ''}>${esc(o.t)}</option>`).join('');
 
   async function fratelliPag() {
@@ -415,7 +414,9 @@
   /* ---------- vista principale ---------- */
   L.viste.pagamenti = async function (v, parti) {
     const extra = L.tabsPagamenti.filter((t) => t.ruoli.includes(state.profilo.ruolo));
-    const tab = ['versamenti', 'riepilogo'].concat(extra.map((t) => t.id)).includes(parti[1]) ? parti[1] : 'scadenze';
+    const MOSTRA_VERSAMENTI = false;     // scheda «Versamenti» nascosta per ora: per riattivarla basta mettere true
+    const elenco = extra.map((t) => ({ id: t.id, titolo: t.titolo })).concat([{ id: 'scadenze', titolo: 'Scadenze' }, { id: 'riepilogo', titolo: 'Riepilogo' }], MOSTRA_VERSAMENTI ? [{ id: 'versamenti', titolo: 'Versamenti' }] : []);
+    const tab = elenco.some((t) => t.id === parti[1]) ? parti[1] : elenco[0].id;
     const tabExtra = extra.find((t) => t.id === tab);
     await carica(pag.anno);
     v.innerHTML = `
@@ -425,10 +426,7 @@
           ${canPay() ? `<button class="btn gold" id="b-nver">${IC.plus} Nuovo versamento</button><button class="btn ghost" id="b-nsc">Nuova scadenza</button><button class="btn ghost" id="b-gen">Genera capitazione</button>` : ''}
         </div></div>
       ${tabExtra && tabExtra.senzaKpi ? '' : kpi()}
-      <div class="tabs"><a class="tab ${tab === 'scadenze' ? 'on' : ''}" href="#/pagamenti">Scadenze</a>
-        <a class="tab ${tab === 'versamenti' ? 'on' : ''}" href="#/pagamenti/versamenti">Versamenti</a>
-        <a class="tab ${tab === 'riepilogo' ? 'on' : ''}" href="#/pagamenti/riepilogo">Riepilogo</a>
-        ${extra.map((t) => `<a class="tab ${tab === t.id ? 'on' : ''}" href="#/pagamenti/${esc(t.id)}">${esc(t.titolo)}</a>`).join('')}</div>
+      <div class="tabs">${elenco.map((t) => `<a class="tab ${tab === t.id ? 'on' : ''}" href="#/pagamenti/${esc(t.id)}">${esc(t.titolo)}</a>`).join('')}</div>
       <div id="p-corpo"></div>`;
     $('#p-anno').addEventListener('change', (e) => { pag.anno = Number(e.target.value); pag.filtri = { q: '', stato: '', voce: '' }; L.route(); });
     if (canPay()) {

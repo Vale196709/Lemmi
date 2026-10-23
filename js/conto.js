@@ -113,7 +113,8 @@
         <span class="muted" id="c-conta"></span>
         ${canPay() ? `<span class="right actions"><button class="btn gold" id="c-imp">${IC.up} Importa estratto conto</button><button class="btn ghost" id="c-man">Nuovo movimento</button><button class="btn ghost" id="c-cat-g">Categorie</button>${cs.tesoreria2 ? '<button class="btn ghost" id="c-evt-g">Eventi</button>' : ''}</span>` : ''}
       </div>
-      <div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria</th><th class="num">Importo</th><th>Stato</th><th></th></tr></thead><tbody id="c-righe"></tbody></table></div>`;
+      <div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria</th><th class="num">Importo</th><th>Stato</th><th></th></tr></thead><tbody id="c-righe"></tbody><tfoot id="c-totali"></tfoot></table></div>
+      <details id="c-percat" style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Totali per categoria</summary><div id="c-percat-corpo" style="margin-top:10px"></div></details>`;
 
     const disegna = () => {
       const q = cs.filtri.q.trim().toLowerCase();
@@ -122,6 +123,15 @@
         && (!cs.filtri.stato || x.stato_riconciliazione === cs.filtri.stato)
         && (!cs.filtri.cat || (cs.filtri.cat === '-' ? !x.categoria_id : x.categoria_id === cs.filtri.cat)));
       $('#c-conta').textContent = f.length + (f.length === 1 ? ' movimento' : ' movimenti');
+      // totali calcolati sui movimenti mostrati (cambiano con i filtri)
+      const tEnt = f.filter((x) => Number(x.importo) > 0).reduce((q, x) => q + Number(x.importo), 0);
+      const tUsc = f.filter((x) => Number(x.importo) < 0).reduce((q, x) => q + Math.abs(Number(x.importo)), 0);
+      $('#c-totali').innerHTML = f.length ? `<tr><td colspan="3"><b>Totale entrate</b></td><td class="num" style="color:var(--ok)"><b>${eur(tEnt)}</b></td><td colspan="2"></td></tr>
+        <tr><td colspan="3"><b>Totale uscite</b></td><td class="num" style="color:var(--bad)"><b>${eur(tUsc)}</b></td><td colspan="2"></td></tr>
+        <tr><td colspan="3"><b>Saldo (${f.length} ${f.length === 1 ? 'movimento' : 'movimenti'})</b></td><td class="num" style="color:${tEnt - tUsc < 0 ? 'var(--bad)' : 'inherit'}"><b>${eur(tEnt - tUsc)}</b></td><td colspan="2"></td></tr>` : '';
+      const perCat = {};
+      f.forEach((x) => { const k = x.categoria || 'Senza categoria'; const o = perCat[k] || (perCat[k] = { e: 0, u: 0 }); if (Number(x.importo) > 0) o.e += Number(x.importo); else o.u += Math.abs(Number(x.importo)); });
+      $('#c-percat-corpo').innerHTML = f.length ? `<div class="table-wrap"><table><thead><tr><th>Categoria</th><th class="num">Entrate</th><th class="num">Uscite</th><th class="num">Saldo</th></tr></thead><tbody>${Object.entries(perCat).sort((p, q) => (q[1].e + q[1].u) - (p[1].e + p[1].u)).map(([k, o]) => `<tr><td>${esc(k)}</td><td class="num">${eur(o.e)}</td><td class="num">${eur(o.u)}</td><td class="num"><b>${eur(o.e - o.u)}</b></td></tr>`).join('')}</tbody></table></div>` : '<div class="muted">Nessun movimento.</div>';
       $('#c-righe').innerHTML = f.length ? f.map((x) => {
         const entrata = Number(x.importo) > 0; const st = STATO[x.stato_riconciliazione] || ['—', 'gray'];
         return `<tr><td>${fmtData(x.data_operazione)}</td>
@@ -396,7 +406,7 @@
       state.sb.from('categorie_movimento').select('id,nome'),
     ]);
     const righe = chk(mv), cat = {}; chk(ct).forEach((k) => { cat[k.id] = k.nome; });
-    const eurFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+    const eurFmt = { format: (x) => L.eur(x) };
     const ent = righe.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0);
     const usc = righe.filter((x) => Number(x.importo) < 0).reduce((a, x) => a - Number(x.importo), 0);
     const card = document.createElement('div');

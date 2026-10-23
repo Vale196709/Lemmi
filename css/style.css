@@ -279,3 +279,8 @@ a.nome:hover { color: var(--info); }
 .tl-body b { display: block; }
 .tl-tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--gold); font-weight: 700; margin-bottom: 2px; }
 @media (max-width: 880px) { .tl-item { grid-template-columns: 70px 1fr; } .tl-item .act { grid-column: 2; text-align: left; } }
+
+/* ordinamento automatico delle colonne (js/ordina.js) */
+th.sort-auto { cursor: pointer; user-select: none; }
+th.sort-auto:hover { color: var(--ink); background: #eff2fa; }
+th.sort-auto .arr { display: inline-block; min-width: 1em; color: var(--gold); }

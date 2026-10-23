@@ -202,12 +202,8 @@
         c.innerHTML = `<div class="card empty">${IC.inbox}<div>Nessuna tornata in calendario per il ${st.anno}.${puoScrivere() ? ' Usa “Genera calendario” per creare quelle ordinarie e informali.' : ''}</div></div>`;
         return;
       }
-      const perMese = {};
-      lista.forEach((t) => { const m = Number(t.data.slice(5, 7)) - 1; (perMese[m] = perMese[m] || []).push(t); });
-      c.innerHTML = Object.keys(perMese).map(Number).sort((a, b) => a - b).map((m) => `
-        <h2 class="section-title">${MESI[m]} ${st.anno}</h2>
-        <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Data</th><th>Ora</th><th>Tipo</th><th>Grado</th><th>Luogo / collegamento</th><th>Dettagli</th><th>Stato</th><th></th></tr></thead><tbody>
-        ${perMese[m].map((t) => {
+      c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Ora</th><th>Tipo</th><th>Grado</th><th>Luogo / collegamento</th><th>Dettagli</th><th>Stato</th><th></th></tr></thead><tbody>
+        ${lista.map((t) => {
           const link = urlSicuro(t.link_online);
           const dove = t.tipo === 'informale'
             ? (link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Apri collegamento</a>` : '<span class="muted">collegamento da indicare</span>')
@@ -216,7 +212,7 @@
           const extra = [t.relatore ? 'Relatore: ' + esc(t.relatore) : '', ...(st.lavori[t.id] || []).map((x) => 'Lavoro: ' + esc(x)), t.ordine_del_giorno ? esc(t.ordine_del_giorno).replace(/\n/g, '<br>') : ''].filter(Boolean).join('<br>');
           const passata = t.data < oggiIso;
           return `<tr style="${t.stato === 'annullata' ? 'opacity:.55;' : ''}">
-            <td><b>${fmtData(t.data)}</b><br><span class="muted">${giornoSettimana(t.data)}</span>${t.data === oggiIso ? ' <span class="badge ok">oggi</span>' : ''}</td>
+            <td data-sort="${t.data} ${hhmm(t.ora)}"><b>${fmtData(t.data)}</b><br><span class="muted">${giornoSettimana(t.data)}</span>${t.data === oggiIso ? ' <span class="badge ok">oggi</span>' : ''}</td>
             <td>${esc(hhmm(t.ora) || '—')}</td>
             <td><span class="badge ${TIPO_BADGE[t.tipo]}">${esc(TIPI[t.tipo])}</span></td>
             <td>${t.tipo === 'informale' ? '—' : (t.grado ? esc(GRADI[t.grado]) : '<span class="muted">da stabilire</span>')}</td>
@@ -224,7 +220,7 @@
             <td>${segni}${segni && extra ? '<br>' : ''}${extra ? `<span class="muted" style="font-size:.85rem">${extra}</span>` : ''}</td>
             <td><span class="badge ${STATO_BADGE[t.stato]}">${esc(STATI[t.stato])}</span>${passata && t.stato === 'programmata' ? '<br><span class="muted" style="font-size:.8rem">da aggiornare</span>' : ''}</td>
             <td class="act">${puoScrivere() ? `<button class="btn ghost small" data-mod="${esc(t.id)}">Modifica</button>` : ''}</td></tr>`;
-        }).join('')}</tbody></table></div>`).join('');
+        }).join('')}</tbody></table></div>`;
       $$('[data-mod]', c).forEach((b) => b.addEventListener('click', () => apriTornata(st.righe.find((x) => x.id === b.dataset.mod))));
     }
     disegna();

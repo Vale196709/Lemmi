@@ -6,8 +6,7 @@
   const { state, $, $$, esc, chk, fmtData, oggi } = L;
 
   const RUOLI = ['amministratore', 'venerabile', 'tesoriere'];
-  const euro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
-  const eur = (x) => euro.format(Number(x || 0));
+  const eur = (x) => L.eur(x);
   const num = (x) => Number(x || 0);
   const MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
   const eco = { anno: new Date().getFullYear() };
@@ -91,7 +90,7 @@
           <div class="actions" style="justify-content:space-between"><span>Di cui già scaduto</span><b style="color:${scaduto ? 'var(--bad)' : 'inherit'}">${eur(scaduto)}</b></div>
           ${voci.length ? `<div style="margin-top:12px">${voci.map(([k, x]) => `<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;font-size:.9rem"><span>${esc(k)}</span><span>${eur(x.ver)} / ${eur(x.dov)}</span></div>${barra(x.ver, x.dov, 'var(--gold)')}</div>`).join('')}</div>` : ''}`
           : '<div class="empty"><div>Nessuna scadenza per il ' + anno + '.</div></div>'}
-          <div style="margin-top:12px"><a href="#/pagamenti">Vai a Pagamenti e quote</a></div></div>
+          <div style="margin-top:12px"><a href="#/pagamenti/scadenze">Vai a Pagamenti e quote</a></div></div>
         <div class="card"><h2>Da dove arrivano i soldi</h2>${elencoCat(perCategoria(mov, 1), 'var(--ok)')}</div>
         <div class="card"><h2>Dove vanno i soldi</h2>${elencoCat(perCategoria(mov, -1), 'var(--bad)')}</div>
         <div class="card"><h2>Quote scadute <small>${morosi.length}</small></h2>
