@@ -310,6 +310,9 @@
       } catch (e) { $('#e-pdf-esito').innerHTML = `<div class="notice" style="margin-top:10px;background:var(--bad-soft,#fde8e8);color:var(--bad,#a12)">${esc(messaggioErrore(e))}</div>`; }
       b.disabled = false;
     };
+    v.insertAdjacentHTML('beforeend', '<div id="e-ins"></div>');
+    L.elezioni = { el, esito, CARICHE, MESI, trovaFratello, nomeCompleto, elencoNome, anagraficheVincitori, schedaAutocert, mancanti, salva, norm, votanti };
+    for (const fn of (L.elezioniExtra || [])) { try { await fn($('#e-ins')); } catch (e) { $('#e-ins').innerHTML = `<div class="notice">${esc(messaggioErrore(e))}</div>`; } }
     $('#e-salva').onclick = async () => { try { await salva(false); } catch (e) { toast(messaggioErrore(e), 'bad'); } };
   };
 })();
