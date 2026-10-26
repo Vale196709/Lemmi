@@ -8,7 +8,7 @@
   const RUOLI_ACCESSO = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const TUTTI = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const SOCI = ['amministratore', 'venerabile', 'segretario'];
-  const ACCESSO_SEZ = { home: TUTTI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: TUTTI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: TUTTI, loggia: TUTTI };
+  const ACCESSO_SEZ = { home: TUTTI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: TUTTI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: TUTTI, template: SOCI, loggia: TUTTI, utenti: ['amministratore'] };
   const ETICHETTA_RUOLO = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere' };
 
   const TIPI_DOMANDA = {
@@ -78,6 +78,8 @@
     storia: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5M9 7h6M9 11h6"/></svg>',
     calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>',
     euro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 6.5a6.5 6.5 0 100 11"/><path d="M4 10.5h9M4 13.5h9"/></svg>',
+    template: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M3.5 9h17M9 9v11.5"/></svg>',
+    shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
     inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6z"/></svg>',
   };
 
@@ -236,7 +238,8 @@
     { sez: 'pagamenti', href: '#/pagamenti', t: 'Pagamenti', ic: IC.euro },
     { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli', ic: IC.users, sub: [{ sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }] },
     { sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user },
-    { gruppo: 'config', t: 'Configurazione', ic: IC.gear, sub: [{ sez: 'loggia', href: '#/loggia', t: 'Loggia', ic: IC.building }] },
+    { sez: 'template', href: '#/template', t: 'Template', ic: IC.template },
+    { gruppo: 'config', t: 'Info di sistema', ic: IC.gear, sub: [{ sez: 'loggia', href: '#/loggia', t: 'Loggia', ic: IC.building }, { sez: 'utenti', href: '#/utenti', t: 'Utenti del sistema', ic: IC.shield }] },
   ];
 
   function menuHtml(p) {
@@ -341,9 +344,9 @@
     v.innerHTML = `
       <div class="page-head"><div><h1>Cruscotto</h1><p>${esc(state.loggia.nome || 'La tua Loggia')}${state.loggia.oriente ? ' · Oriente di ' + esc(state.loggia.oriente) : ''}</p></div></div>
       <div class="grid stats">
-        <div class="stat"><div class="n">${fratelli.length}</div><div class="l">Fratelli in anagrafica</div></div>
-        <div class="stat"><div class="n">${bussanti.length}</div><div class="l">Pratiche di bussanti</div></div>
-        <div class="stat"><div class="n">${eventi.length}</div><div class="l">Votazioni in programma</div></div>
+        <div class="stat drillable" data-drill="fratelli" role="button" tabindex="0" title="Clicca per l’elenco"><div class="n">${fratelli.length}</div><div class="l">Fratelli in anagrafica</div></div>
+        <div class="stat drillable" data-drill="bussanti" role="button" tabindex="0" title="Clicca per l’elenco"><div class="n">${bussanti.length}</div><div class="l">Pratiche di bussanti</div></div>
+        <div class="stat drillable" data-drill="votazioni" role="button" tabindex="0" title="Clicca per l’elenco"><div class="n">${eventi.length}</div><div class="l">Votazioni in programma</div></div>
       </div>
       <div class="grid cols-2">
         <div class="card"><h2>Prossime votazioni</h2>
@@ -352,7 +355,7 @@
             : '<div class="empty">Nessuna votazione in programma.</div>'}
         </div>
         <div class="card"><h2>Fratelli per stato</h2>
-          ${Object.keys(perStato).length ? Object.entries(perStato).map(([s, n]) => `<div class="actions" style="justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)"><span>${esc(s)}</span><span class="badge info">${n}</span></div>`).join('') : '<div class="empty">Nessun dato.</div>'}
+          ${Object.keys(perStato).length ? Object.entries(perStato).map(([s, n]) => `<div class="actions drillable riga-d" data-drill="fratelli" data-k="${esc(s)}" role="button" tabindex="0" title="Clicca per l’elenco" style="justify-content:space-between;padding:7px 8px;border-bottom:1px solid var(--line)"><span>${esc(s)}</span><span class="badge info">${n}</span></div>`).join('') : '<div class="empty">Nessun dato.</div>'}
         </div>
       </div>
       ${canEdit() ? `<div class="actions"><a class="btn gold" href="#/bussanti/nuovo">${IC.plus} Nuovo bussante</a></div>` : ''}`;

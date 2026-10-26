@@ -284,3 +284,48 @@ a.nome:hover { color: var(--info); }
 th.sort-auto { cursor: pointer; user-select: none; }
 th.sort-auto:hover { color: var(--ink); background: #eff2fa; }
 th.sort-auto .arr { display: inline-block; min-width: 1em; color: var(--gold); }
+
+/* ---------- approfondimento (drill-down) del Cruscotto ---------- */
+.drillable { cursor: pointer; transition: background .15s, box-shadow .15s, transform .1s; }
+.drillable:hover { background: #f4f6fc; }
+.stat.drillable:hover { box-shadow: 0 1px 2px rgba(15, 27, 61, .08), 0 10px 28px rgba(15, 27, 61, .12); transform: translateY(-1px); }
+.drillable:focus-visible, tr[data-drill]:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.riga-d { border-radius: 8px; }
+.mese-col:hover { background: var(--gold-soft); }
+tr[data-drill] { cursor: pointer; }
+tr[data-drill]:hover td { background: #f4f6fc; }
+.modal.wide { width: min(940px, 100%); }
+.drill-head { min-width: 0; }
+.drill-crumb { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; font-size: .8rem; margin-bottom: 2px; }
+.drill-crumb:empty { display: none; }
+.crumb-b { background: none; border: 0; padding: 0; color: var(--info); cursor: pointer; font: inherit; }
+.crumb-b:hover { text-decoration: underline; }
+.crumb-s { color: var(--muted); }
+.crumb-c { color: var(--muted); font-weight: 600; }
+.drill-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.drill-kpi > div { background: #f7f9fd; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+.drill-kpi span { display: block; font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.drill-kpi b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.drill-h { font-size: .95rem; margin: 16px 0 6px; color: var(--navy); }
+.drill-bar { padding: 7px 8px; border-radius: 8px; }
+.drill-bar[data-go] { cursor: pointer; }
+.drill-bar[data-go]:hover { background: #f4f6fc; }
+.drill-bar-t { display: flex; justify-content: space-between; gap: 10px; font-size: .92rem; margin-bottom: 4px; }
+.drill-bar-b { background: var(--line); border-radius: 6px; height: 10px; overflow: hidden; }
+.drill-bar-b > div { height: 100%; }
+.drill-tot { display: flex; flex-wrap: wrap; gap: 6px 22px; justify-content: flex-end; font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }
+.chips-l { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-right: 4px; }
+.chip { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: .82rem; cursor: pointer; }
+.chip:hover { border-color: var(--gold); }
+.chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+/* ---------- Template ---------- */
+.grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.tpl-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); text-decoration: none; transition: box-shadow .15s, border-color .15s; }
+.tpl-card:hover { border-color: var(--gold); box-shadow: var(--shadow); text-decoration: none; }
+.tpl-card b { font-size: 1.1rem; }
+.tpl-card .btn { margin-top: 8px; }
+.tpl-ic { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 11px; background: var(--gold-soft); color: #7b5d12; font-weight: 700; }
+.up-box { border: 1px dashed var(--line); border-radius: 12px; padding: 12px 16px; background: #fafbfe; }
+.chk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 14px; margin-top: 8px; max-height: 220px; overflow: auto; }
