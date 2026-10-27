@@ -41,6 +41,13 @@
     { t: 'C/3 · Arricchimento del piè di lista', d: 'Comunicazione ad Anagrafe e Collegio dopo iniziazione, affiliazione o riammissione di un Fratello.', compila: 'C3', file: [['C3', 'C/3']] },
     { t: 'N/2-3 · Brevetto di Compagno / Maestro', d: 'Richiesta del brevetto alla Gran Tesoreria dopo le votazioni in Camera di Compagno o di Maestro.', compila: 'N23', file: [['N23', 'N/2-3']] },
     { t: 'C/3 bis · Promozione / elevazione', d: 'Comunicazione della cerimonia di passaggio di grado: la data fissa l’anzianità nel grado.', compila: 'C3BIS', file: [['C3BIS', 'C/3 bis']] },
+    { t: 'E/1 · Rilascio dell’Exeat', d: 'La Loggia comunica a Collegio e Anagrafe l’Exeat concesso a un Fratello che passa ad altra Loggia.', compila: 'E1', file: [['E1', 'E/1']] },
+    { t: 'E/2 · Accoglimento del trasferimento', d: 'La Loggia comunica di aver accolto un Fratello proveniente da altra Loggia.', compila: 'E2', file: [['E2', 'E/2']] },
+    { t: 'D/1 · Depennamento, assonnamento, O.E.', d: 'Uscita di un Fratello dal piè di lista: assonnamento, depennamento, trasferimento, passaggio all’Oriente Eterno.', compila: 'D1', file: [['D1', 'D/1']] },
+    { t: 'D/2 · Consiglio di disciplina', d: 'Verbale da allegare al D/1 per il depennamento ex art. 12 (assenza o morosità).', compila: 'D2', file: [['D2', 'D/2']] },
+    { t: 'V/1 · Variazioni anagrafiche', d: 'Nuovo indirizzo, telefono o e-mail di un Fratello, da comunicare ad Anagrafe e Collegio.', compila: 'V1', file: [['V1', 'V/1']] },
+    { t: 'C/2 · Rinuncia / rigetto della domanda', d: 'Domanda del profano respinta o archiviata per rinuncia, con le motivazioni.', compila: 'C2', file: [['C2', 'C/2']] },
+    { t: 'N/4 · Brevetto di riammissione / regolarizzazione', d: 'Richiesta del brevetto alla Gran Tesoreria dopo la votazione su riammissione, regolarizzazione o cancellazione della pena.', compila: 'N4', file: [['N4', 'N/4']] },
     { t: 'Elezioni delle cariche', d: 'Processo verbale delle elezioni e autocertificazioni dei candidati.', vai: '#/elezioni', vaiT: 'Fratelli › Elezioni cariche', file: [['ELEZIONI', 'Elezioni']] },
     { t: 'Insediamento delle cariche', d: 'Promessa solenne, nomina del Segretario e degli Ufficiali, trapasso dei poteri, relazione e conto gestione.', vai: '#/elezioni', vaiT: 'Fratelli › Elezioni cariche (riquadro 5)', file: [['INSEDIAMENTO', 'Insediamento']] },
     { t: 'Piè di lista semestrale', d: 'Elenco dei Fratelli al 30 giugno e al 31 dicembre, in Excel e in PDF da firmare.', vai: '#/piedilista', vaiT: 'Fratelli › Piè di lista', file: [] },
@@ -418,7 +425,8 @@
       if (!b) return {};
       const dueVot = b.tipo_domanda === 'iniziazione';
       return {
-        cognome: b.cognome, nome: b.nome, nato: b.luogo_nascita || '', il: isoToIt(b.data_nascita), residente: conProv(b.citta, b.provincia), cap: b.cap || '',
+        cognome: b.cognome, nome: b.nome, nominativo: (b.nome + ' ' + b.cognome).trim(), nato: b.luogo_nascita || '', il: isoToIt(b.data_nascita), residente: conProv(b.citta, b.provincia), cap: b.cap || '',
+        _scelta: { riammissione: 'riammissione', regolarizzazione: 'regolarizzazione', cancellazione_pena: 'pena' }[b.tipo_domanda] || '',
         via: b.indirizzo || '', tel: b.cellulare || '', studio: b.titolo_studio || '', professione: b.professione || '',
         data_domanda: isoToIt(b.data_domanda), data_seduta: isoToIt(dueVot ? b.data_seconda_votazione : b.data_prima_votazione),
         v1_data: isoToIt(b.data_prima_votazione), v2_data: dueVot ? isoToIt(b.data_seconda_votazione) : '',
@@ -436,24 +444,27 @@
     const M = window.LemmiModuli && window.LemmiModuli.MODULI[cod];
     if (!M) { location.hash = '#/template'; return; }
     if (!['amministratore', 'venerabile', 'segretario'].includes(state.profilo.ruolo)) { v.innerHTML = '<div class="notice bad">Il tuo ruolo non ha accesso a questa sezione.</div>'; return; }
-    const bus = M.soggetto === 'bussante';
-    const lista = bus ? chk(await state.sb.from('bussanti').select('id,cognome,nome').order('cognome').order('nome')) : await L.caricaFratelli();
+    const bus = M.soggetto === 'bussante', nessuno = M.soggetto === 'nessuno';
+    const lista = nessuno ? [] : bus ? chk(await state.sb.from('bussanti').select('id,cognome,nome').order('cognome').order('nome')) : await L.caricaFratelli();
     const vals = mod.vals[cod] || (mod.vals[cod] = {});
     const sc = M.scelta;
     if (sc && !mod.scelta[cod]) mod.scelta[cod] = sc.opzioni[0].v;
     const gruppi = [];
-    M.campi.forEach((c) => { const g = c.gruppo || 'Dati del modulo'; if (!gruppi.includes(g)) gruppi.push(g); });
+    M.campi.forEach((c) => { const g = c.gruppo || 'Dati del modulo'; if (c.label && !gruppi.includes(g)) gruppi.push(g); });
 
-    const campoHtml = (c) => `<div class="f ${c.corto ? 's3' : 's6'}" data-campo="${c.k}"><label for="m-${c.k}" data-lab>${esc(c.label)}</label>
-      <input id="m-${c.k}" data-k="${c.k}" ${c.tipo === 'data' ? 'data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"' : ''} value="${esc(vals[c.k] || '')}"></div>`;
+    const campoHtml = (c) => (!c.label ? '' : c.area
+      ? `<div class="f s12" data-campo="${c.k}"><label for="m-${c.k}" data-lab>${esc(c.label)}</label>
+      <textarea id="m-${c.k}" data-k="${c.k}" rows="${c.righe.length > 3 ? 4 : 3}" style="width:100%">${esc(vals[c.k] || '')}</textarea><span class="hint">Il testo va a capo da solo sulle righe del modello (${c.righe.length} righe disponibili).</span></div>`
+      : `<div class="f ${c.corto ? 's3' : 's6'}" data-campo="${c.k}"><label for="m-${c.k}" data-lab>${esc(c.label)}</label>
+      <input id="m-${c.k}" data-k="${c.k}" ${c.tipo === 'data' ? 'data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"' : ''} value="${esc(vals[c.k] || '')}"></div>`);
 
     v.innerHTML = `
       <div class="crumb"><a href="#/template">Template</a> › Modulo ${esc(M.cod)}</div>
       <div class="page-head"><div><h1>${esc(M.titolo)}</h1><p>${esc(M.quando)}</p></div></div>
-      <div class="card"><h2>${bus ? 'Bussante' : 'Fratello'}</h2>
+      ${nessuno ? '' : `<div class="card"><h2>${bus ? 'Bussante' : 'Fratello'}</h2>
         <div class="form-grid"><div class="f s8"><label for="m-sog">${bus ? 'Scegli il bussante' : 'Scegli il Fratello'}</label>
           <select id="m-sog"><option value="">— scegli —</option>${lista.map((x) => `<option value="${esc(x.id)}" ${String(x.id) === String(vals._id) ? 'selected' : ''}>${esc(x.cognome)} ${esc(x.nome)}</option>`).join('')}</select>
-          <span class="hint">I dati anagrafici si compilano da soli; quelli che mancano si scrivono qui sotto.</span></div></div></div>
+          <span class="hint">I dati anagrafici si compilano da soli; quelli che mancano si scrivono qui sotto.</span></div></div></div>`}
       ${sc ? `<div class="card" style="margin-top:18px"><h2>${esc(sc.label)}</h2><div class="radio-col">${sc.opzioni.map((o) => `<label class="check"><input type="radio" name="m-sc" value="${o.v}" ${mod.scelta[cod] === o.v ? 'checked' : ''}> ${esc(o.t)}</label>`).join('')}</div></div>` : ''}
       ${gruppi.map((g) => `<div class="card" style="margin-top:18px"><h2>${esc(g)}</h2><div class="form-grid">${M.campi.filter((c) => (c.gruppo || 'Dati del modulo') === g).map(campoHtml).join('')}</div></div>`).join('')}
       <div class="card" style="margin-top:18px"><p class="muted" style="margin:0 0 12px">${esc(M.invio)}<br>Il PDF si compila sopra il modello ufficiale: <b>firma del Maestro Venerabile, visto del Collegio e data di trasmissione restano in bianco</b>.</p>
@@ -469,14 +480,17 @@
       });
     };
     aggiorna();
-    $$('input[data-k]', v).forEach((i) => i.addEventListener('input', () => { vals[i.dataset.k] = i.value; }));
+    $$('input[data-k], textarea[data-k]', v).forEach((i) => i.addEventListener('input', () => { vals[i.dataset.k] = i.value; }));
     $$('input[name="m-sc"]', v).forEach((r) => r.addEventListener('change', () => { mod.scelta[cod] = r.value; aggiorna(); }));
-    $('#m-sog', v).addEventListener('change', async (e) => {
+    if ($('#m-sog', v)) $('#m-sog', v).addEventListener('change', async (e) => {
       vals._id = e.target.value;
       if (!e.target.value) return;
       try {
         const d = await soggettoDati(M, e.target.value);
-        Object.keys(d).forEach((k) => { vals[k] = d[k]; const i = $('#m-' + k, v); if (i) i.value = d[k]; });
+        Object.keys(d).forEach((k) => { if (k === '_scelta') return; vals[k] = d[k]; const i = $('#m-' + k, v); if (i) i.value = d[k]; });
+        if (d._scelta && M.scelta && M.scelta.opzioni.some((o) => o.v === d._scelta)) {
+          mod.scelta[cod] = d._scelta; const r = $('input[name="m-sc"][value="' + d._scelta + '"]', v); if (r) r.checked = true; aggiorna();
+        }
       } catch (x) { toast(messaggioErrore(x), 'bad'); }
     });
     $('#m-gen', v).addEventListener('click', () => generaModulo(M, cod, v, $('#m-err', v)));
@@ -485,7 +499,7 @@
   async function generaModulo(M, cod, v, err) {
     err.textContent = '';
     const vals = mod.vals[cod] || {};
-    if (!vals._id) { err.textContent = 'Scegli prima ' + (M.soggetto === 'bussante' ? 'il bussante.' : 'il Fratello.'); return; }
+    if (M.soggetto !== 'nessuno' && !vals._id) { err.textContent = 'Scegli prima ' + (M.soggetto === 'bussante' ? 'il bussante.' : 'il Fratello.'); return; }
     const out = {};
     for (const c of M.campi) {
       const raw = String(vals[c.k] || '').trim();
@@ -501,7 +515,8 @@
       const r = await fetch('templates/' + M.file + '.pdf');
       if (!r.ok) throw new Error('Modello templates/' + M.file + '.pdf non trovato.');
       const bytes = await window.LemmiModuli.compila(cod, out, state.loggia, new Uint8Array(await r.arrayBuffer()));
-      const nome = M.file + '_' + nomeFile((vals.cognome || '') + '_' + (vals.nome || '')) + '.pdf';
+      const chi = vals.cognome ? (vals.cognome + '_' + (vals.nome || '')) : (vals.nominativo || '');
+      const nome = M.file + (chi ? '_' + nomeFile(chi) : '_' + new Date().toISOString().slice(0, 10)) + '.pdf';
       const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
       const a = document.createElement('a'); a.href = url; a.download = nome; a.style.display = 'none';
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 15000);

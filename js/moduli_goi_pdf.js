@@ -117,6 +117,142 @@
         { k: 'data_tornata', label: 'Tornata del', tipo: 'data', x: 180, yb: 459.3, w: 168 },
       ],
     },
+    E1: {
+      cod: 'E/1', file: 'E1', soggetto: 'fratello',
+      titolo: 'E/1 · Rilascio dell’Exeat (trasferimento ad altra Loggia)',
+      invio: 'La Loggia che concede il trasferimento lo trasmette al Collegio Circoscrizionale e a anagrafe@grandeoriente.it, con il fascicolo personale del Fratello. Il trasferimento ha effetto dalla data dell’Exeat.',
+      quando: 'Quando la Loggia concede l’Exeat a un Fratello che passa ad altra Loggia (entro 30 giorni dalla richiesta).',
+      testata: testata({ x: 102, yb: 236.9, w: 355 }, { x: 480, yb: 236.9, w: 60 }, { x: 113, yb: 265.5, w: 398 }),
+      campi: [
+        { k: 'nominativo', label: 'Fratello a cui si concede l’Exeat', x: 413, yb: 385.4, w: 147 },
+        { k: 'nuova_loggia', label: 'Trasferimento alla R∴L∴', x: 253, yb: 454.1, w: 308 },
+        { k: 'nuova_num', label: 'N°', x: 59, yb: 487.1, w: 50, corto: 1 },
+        { k: 'nuovo_oriente', label: 'all’Oriente di', x: 179, yb: 487.1, w: 381 },
+        { k: 'motivazioni', label: 'Motivazioni (facoltative)', area: 1, righe: [{ x: 177, yb: 541.1, w: 384 }, { x: 43, yb: 569.5, w: 517 }, { x: 43, yb: 597.1, w: 517 }] },
+      ],
+    },
+
+    E2: {
+      cod: 'E/2', file: 'E2', soggetto: 'fratello',
+      titolo: 'E/2 · Accoglimento del trasferimento da altra Loggia',
+      invio: 'La Loggia che accoglie il trasferimento lo trasmette al Collegio Circoscrizionale e a anagrafe@grandeoriente.it. La richiesta dell’Exeat alla Loggia di provenienza va fatta con raccomandata A/R o PEC, in copia a Gran Segreteria e Collegio.',
+      quando: 'Quando la Loggia accoglie la richiesta di affiliazione di un Fratello proveniente da altra Loggia.',
+      testata: testata({ x: 117, yb: 265.1, w: 269 }, { x: 407, yb: 265.1, w: 60 }, { x: 123, yb: 292.7, w: 340 }),
+      campi: [
+        { k: 'nominativo', label: 'Fratello che chiede il trasferimento', x: 88, yb: 427.8, w: 430 },
+        { k: 'da_loggia', label: 'Proveniente dalla R∴L∴', x: 192, yb: 465.4, w: 229 },
+        { k: 'da_num', label: 'N°', x: 438, yb: 465.4, w: 80, corto: 1 },
+        { k: 'da_oriente', label: 'all’Oriente di', x: 126, yb: 493, w: 392 },
+      ],
+    },
+
+    D1: {
+      cod: 'D/1', file: 'D1', soggetto: 'fratello',
+      titolo: 'D/1 · Depennamento, assonnamento, trasferimento, Oriente Eterno',
+      invio: 'Da trasmettere al Collegio Circoscrizionale e a anagrafe@grandeoriente.it. Per il depennamento ex art. 12 va allegato il modulo D/2 con il verbale del Consiglio di disciplina.',
+      quando: 'Quando un Fratello esce dal piè di lista: assonnamento, depennamento, trasferimento all’estero o ad altra Loggia, passaggio all’Oriente Eterno.',
+      testata: testata({ x: 118, yb: 195, w: 312 }, { x: 453, yb: 195, w: 38 }, { x: 125, yb: 223.6, w: 370 }),
+      scelta: {
+        k: 'motivo', label: 'Motivo', opzioni: [
+          { v: 'sonno', t: 'Assonnamento', box: [[62, 433.9]] },
+          { v: 'art12', t: 'Depennamento dal piè di lista (Consiglio di disciplina, art. 12 della Costituzione)', box: [[62, 462.9]] },
+          { v: 'estero', t: 'Depennamento per trasferimento all’estero', box: [[62, 505.2]] },
+          { v: 'oe', t: 'Passaggio all’Oriente Eterno', box: [[62, 534]] },
+          { v: 'trasferimento', t: 'Trasferimento ad altra Loggia', box: [[62, 559.6]] },
+        ],
+      },
+      campi: [
+        { k: 'nominativo', label: 'Fratello', x: 224, yb: 357, w: 269 },
+        { k: 'decorrenza', label: 'Decorrenza dal giorno', tipo: 'data', x: 111, yb: 411.1, w: 277 },
+        { k: 'motivo_sonno', label: 'Motivo dell’assonnamento', x: 308, yb: 440, w: 194, se: { scelta: ['sonno'] } },
+        { k: 'nuova_loggia', label: 'Trasferimento alla R∴L∴', x: 257, yb: 565.6, w: 164, se: { scelta: ['trasferimento'] } },
+        { k: 'nuova_num', label: 'N°', x: 443, yb: 565.6, w: 65, corto: 1, se: { scelta: ['trasferimento'] } },
+        { k: 'nuovo_oriente', label: 'all’Oriente di', x: 163, yb: 586.7, w: 337, se: { scelta: ['trasferimento'] } },
+      ],
+    },
+
+    D2: {
+      cod: 'D/2', file: 'D2', soggetto: 'nessuno',
+      titolo: 'D/2 · Verbale del Consiglio di disciplina',
+      invio: 'Allegato al modulo D/1 di depennamento: da trasmettere al Collegio Circoscrizionale e a anagrafe@grandeoriente.it. Le firme dei tre Consiglieri e il timbro della Loggia restano da apporre.',
+      quando: 'Dopo la diffida inviata con raccomandata, trascorsi 30 giorni, e la declaratoria di decadenza della Loggia in grado di Maestro (artt. 12 Cost. e 17 Reg.).',
+      testata: testata({ x: 118, yb: 222.5, w: 304 }, { x: 446, yb: 222.5, w: 39 }, { x: 125, yb: 250.1, w: 359 }),
+      campi: [
+        { k: 'consiglio', label: 'Consiglio di disciplina composto dai Fratelli (uno per riga, o separati da punto e virgola)', area: 1, perRiga: 1, righe: [{ x: 59, yb: 336.5, w: 291 }, { x: 59, yb: 355.6, w: 389 }, { x: 59, yb: 374.5, w: 383 }, { x: 59, yb: 393.5, w: 384 }] },
+        { k: 'depennati', label: 'Fratelli esaminati (uno per riga, o separati da punto e virgola)', area: 1, perRiga: 1, righe: [{ x: 59, yb: 436, w: 365 }, { x: 59, yb: 457.8, w: 365 }, { x: 59, yb: 478.5, w: 401 }, { x: 73, yb: 499.3, w: 176 }] },
+      ],
+    },
+
+    V1: {
+      cod: 'V/1', file: 'V1', soggetto: 'fratello',
+      titolo: 'V/1 · Variazioni anagrafiche',
+      invio: 'Da trasmettere al Collegio Circoscrizionale e a anagrafe@grandeoriente.it, firmato dal Segretario.',
+      quando: 'Quando un Fratello cambia indirizzo, telefono o e-mail: si chiede l’aggiornamento della scheda anagrafica.',
+      testata: testata({ x: 117, yb: 238, w: 306 }, { x: 447, yb: 238, w: 60 }, { x: 127, yb: 274.7, w: 354 }),
+      campi: [
+        { k: 'nominativo', label: 'Fratello', x: 211, yb: 409.4, w: 304 },
+        { k: 'v_via', label: 'Nuovo indirizzo: via e numero', x: 80, yb: 479.3, w: 426 },
+        { k: 'v_citta', label: 'Città', x: 85, yb: 510.9, w: 330 },
+        { k: 'v_cap', label: 'CAP', x: 449, yb: 510.5, w: 62, corto: 1 },
+        { k: 'v_tel', label: 'Telefono', x: 98, yb: 543.1, w: 155 },
+        { k: 'v_email', label: 'E-mail', x: 292, yb: 542.6, w: 218 },
+      ],
+    },
+
+    C2: {
+      cod: 'C/2', file: 'C2', soggetto: 'bussante',
+      titolo: 'C/2 · Rinuncia / rigetto della domanda di ammissione',
+      invio: 'Da trasmettere al Collegio Circoscrizionale e a anagrafe@grandeoriente.it, firmato da Segretario e Maestro Venerabile.',
+      quando: 'Quando la domanda del profano è respinta dalla Loggia o archiviata per sua rinuncia.',
+      testata: testata({ x: 118, yb: 207.7, w: 321 }, { x: 464, yb: 207.7, w: 59 }, { x: 129, yb: 236.2, w: 391 }),
+      scelta: {
+        k: 'esito', label: 'Esito', opzioni: [
+          { v: 'respinta', t: 'Domanda respinta dalla Loggia', box: [[62, 457.5]] },
+          { v: 'rinuncia', t: 'Domanda archiviata per rinuncia del profano', box: [[62, 492.7]] },
+        ],
+      },
+      campi: [
+        { k: 'nominativo', label: 'Signor', x: 101, yb: 428.7, w: 419 },
+        { k: 'data_esito', label: 'Data', tipo: 'data', pos: { respinta: { x: 216, yb: 463.5, w: 298 }, rinuncia: { x: 325, yb: 498.7, w: 193 } }, se: { scelta: ['respinta', 'rinuncia'] }, etichettaPer: { respinta: 'Respinta dalla Loggia il', rinuncia: 'Archiviata per rinuncia dal giorno' } },
+        { k: 'motivazioni', label: 'Motivazioni', area: 1, righe: [{ x: 59, yb: 549.3, w: 453 }, { x: 59, yb: 567.9, w: 453 }, { x: 59, yb: 586.5, w: 453 }, { x: 59, yb: 605.1, w: 453 }, { x: 59, yb: 623.6, w: 453 }] },
+      ],
+    },
+
+    N4: {
+      cod: 'N/4', file: 'N4', soggetto: 'bussante',
+      titolo: 'N/4 · Richiesta brevetto di Riammissione / Regolarizzazione / Cancellazione pena',
+      invio: 'Da trasmettere a gran.tesoreria@grandeoriente.it insieme alla copia del bonifico (causale: «Riammissione» o «Regolarizzazione» + nome e cognome) e, per conoscenza, a Gran Segreteria e Collegio Circoscrizionale.',
+      quando: 'Dopo la votazione favorevole (una sola) sulla riammissione, regolarizzazione o cancellazione della pena.',
+      testata: testata({ x: 102, yb: 246.6, w: 344 }, { x: 467, yb: 246.6, w: 68 }, { x: 107, yb: 276.5, w: 428 }),
+      scelta: {
+        k: 'tipo', label: 'La Loggia chiede il brevetto per', opzioni: [
+          { v: 'riammissione', t: 'Riammissione', box: [], testo: 'riammissione' },
+          { v: 'regolarizzazione', t: 'Regolarizzazione', box: [], testo: 'regolarizzazione' },
+          { v: 'pena', t: 'Cancellazione della pena', box: [], testo: 'cancellazione della pena' },
+        ],
+      },
+      campi: [
+        { k: '_oggetto', daScelta: 1, x: 392, yb: 440.6, w: 144 },
+        { k: 'cognome', label: 'Cognome', x: 96, yb: 430.7, w: 185, gruppo: 'Generalità' },
+        { k: 'nome', label: 'Nome', x: 83, yb: 451.6, w: 197, gruppo: 'Generalità' },
+        { k: 'nato', label: 'Nato a', x: 84, yb: 472.6, w: 195, gruppo: 'Generalità' },
+        { k: 'il', label: 'Nato il', tipo: 'data', x: 66, yb: 493.6, w: 212, gruppo: 'Generalità' },
+        { k: 'residente', label: 'Residente in', x: 103, yb: 514.6, w: 112, gruppo: 'Generalità' },
+        { k: 'cap', label: 'CAP', x: 250, yb: 514.6, w: 31, gruppo: 'Generalità', corto: 1 },
+        { k: 'via', label: 'Via', x: 74, yb: 536.3, w: 205, gruppo: 'Generalità' },
+        { k: 'tel', label: 'Telefono', x: 94, yb: 553.9, w: 186, gruppo: 'Generalità' },
+        { k: 'studio', label: 'Titolo di studio', x: 116, yb: 574.4, w: 164, gruppo: 'Generalità' },
+        { k: 'professione', label: 'Professione', x: 103, yb: 595, w: 177, gruppo: 'Generalità' },
+        { k: 'data_domanda', label: 'Domanda presentata il', tipo: 'data', x: 418, yb: 417.7, w: 116, gruppo: 'Votazione' },
+        { k: 'grado_seduta', label: 'Seduta in camera di (grado)', x: 458, yb: 461.6, w: 78, gruppo: 'Votazione' },
+        { k: 'data_seduta', label: 'Seduta del giorno', tipo: 'data', x: 356, yb: 482.6, w: 175, gruppo: 'Votazione' },
+        { k: 'v_data', label: 'Scrutinio: data', tipo: 'data', x: 313, yb: 603.5, w: 43, gruppo: 'Votazione', corto: 1 },
+        { k: 'v_votanti', label: 'Votanti', x: 366, yb: 603.5, w: 44, gruppo: 'Votazione', corto: 1 },
+        { k: 'v_bianche', label: 'Palle bianche', x: 421, yb: 603.5, w: 48, gruppo: 'Votazione', corto: 1 },
+        { k: 'v_nere', label: 'Palle nere', x: 483, yb: 603.5, w: 47, gruppo: 'Votazione', corto: 1 },
+      ],
+    },
+
   };
 
   /* ---------- utilità ---------- */
@@ -145,6 +281,25 @@
     pagina.drawText('X', { x: xc - w / 2, y: pagina.getHeight() - yc - s * 0.35, size: s, font: ctx.bold, color: COLORE });
   }
 
+  // testo su più righe: una voce per riga (perRiga) oppure a capo automatico secondo la larghezza di ogni riga
+  function scriviRighe(ctx, pagina, testo, c) {
+    const t = pulisci(ctx.font, String(testo || '').replace(/\r/g, '').replace(/\n/g, ' \u0001 '));
+    if (!t) return;
+    let righe;
+    if (c.perRiga) righe = String(testo).split(/[\n;]+/).map((x) => pulisci(ctx.font, x)).filter(Boolean);
+    else {
+      righe = []; let i = 0, riga = '';
+      const parole = t.split(/\s+/).filter((w) => w && w !== '\u0001');
+      parole.forEach((w) => {
+        const slot = c.righe[Math.min(i, c.righe.length - 1)];
+        const prova = riga ? riga + ' ' + w : w;
+        if (riga && ctx.font.widthOfTextAtSize(prova, 10) > slot.w) { righe.push(riga); riga = w; i++; } else riga = prova;
+      });
+      if (riga) righe.push(riga);
+    }
+    righe.slice(0, c.righe.length).forEach((r, i) => scrivi(ctx, pagina, r, c.righe[i].x, c.righe[i].yb, c.righe[i].w, 10));
+  }
+
   /* ---------- compilazione ---------- */
   // v: valori per chiave (le date in AAAA-MM-GG); loggia: {nome, numero, oriente}
   async function compila(codice, v, loggia, templateBytes) {
@@ -164,6 +319,12 @@
     }
     M.campi.forEach((c) => {
       if (c.se && c.se.scelta && !c.se.scelta.includes(sc)) return;
+      if (c.righe) { scriviRighe(ctx, p, v[c.k], c); return; }
+      if (c.daScelta) {
+        const o = M.scelta && M.scelta.opzioni.find((x) => x.v === sc);
+        if (o && o.testo) scrivi(ctx, p, o.testo, c.x, c.yb, c.w, 10);
+        return;
+      }
       const pos = c.pos ? c.pos[sc] : c;
       if (!pos) return;
       let val = v[c.k];
