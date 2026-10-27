@@ -329,3 +329,4 @@ tr[data-drill]:hover td { background: #f4f6fc; }
 .tpl-ic { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 11px; background: var(--gold-soft); color: #7b5d12; font-weight: 700; }
 .up-box { border: 1px dashed var(--line); border-radius: 12px; padding: 12px 16px; background: #fafbfe; }
 .chk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 14px; margin-top: 8px; max-height: 220px; overflow: auto; }
+.radio-col { display: grid; gap: 8px; }

@@ -36,9 +36,13 @@
    *  Indice dei Template
    * ==================================================================== */
   const MODULI_GOI = [
-    { t: 'Modelli A/1 e C/1', d: 'Domanda di ammissione del bussante e comunicazione al Collegio (iniziazione, riammissione, regolarizzazione).', vai: '#/bussanti', vaiT: 'Bussanti › scheda del bussante', file: ['A1', 'C1'] },
-    { t: 'Elezioni delle cariche', d: 'Processo verbale delle elezioni e autocertificazioni dei candidati.', vai: '#/elezioni', vaiT: 'Fratelli › Elezioni cariche', file: ['ELEZIONI'] },
-    { t: 'Insediamento delle cariche', d: 'Promessa solenne, nomina del Segretario e degli Ufficiali, trapasso dei poteri, relazione e conto gestione.', vai: '#/elezioni', vaiT: 'Fratelli › Elezioni cariche (riquadro 5)', file: ['INSEDIAMENTO'] },
+    { t: 'Modelli A/1 e C/1', d: 'Domanda di ammissione del bussante e comunicazione al Collegio (iniziazione, riammissione, regolarizzazione).', vai: '#/bussanti', vaiT: 'Bussanti › scheda del bussante', file: [['A1', 'A/1'], ['C1', 'C/1']] },
+    { t: 'N/1 · Brevetto di Iniziazione', d: 'Richiesta del brevetto alla Gran Tesoreria dopo la seconda votazione favorevole, con l’esito degli scrutini.', compila: 'N1', file: [['N1', 'N/1']] },
+    { t: 'C/3 · Arricchimento del piè di lista', d: 'Comunicazione ad Anagrafe e Collegio dopo iniziazione, affiliazione o riammissione di un Fratello.', compila: 'C3', file: [['C3', 'C/3']] },
+    { t: 'N/2-3 · Brevetto di Compagno / Maestro', d: 'Richiesta del brevetto alla Gran Tesoreria dopo le votazioni in Camera di Compagno o di Maestro.', compila: 'N23', file: [['N23', 'N/2-3']] },
+    { t: 'C/3 bis · Promozione / elevazione', d: 'Comunicazione della cerimonia di passaggio di grado: la data fissa l’anzianità nel grado.', compila: 'C3BIS', file: [['C3BIS', 'C/3 bis']] },
+    { t: 'Elezioni delle cariche', d: 'Processo verbale delle elezioni e autocertificazioni dei candidati.', vai: '#/elezioni', vaiT: 'Fratelli › Elezioni cariche', file: [['ELEZIONI', 'Elezioni']] },
+    { t: 'Insediamento delle cariche', d: 'Promessa solenne, nomina del Segretario e degli Ufficiali, trapasso dei poteri, relazione e conto gestione.', vai: '#/elezioni', vaiT: 'Fratelli › Elezioni cariche (riquadro 5)', file: [['INSEDIAMENTO', 'Insediamento']] },
     { t: 'Piè di lista semestrale', d: 'Elenco dei Fratelli al 30 giugno e al 31 dicembre, in Excel e in PDF da firmare.', vai: '#/piedilista', vaiT: 'Fratelli › Piè di lista', file: [] },
   ];
 
@@ -60,10 +64,10 @@
           <span class="btn gold small">Crea il verbale</span></a>`).join('')}</div></div>
 
       <div class="card" style="margin-top:18px"><h2>${IC.pdf} Moduli GOI</h2>
-        <p class="muted" style="margin:0 0 12px">I moduli si compilano dall’app con i dati già inseriti (firme e date restano in bianco). Qui trovi le scorciatoie e i modelli vuoti ufficiali (ed. 2024).</p>
+        <p class="muted" style="margin:0 0 12px">I moduli si compilano dall’app con i dati già inseriti (firme, visti e data di trasmissione restano in bianco). Qui trovi la compilazione guidata o la scorciatoia alla scheda giusta, e i modelli vuoti ufficiali (ed. 2024 del Corso Segretari).</p>
         <div class="table-wrap"><table data-no-sort><thead><tr><th>Modello</th><th>A cosa serve</th><th>Si compila da</th><th>Modello vuoto</th></tr></thead><tbody>
-          ${MODULI_GOI.map((m) => `<tr><td><b>${esc(m.t)}</b></td><td>${esc(m.d)}</td><td><a href="${m.vai}">${esc(m.vaiT)}</a></td>
-            <td>${m.file.length ? m.file.map((f) => `<a class="btn ghost small" href="templates/${esc(f)}.pdf" download>${IC.pdf} ${esc(f.replace(/^([A-Z])(\d)$/, '$1/$2'))}</a>`).join(' ') : '<span class="muted">generato dall’app</span>'}</td></tr>`).join('')}
+          ${MODULI_GOI.map((m) => `<tr><td><b>${esc(m.t)}</b></td><td>${esc(m.d)}</td><td>${m.compila ? `<a class="btn gold small" href="#/template/modulo/${m.compila}">Compila il modulo</a>` : `<a href="${m.vai}">${esc(m.vaiT)}</a>`}</td>
+            <td>${m.file.length ? m.file.map((f) => `<a class="btn ghost small" href="templates/${esc(f[0])}.pdf" download>${IC.pdf} ${esc(f[1])}</a>`).join(' ') : '<span class="muted">generato dall’app</span>'}</td></tr>`).join('')}
         </tbody></table></div></div>
 
       <div class="card" style="margin-top:18px" id="lib"><h2>${IC.template || ''} Modelli della Loggia</h2>
@@ -400,7 +404,114 @@
     toast('Verbale scaricato: ' + nome, 'ok');
   }
 
+
+  /* ====================================================================
+   *  Compilazione guidata dei moduli GOI (N/1, C/3, N/2-3, C/3 bis)
+   * ==================================================================== */
+  const mod = { vals: {}, scelta: {} };
+
+  const conProv = (c, p) => (c ? c + (p ? ' (' + p + ')' : '') : '');
+
+  async function soggettoDati(M, id) {
+    if (M.soggetto === 'bussante') {
+      const b = chk(await state.sb.from('bussanti').select('*').eq('id', id).maybeSingle());
+      if (!b) return {};
+      const dueVot = b.tipo_domanda === 'iniziazione';
+      return {
+        cognome: b.cognome, nome: b.nome, nato: b.luogo_nascita || '', il: isoToIt(b.data_nascita), residente: conProv(b.citta, b.provincia), cap: b.cap || '',
+        via: b.indirizzo || '', tel: b.cellulare || '', studio: b.titolo_studio || '', professione: b.professione || '',
+        data_domanda: isoToIt(b.data_domanda), data_seduta: isoToIt(dueVot ? b.data_seconda_votazione : b.data_prima_votazione),
+        v1_data: isoToIt(b.data_prima_votazione), v2_data: dueVot ? isoToIt(b.data_seconda_votazione) : '',
+      };
+    }
+    const f = chk(await state.sb.from('fratelli').select('*').eq('id', id).maybeSingle());
+    if (!f) return {};
+    return {
+      cognome: f.cognome, nome: f.nome, nato: f.luogo_nascita || '', il: isoToIt(f.data_nascita), residente: conProv(f.citta, f.provincia), cap: f.cap || '',
+      via: f.indirizzo || '', tel: f.cellulare || '', nominativo: (f.nome + ' ' + f.cognome).trim(),
+    };
+  }
+
+  async function vistaModulo(v, cod) {
+    const M = window.LemmiModuli && window.LemmiModuli.MODULI[cod];
+    if (!M) { location.hash = '#/template'; return; }
+    if (!['amministratore', 'venerabile', 'segretario'].includes(state.profilo.ruolo)) { v.innerHTML = '<div class="notice bad">Il tuo ruolo non ha accesso a questa sezione.</div>'; return; }
+    const bus = M.soggetto === 'bussante';
+    const lista = bus ? chk(await state.sb.from('bussanti').select('id,cognome,nome').order('cognome').order('nome')) : await L.caricaFratelli();
+    const vals = mod.vals[cod] || (mod.vals[cod] = {});
+    const sc = M.scelta;
+    if (sc && !mod.scelta[cod]) mod.scelta[cod] = sc.opzioni[0].v;
+    const gruppi = [];
+    M.campi.forEach((c) => { const g = c.gruppo || 'Dati del modulo'; if (!gruppi.includes(g)) gruppi.push(g); });
+
+    const campoHtml = (c) => `<div class="f ${c.corto ? 's3' : 's6'}" data-campo="${c.k}"><label for="m-${c.k}" data-lab>${esc(c.label)}</label>
+      <input id="m-${c.k}" data-k="${c.k}" ${c.tipo === 'data' ? 'data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"' : ''} value="${esc(vals[c.k] || '')}"></div>`;
+
+    v.innerHTML = `
+      <div class="crumb"><a href="#/template">Template</a> › Modulo ${esc(M.cod)}</div>
+      <div class="page-head"><div><h1>${esc(M.titolo)}</h1><p>${esc(M.quando)}</p></div></div>
+      <div class="card"><h2>${bus ? 'Bussante' : 'Fratello'}</h2>
+        <div class="form-grid"><div class="f s8"><label for="m-sog">${bus ? 'Scegli il bussante' : 'Scegli il Fratello'}</label>
+          <select id="m-sog"><option value="">— scegli —</option>${lista.map((x) => `<option value="${esc(x.id)}" ${String(x.id) === String(vals._id) ? 'selected' : ''}>${esc(x.cognome)} ${esc(x.nome)}</option>`).join('')}</select>
+          <span class="hint">I dati anagrafici si compilano da soli; quelli che mancano si scrivono qui sotto.</span></div></div></div>
+      ${sc ? `<div class="card" style="margin-top:18px"><h2>${esc(sc.label)}</h2><div class="radio-col">${sc.opzioni.map((o) => `<label class="check"><input type="radio" name="m-sc" value="${o.v}" ${mod.scelta[cod] === o.v ? 'checked' : ''}> ${esc(o.t)}</label>`).join('')}</div></div>` : ''}
+      ${gruppi.map((g) => `<div class="card" style="margin-top:18px"><h2>${esc(g)}</h2><div class="form-grid">${M.campi.filter((c) => (c.gruppo || 'Dati del modulo') === g).map(campoHtml).join('')}</div></div>`).join('')}
+      <div class="card" style="margin-top:18px"><p class="muted" style="margin:0 0 12px">${esc(M.invio)}<br>Il PDF si compila sopra il modello ufficiale: <b>firma del Maestro Venerabile, visto del Collegio e data di trasmissione restano in bianco</b>.</p>
+        <div class="actions"><button class="btn gold" id="m-gen" type="button">${IC.pdf} Genera il PDF</button><span class="err" id="m-err"></span></div></div>`;
+
+    mascheraDate(v);
+    const aggiorna = () => {
+      const s0 = mod.scelta[cod];
+      M.campi.forEach((c) => {
+        const box = $('[data-campo="' + c.k + '"]', v); if (!box) return;
+        box.style.display = !c.se || !c.se.scelta || c.se.scelta.includes(s0) ? '' : 'none';
+        if (c.etichettaPer) $('[data-lab]', box).textContent = c.etichettaPer[s0] || c.label;
+      });
+    };
+    aggiorna();
+    $$('input[data-k]', v).forEach((i) => i.addEventListener('input', () => { vals[i.dataset.k] = i.value; }));
+    $$('input[name="m-sc"]', v).forEach((r) => r.addEventListener('change', () => { mod.scelta[cod] = r.value; aggiorna(); }));
+    $('#m-sog', v).addEventListener('change', async (e) => {
+      vals._id = e.target.value;
+      if (!e.target.value) return;
+      try {
+        const d = await soggettoDati(M, e.target.value);
+        Object.keys(d).forEach((k) => { vals[k] = d[k]; const i = $('#m-' + k, v); if (i) i.value = d[k]; });
+      } catch (x) { toast(messaggioErrore(x), 'bad'); }
+    });
+    $('#m-gen', v).addEventListener('click', () => generaModulo(M, cod, v, $('#m-err', v)));
+  }
+
+  async function generaModulo(M, cod, v, err) {
+    err.textContent = '';
+    const vals = mod.vals[cod] || {};
+    if (!vals._id) { err.textContent = 'Scegli prima ' + (M.soggetto === 'bussante' ? 'il bussante.' : 'il Fratello.'); return; }
+    const out = {};
+    for (const c of M.campi) {
+      const raw = String(vals[c.k] || '').trim();
+      if (c.tipo === 'data' && raw) {
+        const iso = itToIso(raw);
+        if (!iso || iso === 'ERR') { err.textContent = '«' + c.label + '»: scrivi la data come gg/mm/aaaa.'; return; }
+        out[c.k] = iso;
+      } else out[c.k] = raw;
+    }
+    if (M.scelta) out[M.scelta.k] = mod.scelta[cod];
+    const btn = $('#m-gen', v), et = btn.innerHTML; btn.disabled = true; btn.textContent = 'Genero…';
+    try {
+      const r = await fetch('templates/' + M.file + '.pdf');
+      if (!r.ok) throw new Error('Modello templates/' + M.file + '.pdf non trovato.');
+      const bytes = await window.LemmiModuli.compila(cod, out, state.loggia, new Uint8Array(await r.arrayBuffer()));
+      const nome = M.file + '_' + nomeFile((vals.cognome || '') + '_' + (vals.nome || '')) + '.pdf';
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      const a = document.createElement('a'); a.href = url; a.download = nome; a.style.display = 'none';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 15000);
+      toast('PDF generato: ' + nome, 'ok');
+    } catch (e) { err.textContent = messaggioErrore(e); }
+    btn.disabled = false; btn.innerHTML = et;
+  }
+
   L.viste.template = async function (v, parti) {
+    if (parti[1] === 'modulo') return vistaModulo(v, String(parti[2] || '').toUpperCase());
     if (parti[1] === 'verbale') return vistaVerbale(v, parti[2]);
     return vistaIndice(v);
   };
