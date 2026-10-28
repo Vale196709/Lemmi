@@ -1,0 +1,19 @@
+AGGIORNAMENTO 19 - riordino dei file
+
+1) Carica su GitHub (Add file > Upload files), mantenendo le cartelle:
+   js/app.js
+   js/template.js
+   js/moduli_goi_pdf.js
+   js/config.js
+   templates/A2.pdf
+   templates/AR.pdf
+
+2) Elimina dalla cartella principale (radice) del repository questi 6 file doppi:
+   app.js
+   template.js
+   moduli_goi_pdf.js
+   config.js
+   A2.pdf
+   AR.pdf
+
+3) Aspetta 1-2 minuti, poi ricarica il sito con Ctrl+F5.

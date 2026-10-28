@@ -48,6 +48,8 @@
     { t: 'V/1 · Variazioni anagrafiche', d: 'Nuovo indirizzo, telefono o e-mail di un Fratello, da comunicare ad Anagrafe e Collegio.', compila: 'V1', file: [['V1', 'V/1']] },
     { t: 'C/2 · Rinuncia / rigetto della domanda', d: 'Domanda del profano respinta o archiviata per rinuncia, con le motivazioni.', compila: 'C2', file: [['C2', 'C/2']] },
     { t: 'N/4 · Brevetto di riammissione / regolarizzazione', d: 'Richiesta del brevetto alla Gran Tesoreria dopo la votazione su riammissione, regolarizzazione o cancellazione della pena.', compila: 'N4', file: [['N4', 'N/4']] },
+    { t: 'A/2 · Domanda di riammissione / cancellazione pena', d: 'Domanda di chi è stato dimesso, depennato o espulso (o chiede l’affiliazione dall’estero), con la clausola compromissoria.', compila: 'A2', file: [['A2', 'A/2']] },
+    { t: 'A/R · Domanda di regolarizzazione', d: 'Domanda di chi proviene da altra Obbedienza: brevetti, Logge di provenienza, cariche e dimissioni, con la clausola compromissoria.', compila: 'AR', file: [['AR', 'A/R']] },
     { t: 'Elezioni delle cariche', d: 'Processo verbale delle elezioni e autocertificazioni dei candidati.', vai: '#/elezioni', vaiT: 'Fratelli › Elezioni cariche', file: [['ELEZIONI', 'Elezioni']] },
     { t: 'Insediamento delle cariche', d: 'Promessa solenne, nomina del Segretario e degli Ufficiali, trapasso dei poteri, relazione e conto gestione.', vai: '#/elezioni', vaiT: 'Fratelli › Elezioni cariche (riquadro 5)', file: [['INSEDIAMENTO', 'Insediamento']] },
     { t: 'Piè di lista semestrale', d: 'Elenco dei Fratelli al 30 giugno e al 31 dicembre, in Excel e in PDF da firmare.', vai: '#/piedilista', vaiT: 'Fratelli › Piè di lista', file: [] },
@@ -419,18 +421,34 @@
 
   const conProv = (c, p) => (c ? c + (p ? ' (' + p + ')' : '') : '');
 
+  function bussanteBase(b, dueVot) {
+    return {
+      cognome: b.cognome, nome: b.nome, nominativo: (b.nome + ' ' + b.cognome).trim(), nato: b.luogo_nascita || '', il: isoToIt(b.data_nascita), residente: conProv(b.citta, b.provincia), cap: b.cap || '',
+      _scelta: { riammissione: 'riammissione', regolarizzazione: 'regolarizzazione', cancellazione_pena: 'pena' }[b.tipo_domanda] || '',
+      via: b.indirizzo || '', tel: b.cellulare || '', studio: b.titolo_studio || '', professione: b.professione || '',
+      data_domanda: isoToIt(b.data_domanda), data_seduta: isoToIt(dueVot ? b.data_seconda_votazione : b.data_prima_votazione),
+      v1_data: isoToIt(b.data_prima_votazione), v2_data: dueVot ? isoToIt(b.data_seconda_votazione) : '',
+    };
+  }
+
   async function soggettoDati(M, id) {
     if (M.soggetto === 'bussante') {
       const b = chk(await state.sb.from('bussanti').select('*').eq('id', id).maybeSingle());
       if (!b) return {};
       const dueVot = b.tipo_domanda === 'iniziazione';
-      return {
-        cognome: b.cognome, nome: b.nome, nominativo: (b.nome + ' ' + b.cognome).trim(), nato: b.luogo_nascita || '', il: isoToIt(b.data_nascita), residente: conProv(b.citta, b.provincia), cap: b.cap || '',
-        _scelta: { riammissione: 'riammissione', regolarizzazione: 'regolarizzazione', cancellazione_pena: 'pena' }[b.tipo_domanda] || '',
-        via: b.indirizzo || '', tel: b.cellulare || '', studio: b.titolo_studio || '', professione: b.professione || '',
-        data_domanda: isoToIt(b.data_domanda), data_seduta: isoToIt(dueVot ? b.data_seconda_votazione : b.data_prima_votazione),
-        v1_data: isoToIt(b.data_prima_votazione), v2_data: dueVot ? isoToIt(b.data_seconda_votazione) : '',
-      };
+      const div = (window.LemmiPDF && window.LemmiPDF.dividiVia) || ((x) => [x || '', '']);
+      const [via, civ] = div(b.indirizzo);
+      const domVuoto = !b.domicilio_citta && !b.domicilio_indirizzo;
+      const [dvia, dciv] = domVuoto ? [via, civ] : div(b.domicilio_indirizzo);
+      const pv = b.provenienza || {}, rif = Array.isArray(b.referenti) ? b.referenti : [];
+      const riga = (r) => (r ? [r.nome, r.indirizzo].filter(Boolean).join(' - ') : '');
+      const conCiv = M.campi.some((c) => c.k === 'civ');
+      return Object.assign(bussanteBase(b, dueVot), {
+        nome_completo: (b.cognome + ' ' + b.nome).trim(), prov_nato: b.provincia_nascita || '', cf: b.codice_fiscale || '', email: b.email || '',
+        civ, dom_citta: domVuoto ? conProv(b.citta, b.provincia) : conProv(b.domicilio_citta, b.domicilio_provincia), dom_cap: domVuoto ? (b.cap || '') : (b.domicilio_cap || ''),
+        dom_via: dvia, dom_civ: dciv, rif1: riga(rif[0]), rif2: riga(rif[1]), rif3: riga(rif[2]),
+        gran_loggia: pv.obbedienza || '', grado_ricoperto: pv.grado_ricoperto || pv.grado || '', esp_sent: isoToIt(pv.espulso_sentenza_del), esp_def: isoToIt(pv.espulso_definitiva_il),
+      }, conCiv ? { via } : {});
     }
     const f = chk(await state.sb.from('fratelli').select('*').eq('id', id).maybeSingle());
     if (!f) return {};
@@ -440,7 +458,7 @@
     };
   }
 
-  async function vistaModulo(v, cod) {
+  async function vistaModulo(v, cod, preId) {
     const M = window.LemmiModuli && window.LemmiModuli.MODULI[cod];
     if (!M) { location.hash = '#/template'; return; }
     if (!['amministratore', 'venerabile', 'segretario'].includes(state.profilo.ruolo)) { v.innerHTML = '<div class="notice bad">Il tuo ruolo non ha accesso a questa sezione.</div>'; return; }
@@ -494,6 +512,9 @@
       } catch (x) { toast(messaggioErrore(x), 'bad'); }
     });
     $('#m-gen', v).addEventListener('click', () => generaModulo(M, cod, v, $('#m-err', v)));
+    if (preId && $('#m-sog', v) && String(vals._id) !== String(preId) && lista.some((x) => String(x.id) === String(preId))) {
+      $('#m-sog', v).value = preId; $('#m-sog', v).dispatchEvent(new Event('change'));
+    }
   }
 
   async function generaModulo(M, cod, v, err) {
@@ -526,7 +547,7 @@
   }
 
   L.viste.template = async function (v, parti) {
-    if (parti[1] === 'modulo') return vistaModulo(v, String(parti[2] || '').toUpperCase());
+    if (parti[1] === 'modulo') return vistaModulo(v, String(parti[2] || '').toUpperCase(), parti[3]);
     if (parti[1] === 'verbale') return vistaVerbale(v, parti[2]);
     return vistaIndice(v);
   };

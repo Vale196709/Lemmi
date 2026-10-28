@@ -253,6 +253,114 @@
       ],
     },
 
+    A2: {
+      cod: 'A/2', file: 'A2', soggetto: 'bussante',
+      titolo: 'A/2 · Domanda di riammissione / cancellazione della pena / affiliazione dall’estero',
+      invio: 'Da compilare in 2 copie: una per l’archivio di Loggia, una da trasmettere al Collegio Circoscrizionale (senza la pag. 5) insieme al modello C/1 e agli allegati richiesti. Firma e data le appone il richiedente.',
+      quando: 'Quando un Fratello dimesso, depennato o espulso chiede di essere riammesso (o un Fratello estero chiede l’affiliazione).',
+      testate: [
+        { p: 1, v: [{ x: 80, yb: 67.9, w: 164 }, { x: 262, yb: 67.9, w: 28 }, { x: 346, yb: 67.9, w: 140 }] },
+        { p: 2, v: [{ x: 208, yb: 162.6, w: 288 }, { x: 516, yb: 162.6, w: 45 }, { x: 86, yb: 186, w: 475 }] },
+      ],
+      campi: [
+        { p: 1, k: 'nome_completo', label: 'Cognome e Nome', x: 166, yb: 83.4, w: 323, gruppo: 'Generalità' },
+        { p: 1, k: 'nato', label: 'Nato a', x: 71, yb: 98.5, w: 198, gruppo: 'Generalità' },
+        { p: 1, k: 'prov_nato', label: 'Prov.', x: 306, yb: 98.5, w: 36, gruppo: 'Generalità', corto: 1 },
+        { p: 1, k: 'il', label: 'Nato il', tipo: 'data', x: 376, yb: 98.5, w: 115, gruppo: 'Generalità' },
+        { p: 1, k: 'residente', label: 'Residente in', x: 92, yb: 114, w: 274, gruppo: 'Generalità' },
+        { p: 1, k: 'cap', label: 'CAP', x: 396, yb: 114, w: 95, gruppo: 'Generalità', corto: 1 },
+        { p: 1, k: 'via', label: 'Via', x: 60, yb: 129.5, w: 342, gruppo: 'Generalità' },
+        { p: 1, k: 'civ', label: 'N°', x: 418, yb: 129.5, w: 71, gruppo: 'Generalità', corto: 1 },
+        { p: 1, k: 'dom_citta', label: 'Domiciliato a', x: 96, yb: 145.1, w: 270, gruppo: 'Generalità' },
+        { p: 1, k: 'dom_cap', label: 'CAP domicilio', x: 396, yb: 145.1, w: 95, gruppo: 'Generalità', corto: 1 },
+        { p: 1, k: 'dom_via', label: 'Via (domicilio)', x: 60, yb: 160.6, w: 342, gruppo: 'Generalità' },
+        { p: 1, k: 'dom_civ', label: 'N° (domicilio)', x: 418, yb: 160.6, w: 71, gruppo: 'Generalità', corto: 1 },
+        { p: 1, k: 'cf', label: 'Codice fiscale', x: 100, yb: 176.1, w: 391, gruppo: 'Generalità' },
+        { p: 1, k: 'tel', label: 'Telefono', x: 113, yb: 191.6, w: 163, gruppo: 'Generalità' },
+        { p: 1, k: 'email', label: 'E-mail', x: 305, yb: 191.6, w: 184, gruppo: 'Generalità' },
+        { p: 1, k: 'studio', label: 'Titolo di studio', x: 102, yb: 207.2, w: 387, gruppo: 'Generalità' },
+        { p: 1, k: 'professione', label: 'Professione', x: 91, yb: 222.7, w: 400, gruppo: 'Generalità' },
+        { p: 1, k: 'iniziato_il', label: 'Iniziato il', tipo: 'data', x: 82, yb: 238.2, w: 189, gruppo: 'Iniziazione e uscita dalla Loggia' },
+        { p: 1, k: 'iniz_rl', label: 'presso la R∴L∴', x: 114, yb: 255.8, w: 158, gruppo: 'Iniziazione e uscita dalla Loggia' },
+        { p: 1, k: 'iniz_num', label: 'N°', x: 290, yb: 255.8, w: 28, gruppo: 'Iniziazione e uscita dalla Loggia', corto: 1 },
+        { p: 1, k: 'iniz_or', label: 'all’Oriente di', x: 371, yb: 255.8, w: 113, gruppo: 'Iniziazione e uscita dalla Loggia' },
+        { p: 1, k: 'sonno_il', label: 'Collocato in posizione di sonno il', tipo: 'data', x: 203, yb: 271.5, w: 109, gruppo: 'Iniziazione e uscita dalla Loggia' },
+        { p: 1, k: 'depennato_il', label: 'Depennato dal piè di lista il', tipo: 'data', x: 181, yb: 287.3, w: 132, gruppo: 'Iniziazione e uscita dalla Loggia' },
+        { p: 1, k: 'esp_sent', label: 'Espulso con sentenza del', tipo: 'data', x: 173, yb: 303.1, w: 144, gruppo: 'Iniziazione e uscita dalla Loggia' },
+        { p: 1, k: 'esp_def', label: 'Definitiva il', tipo: 'data', x: 140, yb: 318.8, w: 176, gruppo: 'Iniziazione e uscita dalla Loggia' },
+        { p: 1, k: 'grado_ricoperto', label: 'All’atto dell’uscita ricopriva il grado di', x: 386, yb: 375.7, w: 98, gruppo: 'Iniziazione e uscita dalla Loggia' },
+        { p: 1, k: 'ult_rl', label: 'Attivo e quotizzante nella R∴L∴', x: 130, yb: 391.7, w: 198, gruppo: 'Iniziazione e uscita dalla Loggia' },
+        { p: 1, k: 'ult_num', label: 'N°', x: 341, yb: 391.7, w: 45, gruppo: 'Iniziazione e uscita dalla Loggia', corto: 1 },
+        { p: 1, k: 'ult_or', label: 'all’Oriente di', x: 443, yb: 391.7, w: 94, gruppo: 'Iniziazione e uscita dalla Loggia' },
+        { p: 1, k: 'note', label: 'Note sulle dichiarazioni', x: 45, yb: 582.4, w: 470, gruppo: 'Altro' },
+        { p: 1, k: 'rif1', label: 'Possono riferire: 1° Fratello', x: 56, yb: 617.7, w: 458, gruppo: 'Altro' },
+        { p: 1, k: 'rif2', label: '2° Fratello', x: 56, yb: 633.4, w: 458, gruppo: 'Altro' },
+        // pagina 3: clausola compromissoria (stessi dati)
+        { p: 2, k: 'nome_completo', x: 86, yb: 92.5, w: 475 },
+        { p: 2, k: 'nato', x: 58, yb: 115.9, w: 185 },
+        { p: 2, k: 'il', tipo: 'data', x: 255, yb: 115.9, w: 96 },
+        { p: 2, k: 'cf', x: 373, yb: 115.9, w: 186 },
+        { p: 2, k: 'residente', x: 86, yb: 139.3, w: 131 },
+        { p: 2, k: 'via', x: 238, yb: 139.3, w: 261 },
+        { p: 2, k: 'civ', x: 519, yb: 139.3, w: 42 },
+      ],
+    },
+
+    AR: {
+      cod: 'A/R', file: 'AR', soggetto: 'bussante',
+      titolo: 'A/R · Domanda di regolarizzazione',
+      invio: 'Da trasmettere a gran.segreteria@grandeoriente.it, con la dichiarazione di compatibilità, i certificati richiesti e le copie dei brevetti conseguiti presso l’altra Obbedienza. Firma e data le appone il richiedente.',
+      quando: 'Quando un Libero Muratore proveniente da altra Obbedienza chiede di essere regolarizzato.',
+      testate: [{ p: 3, v: [{ x: 236, yb: 180, w: 258, unisci: 1 }, null, { x: 114, yb: 203.4, w: 421 }] }],
+      campi: [
+        { k: 'nome_completo', label: 'Cognome e Nome', x: 132, yb: 214.5, w: 402, gruppo: 'Generalità' },
+        { k: 'nato', label: 'Nato a', x: 109, yb: 231.8, w: 196, gruppo: 'Generalità' },
+        { k: 'prov_nato', label: 'Prov.', x: 343, yb: 231.8, w: 31, gruppo: 'Generalità', corto: 1 },
+        { k: 'il', label: 'Nato il', tipo: 'data', x: 386, yb: 231.8, w: 149, gruppo: 'Generalità' },
+        { k: 'studio', label: 'Titolo di studio', x: 144, yb: 249, w: 390, gruppo: 'Generalità' },
+        { k: 'professione', label: 'Professione', x: 129, yb: 266.3, w: 405, gruppo: 'Generalità' },
+        { k: 'residente', label: 'Residente in', x: 129, yb: 283.5, w: 305, gruppo: 'Generalità' },
+        { k: 'cap', label: 'CAP', x: 465, yb: 283.5, w: 70, gruppo: 'Generalità', corto: 1 },
+        { k: 'via', label: 'Via', x: 97, yb: 300.8, w: 321, gruppo: 'Generalità' },
+        { k: 'civ', label: 'N°', x: 435, yb: 300.8, w: 36, gruppo: 'Generalità', corto: 1 },
+        { k: 'tel', label: 'Telefono', x: 119, yb: 319.7, w: 140, gruppo: 'Generalità' },
+        { k: 'email', label: 'E-mail', x: 288, yb: 319.7, w: 247, gruppo: 'Generalità' },
+        { k: 'gran_loggia', label: 'Proveniente dalla Gran Loggia', x: 205, yb: 335, w: 331, gruppo: 'Provenienza' },
+        { k: 'app_data', label: 'Apprendista (data)', tipo: 'data', x: 132, yb: 352.3, w: 75, gruppo: 'Brevetti e Logge di provenienza', corto: 1 },
+        { k: 'app_brev', label: 'Apprendista: brevetto N°', x: 269, yb: 352.3, w: 69, gruppo: 'Brevetti e Logge di provenienza', corto: 1 },
+        { k: 'app_rl', label: 'Apprendista: R∴L∴', x: 115, yb: 369.8, w: 191, gruppo: 'Brevetti e Logge di provenienza' },
+        { k: 'app_num', label: 'N°', x: 324, yb: 369.8, w: 41, gruppo: 'Brevetti e Logge di provenienza', corto: 1 },
+        { k: 'app_or', label: 'all’Oriente di', x: 426, yb: 369.8, w: 108, gruppo: 'Brevetti e Logge di provenienza' },
+        { k: 'comp_data', label: 'Compagno (data)', tipo: 'data', x: 127, yb: 387.4, w: 80, gruppo: 'Brevetti e Logge di provenienza', corto: 1 },
+        { k: 'comp_brev', label: 'Compagno: brevetto N°', x: 270, yb: 387.4, w: 73, gruppo: 'Brevetti e Logge di provenienza', corto: 1 },
+        { k: 'comp_rl', label: 'Compagno: R∴L∴', x: 115, yb: 405.1, w: 191, gruppo: 'Brevetti e Logge di provenienza' },
+        { k: 'comp_num', label: 'N°', x: 324, yb: 405.1, w: 41, gruppo: 'Brevetti e Logge di provenienza', corto: 1 },
+        { k: 'comp_or', label: 'all’Oriente di', x: 426, yb: 405.1, w: 108, gruppo: 'Brevetti e Logge di provenienza' },
+        { k: 'mae_data', label: 'Maestro (data)', tipo: 'data', x: 116, yb: 422.8, w: 90, gruppo: 'Brevetti e Logge di provenienza', corto: 1 },
+        { k: 'mae_brev', label: 'Maestro: brevetto N°', x: 265, yb: 422.8, w: 79, gruppo: 'Brevetti e Logge di provenienza', corto: 1 },
+        { k: 'mae_rl', label: 'Maestro: R∴L∴', x: 115, yb: 440.5, w: 191, gruppo: 'Brevetti e Logge di provenienza' },
+        { k: 'mae_num', label: 'N°', x: 324, yb: 440.5, w: 41, gruppo: 'Brevetti e Logge di provenienza', corto: 1 },
+        { k: 'mae_or', label: 'all’Oriente di', x: 426, yb: 440.5, w: 108, gruppo: 'Brevetti e Logge di provenienza' },
+        { k: 'cariche', label: 'Cariche ricoperte', area: 1, gruppo: 'Cariche e dimissioni', righe: [{ x: 80, yb: 478.3, w: 456 }, { x: 80, yb: 495.5, w: 456 }] },
+        { k: 'dimesso_il', label: 'Dimessosi il', tipo: 'data', x: 132, yb: 510.1, w: 176, gruppo: 'Cariche e dimissioni' },
+        { k: 'altre', label: 'Altre notizie', area: 1, gruppo: 'Cariche e dimissioni', righe: [{ x: 80, yb: 547.3, w: 456 }, { x: 80, yb: 564.4, w: 456 }] },
+        { k: 'grado_ricoperto', label: 'All’atto delle dimissioni ricopriva il grado di', x: 315, yb: 631.5, w: 115, gruppo: 'Cariche e dimissioni' },
+        { k: 'ult_rl', label: 'Attivo e quotizzante nella R∴L∴', x: 131, yb: 648.5, w: 177, gruppo: 'Cariche e dimissioni' },
+        { k: 'ult_num', label: 'N°', x: 321, yb: 648.5, w: 41, gruppo: 'Cariche e dimissioni', corto: 1 },
+        { k: 'ult_or', label: 'all’Oriente di', x: 424, yb: 648.5, w: 107, gruppo: 'Cariche e dimissioni' },
+        { k: 'rif1', label: 'Possono riferire: 1° Fratello (con R∴L∴ di appartenenza)', x: 92, yb: 699.5, w: 425, gruppo: 'Altro' },
+        { k: 'rif2', label: '2° Fratello', x: 92, yb: 718.4, w: 425, gruppo: 'Altro' },
+        { k: 'rif3', label: '3° Fratello', x: 92, yb: 735.4, w: 425, gruppo: 'Altro' },
+        // pagina 4: clausola compromissoria
+        { p: 3, k: 'nome_completo', x: 110, yb: 109.9, w: 422 },
+        { p: 3, k: 'nato', x: 86, yb: 133.3, w: 185 },
+        { p: 3, k: 'il', tipo: 'data', x: 283, yb: 133.3, w: 81 },
+        { p: 3, k: 'cf', x: 383, yb: 133.3, w: 146 },
+        { p: 3, k: 'residente', x: 115, yb: 156.7, w: 131 },
+        { p: 3, k: 'via', x: 267, yb: 156.7, w: 225 },
+      ],
+    },
+
   };
 
   /* ---------- utilità ---------- */
@@ -308,10 +416,13 @@
     const doc = await PDFDocument.load(templateBytes);
     const ctx = { font: await doc.embedFont(StandardFonts.Helvetica), bold: await doc.embedFont(StandardFonts.HelveticaBold) };
     const p = doc.getPage(0);
-    const [t0, t1, t2] = M.testata;
-    scrivi(ctx, p, loggia.nome, t0.x, t0.yb, t0.w, 10);
-    scrivi(ctx, p, loggia.numero, t1.x, t1.yb, t1.w, 10);
-    scrivi(ctx, p, loggia.oriente, t2.x, t2.yb, t2.w, 10);
+    const TESTE = M.testate || (M.testata ? [{ p: 0, v: M.testata }] : []);
+    TESTE.forEach((t) => {
+      const pg = doc.getPage(t.p || 0), [t0, t1, t2] = t.v;
+      if (t0) scrivi(ctx, pg, t0.unisci ? [loggia.nome, loggia.numero ? 'n. ' + loggia.numero : ''].filter(Boolean).join(' ') : loggia.nome, t0.x, t0.yb, t0.w, 10);
+      if (t1) scrivi(ctx, pg, loggia.numero, t1.x, t1.yb, t1.w, 10);
+      if (t2) scrivi(ctx, pg, loggia.oriente, t2.x, t2.yb, t2.w, 10);
+    });
     const sc = M.scelta ? v[M.scelta.k] : null;
     if (M.scelta && sc) {
       const o = M.scelta.opzioni.find((x) => x.v === sc);
@@ -319,17 +430,18 @@
     }
     M.campi.forEach((c) => {
       if (c.se && c.se.scelta && !c.se.scelta.includes(sc)) return;
-      if (c.righe) { scriviRighe(ctx, p, v[c.k], c); return; }
+      const pc = doc.getPage(c.p || 0);
+      if (c.righe) { scriviRighe(ctx, pc, v[c.k], c); return; }
       if (c.daScelta) {
         const o = M.scelta && M.scelta.opzioni.find((x) => x.v === sc);
-        if (o && o.testo) scrivi(ctx, p, o.testo, c.x, c.yb, c.w, 10);
+        if (o && o.testo) scrivi(ctx, pc, o.testo, c.x, c.yb, c.w, 10);
         return;
       }
       const pos = c.pos ? c.pos[sc] : c;
       if (!pos) return;
       let val = v[c.k];
       if (c.tipo === 'data') val = fmtData(val);
-      scrivi(ctx, p, val, pos.x, pos.yb, pos.w, c.corto ? 8 : 10);
+      scrivi(ctx, pc, val, pos.x, pos.yb, pos.w, c.corto ? 8 : 10);
     });
     return await doc.save();
   }

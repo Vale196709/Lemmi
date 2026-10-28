@@ -630,12 +630,16 @@
       <div class="card gen"><h2>${IC.pdf} Moduli GOI precompilati</h2>
         <p>Genera i modelli ufficiali (ed. 2024) con i dati di questa scheda. Stampali e fai firmare a mano: la firma e la data restano in bianco.</p>
         ${!state.loggia.nome ? '<div class="notice">I dati della Loggia sono incompleti: compilali nella sezione <b>Loggia</b> per intestare correttamente i moduli.</div>' : ''}
-        <div class="actions">
+        ${b.tipo_domanda === 'iniziazione' ? `<div class="actions">
           <button class="btn gold" data-gen="A1">${IC.pdf} Modello A/1</button>
           <button class="btn gold" data-gen="C1">${IC.pdf} Modello C/1</button>
           <button class="btn ghost" data-gen="ENTRAMBI">A/1 + C/1 in un unico PDF</button>
           <label class="check" style="margin-left:6px"><input type="checkbox" id="x-collegio"> Copia per il Collegio (A/1 senza pag. 5)</label>
-        </div></div>
+        </div>` : `<div class="actions">
+          <a class="btn gold" href="#/template/modulo/${b.tipo_domanda === 'regolarizzazione' ? 'AR' : 'A2'}/${esc(id)}">${IC.pdf} Modello ${b.tipo_domanda === 'regolarizzazione' ? 'A/R' : 'A/2'}</a>
+          <button class="btn gold" data-gen="C1">${IC.pdf} Modello C/1</button>
+          <label class="check" style="margin-left:6px"><input type="checkbox" id="x-collegio"> Copia per il Collegio</label>
+        </div><p class="hint" style="margin-top:8px">Per questo tipo di domanda il modello è ${b.tipo_domanda === 'regolarizzazione' ? 'A/R (regolarizzazione)' : 'A/2 (riammissione / cancellazione della pena / affiliazione dall’estero)'}: si compila nella sezione Template, dove si aggiungono i dati che la scheda non contiene.</p>`}</div>
 
       <div class="card"><h2>Dati della pratica</h2><div class="kv">
         ${kv('Nato a', [b.luogo_nascita, b.provincia_nascita ? '(' + b.provincia_nascita + ')' : ''].filter(Boolean).join(' '))}
