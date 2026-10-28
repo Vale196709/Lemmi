@@ -1,0 +1,11 @@
+AGGIORNAMENTO 20 - voce di menu "Procedure"
+
+Carica su GitHub (Add file > Upload files), mantenendo le cartelle:
+   index.html            (aggiunge procedure.js)
+   js/app.js             (voce di menu, accesso, icona)
+   js/procedure.js       (NUOVO)
+   css/style.css         (stili dei flussi)
+   README.md
+
+Nessuno script SQL da eseguire. Nessun file da eliminare.
+Aspetta 1-2 minuti e ricarica con Ctrl+F5: nel menu compare "Procedure" prima di "Template".
