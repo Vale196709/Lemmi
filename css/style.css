@@ -387,3 +387,22 @@ tr.festa-riga td { background: var(--bad-bg); }
 button.pchip.mail { cursor: pointer; font: inherit; font-size: .75rem; line-height: 1.4; background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); }
 button.pchip.mail:hover { background: var(--ok); color: #fff; }
 @media print { .pchip.mail { display: none; } }
+
+/* ---------- Procedure: vista a corsie ---------- */
+.pvista { display: flex; gap: 8px; margin: 0 0 10px; }
+.pvista .ppill { cursor: pointer; font: inherit; font-size: .85rem; }
+.pcorsie { display: grid; gap: 10px 12px; overflow-x: auto; padding-bottom: 8px; min-width: 0; align-items: start; }
+.pl-col { position: sticky; top: 0; text-align: center; font-weight: 700; font-size: .82rem; padding: 7px 10px; border-radius: 10px; }
+.pl-col.att-L { background: var(--ok-bg); color: var(--ok); }
+.pl-col.att-C { background: var(--info-bg); color: var(--info); }
+.pl-col.att-G { background: var(--warn-bg); color: var(--warn); }
+.pl-col.att-F { background: #eef1f7; color: var(--muted); }
+.pcorsie .pstep.pl { display: block; }
+.pcorsie .pcard { margin: 0; padding: 10px 12px; }
+.pl-h { display: flex; gap: 8px; align-items: flex-start; }
+.pl-h h3 { font-size: .85rem; }
+.pl-h .pcheck { flex: 0 0 auto; }
+.pcorsie details { margin-top: 8px; font-size: .8rem; }
+.pcorsie summary { cursor: pointer; color: var(--info); }
+.pcorsie .pbr { grid-template-columns: 1fr; }
+@media print { .pvista { display: none; } .pcorsie { overflow: visible; } }

@@ -1,0 +1,13 @@
+AGGIORNAMENTO 24 - Procedure: vista a corsie
+
+Carica su GitHub (Add file > Upload files), mantenendo le cartelle:
+   js/procedure.js
+   css/style.css
+Questi due file contengono anche le novita' dell'aggiornamento 23: se non l'avevi ancora
+pubblicato, carica anche js/bozze.js e index.html dallo zip dell'aggiornamento 23.
+Nessuno script SQL. Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Come provare: Procedure > scegli una procedura > pulsanti "Elenco | Corsie" sopra i passi.
+Nelle corsie ogni passo sta nella colonna di chi agisce (Loggia, Collegio, GOI, Interessato,
+solo quelle che servono), dall'alto in basso in ordine di tempo. Il testo lungo e' sotto
+"Dettagli". Le spunte e le bozze e-mail funzionano come nell'elenco; la scelta resta memorizzata.

@@ -158,6 +158,24 @@
       return `<div class="pstep${fatti.includes(i) ? ' fatto' : ''}" data-i="${i}"><div class="pnum"><button type="button" class="pcheck" aria-pressed="${fatti.includes(i)}" title="Segna il passo come fatto">${fatti.includes(i) ? '✓' : i + 1}</button>${i < p.s.length - 1 ? '<u></u>' : ''}</div>
         <div class="pcard${s.dec ? ' dec' : ''}"><h3>${esc(s.t)}</h3>${s.d ? `<p>${esc(s.d)}</p>` : ''}${br}<div class="ptags">${tags}</div></div></div>`;
     }).join('');
+    const modoCorsie = (() => { try { return localStorage.getItem('lemmi.procedure.vista') === 'corsie'; } catch (e) { return false; } })();
+    const usati = ['L', 'C', 'G', 'F'].filter((a) => p.s.some((s) => s.a === a));
+    const corsie = () => {
+      const tagsDi = (s) => (s.f || []).map(chip)
+        .concat(s.m ? [`<button type="button" class="pchip mail" data-m="${esc(s.m)}" title="Apre una bozza precompilata">✉ ${esc(((window.LemmiBozze && window.LemmiBozze.modelli[s.m]) || {}).t || 'Bozza')}</button>`] : [])
+        .concat(s.w ? [`<span class="pchip tempo">${esc(s.w)}</span>`] : [])
+        .concat((s.app || []).map((a) => `<a class="pchip app" href="${APP[a].h}">${esc(APP[a].t)}</a>`)).join('');
+      const testa = usati.map((a, c) => `<div class="pl-col att-${a}" style="grid-row:1;grid-column:${c + 1}">${ATTORI[a]}</div>`).join('');
+      const celle = p.s.map((s, i) => {
+        const br = s.br ? `<div class="pbr">${s.br.map((b) => `<div><b>${esc(b[0])}</b>${esc(b[1])}</div>`).join('')}</div>` : '';
+        const det = (s.d || s.br) ? `<details><summary>Dettagli</summary>${s.d ? `<p>${esc(s.d)}</p>` : ''}${br}</details>` : '';
+        return `<div class="pstep pl${fatti.includes(i) ? ' fatto' : ''}" data-i="${i}" style="grid-row:${i + 2};grid-column:${usati.indexOf(s.a) + 1}">
+          <div class="pcard${s.dec ? ' dec' : ''}"><div class="pl-h"><button type="button" class="pcheck" aria-pressed="${fatti.includes(i)}" title="Segna il passo come fatto">${fatti.includes(i) ? '✓' : i + 1}</button><h3>${esc(s.t)}</h3></div>
+          <div class="ptags">${tagsDi(s)}</div>${det}</div></div>`;
+      }).join('');
+      return `<div class="pcorsie" style="grid-template-columns:repeat(${usati.length}, minmax(220px, 1fr))">${testa}${celle}</div>`;
+    };
+    const interruttore = `<div class="pvista"><button type="button" class="ppill${modoCorsie ? '' : ' on'}" data-vista="lista">Elenco</button><button type="button" class="ppill${modoCorsie ? ' on' : ''}" data-vista="corsie">Corsie</button></div>`;
     v.innerHTML = `
       <div class="page-head"><div><h1>Procedure</h1><p>I passi da fare nelle diverse situazioni, con moduli, scadenze e collegamenti all’app</p></div></div>
       <div class="ppills">${ORDINE.map((x) => `<a href="#/procedure/${x}" class="ppill${x === k ? ' on' : ''}">${esc(P[x].t)}</a>`).join('')}</div>
@@ -166,7 +184,8 @@
         <div class="actions"><button class="btn ghost small" id="p-reset" type="button">Azzera spunte</button><button class="btn ghost small" id="p-stampa" type="button">Stampa o salva PDF</button></div></div>
       <div class="pleg"><span><i class="att-L"></i>Loggia</span><span><i class="att-C"></i>Collegio</span><span><i class="att-G"></i>GOI</span><span><i class="att-F"></i>Interessato</span><span><i class="dec"></i>Decisione o condizione</span></div>
       <h2 class="ptit">${esc(p.t)}</h2>
-      <div class="pflow">${passi}</div>
+      ${interruttore}
+      ${modoCorsie ? corsie() : `<div class="pflow">${passi}</div>`}
       <div class="hint" style="margin-top:12px">Fonte: ${esc(p.fonte)}. È una guida di consultazione: in caso di dubbio valgono Costituzione, Regolamento dell’Ordine e circolari GOI dell’anno.</div>`;
     const aggiorna = () => {
       const n = $$('.pstep.fatto', v).length;
@@ -180,6 +199,10 @@
     }));
     $('#p-reset', v).onclick = () => { $$('.pstep.fatto', v).forEach((st) => { st.classList.remove('fatto'); const b = $('.pcheck', st); b.textContent = +st.dataset.i + 1; b.setAttribute('aria-pressed', 'false'); }); aggiorna(); };
     $('#p-stampa', v).onclick = () => window.print();
+    $$('[data-vista]', v).forEach((b) => b.addEventListener('click', () => {
+      try { localStorage.setItem('lemmi.procedure.vista', b.dataset.vista); } catch (e) { /* ignora */ }
+      L.viste.procedure(v, parti);
+    }));
     $$('.pchip.mail', v).forEach((b) => b.addEventListener('click', () => window.LemmiBozze && window.LemmiBozze.apri(b.dataset.m)));
   };
 })();
