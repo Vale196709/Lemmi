@@ -261,7 +261,7 @@
   async function inizializza() {
     const fr = await L.caricaFratelli();
     try {
-      const vc = chk(await state.sb.from('v_fratelli_completi').select('id,cognome,nome,stato'));
+      const vc = chk(await state.sb.from('v_fratelli_completi').select('id,cognome,nome,stato,grado_attuale'));
       const att = vc.filter((x) => String(x.stato || '').toLowerCase() === 'attivo');
       vb.attivi = (att.length ? att : vc).sort((a, b) => a.cognome.localeCompare(b.cognome, 'it'));
     } catch (e) { vb.attivi = fr.slice().sort((a, b) => a.cognome.localeCompare(b.cognome, 'it')); }
@@ -322,11 +322,10 @@
         ${campoT('data', 'Data della tornata', c.data, { cls: 's4', req: 1, data: 1 })}
         <div class="f s8"><label for="v-cal">Oppure scegli dal Calendario</label><select id="v-cal"><option value="">— scegli una tornata —</option>
           ${(c.calendario || []).map((t) => `<option value="${esc(t.data)}" ${isoToIt(t.data) === c.data ? 'selected' : ''}>${fmtData(t.data)} · ${esc(cap(t.tipo || ''))}${t.grado ? ' · ' + esc(cap(t.grado)) : ''}</option>`).join('')}</select></div>
-        ${campoT('presenti', 'Fratelli presenti (numero)', c.presenti, { cls: 's4', ph: 'es. 16', hint: 'Fratelli attivi in anagrafica: ' + vb.attivi.length })}
+        ${campoT('presenti', 'Fratelli presenti (numero)', c.presenti, { cls: 's4', ph: 'es. 16', hint: 'Calcolato dalle presenze qui sotto' })}
         ${campoT('gemellata', 'Loggia gemellata (facoltativa)', c.gemellata, { cls: 's8', hint: 'Lascia vuoto se non serve. Il testo inserito viene ricordato.' })}
         <div class="f s12"><label for="v-assenti">Assenti giustificati (cognomi separati da virgola)</label><input id="v-assenti" data-k="assenti" value="${esc(c.assenti)}">
-          <details style="margin-top:6px"><summary class="hint" style="cursor:pointer">Scegli dall’elenco dei Fratelli</summary><div class="chk-grid">
-            ${vb.attivi.map((f) => `<label class="check"><input type="checkbox" data-as="${esc(f.cognome)}" ${nomi(c.assenti).includes(f.cognome) ? 'checked' : ''}> ${esc(f.cognome)} ${esc(f.nome)}</label>`).join('')}</div></details></div>
+          <div class="hint" style="margin-top:6px">Si compila dalle presenze qui sotto.</div></div>
         ${campoT('ospiti', 'Ospiti (nome e cognome, separati da virgola)', c.ospiti, { cls: 's12', ph: 'es. Mario Rossi' })}
         ${campoT('sostOratore', 'Oratore sostituito da', c.sostOratore, { cls: 's4', ph: 'cognome (vuoto = titolare)' })}
         ${campoT('sost1', '1° Sorvegliante sostituito da', c.sost1, { cls: 's4', ph: 'cognome' })}
@@ -338,6 +337,16 @@
           ${campoT('tronco', 'Tronco della Vedova: il secondo frutta', c.tronco, { cls: 's4', ph: 'es. 25 euro, oppure tre e più mattoni' })}
           ${campoT('prossima', 'Chiusura fino alla tornata del', c.prossima, { cls: 's4', data: 1, hint: 'Proposta dal Calendario (prossima ordinaria)' })}` : ''}
       </div></div>
+
+      <div class="card" style="margin-top:18px"><h2>Presenze</h2>
+        <p class="muted" style="margin:0 0 10px">Compaiono i Fratelli attivi che possono partecipare a questa tornata (in grado di ${esc(GRADI[g].n)}${g === 'apprendista' ? '' : ' o superiore'}). Tutti partono come presenti: segna solo chi manca.</p>
+        <div class="actions" style="margin:0 0 10px"><span class="muted" id="v-pres-riep"></span>
+          <button class="btn ghost small" id="v-tuttip" type="button">Tutti presenti</button></div>
+        <div class="table-wrap"><table class="pres-tab"><thead><tr><th>Fratello</th><th>Grado</th><th>Presenza</th></tr></thead><tbody>
+          ${eleggibili(g).map((f) => `<tr><td>${esc(f.cognome)} ${esc(f.nome)}</td><td>${esc(f.grado_attuale || '—')}</td>
+            <td><select data-pres="${esc(f.id)}" aria-label="Presenza di ${esc(f.cognome)} ${esc(f.nome)}">
+              ${[['presente', 'Presente'], ['giustificato', 'Assente giustificato'], ['assente', 'Assente']].map((o) => `<option value="${o[0]}" ${statoPres(x, f.id) === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select></td></tr>`).join('')}
+        </tbody></table></div></div>
 
       <div class="card" style="margin-top:18px"><h2>Firmatari</h2><div class="form-grid">
         ${campoT('mv', 'Maestro Venerabile', c.mv, { cls: 's4' })}
@@ -351,8 +360,9 @@
           Le parti tra parentesi quadre vanno completate (per esempio lo svolgimento dei lavori). Un paragrafo per riga vuota.</p>
         <textarea id="v-testo" rows="22" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:1rem;line-height:1.55">${esc(x.testo)}</textarea>
         <div class="actions" style="margin-top:12px"><button class="btn gold" id="v-dl" type="button">${IC.pdf} Scarica il verbale (.docx)</button>
-          <button class="btn ghost" id="v-rec" type="button">Ricrea il testo dai dati</button><button class="btn ghost" id="v-copia" type="button">Copia il testo</button>
-          <span class="err" id="v-err"></span></div></div>`;
+          ${canEdit() ? '<button class="btn" id="v-salva" type="button">Salva nel registro</button>' : ''}<button class="btn ghost" id="v-rec" type="button">Ricrea il testo dai dati</button><button class="btn ghost" id="v-copia" type="button">Copia il testo</button>
+          <span class="err" id="v-err"></span></div>
+        <div class="hint" id="v-stato-reg" style="margin-top:8px">${canEdit() ? 'Il registro conserva data, presenze, ospiti e testo: serve per l’archivio dei verbali e per le presenze dei Fratelli.' : 'Solo amministratore e Segretario possono salvare nel registro.'}</div></div>`;
 
     mascheraDate(v);
     const ta = $('#v-testo', v), err = $('#v-err', v);
@@ -388,7 +398,74 @@
     });
     $('#v-copia', v).addEventListener('click', async () => { try { await navigator.clipboard.writeText(ta.value); toast('Testo copiato', 'ok'); } catch (e) { toast('Copia non riuscita: seleziona il testo e usa Ctrl+C.', 'bad'); } });
     $('#v-dl', v).addEventListener('click', () => scaricaDocx(g, ta.value, err));
+
+    const sincronizza = () => {
+      const el = eleggibili(g);
+      const pres = el.filter((f) => statoPres(x, f.id) === 'presente').length;
+      const giu = el.filter((f) => statoPres(x, f.id) === 'giustificato');
+      const ass = el.filter((f) => statoPres(x, f.id) === 'assente').length;
+      c.presenti = String(pres); c.assenti = giu.map((f) => f.cognome).join(', ');
+      c.tocco.presenti = true; c.tocco.assenti = true;
+      const ip = $('#v-presenti', v), ia = $('#v-assenti', v);
+      if (ip) { ip.value = c.presenti; ip.readOnly = true; }
+      if (ia) { ia.value = c.assenti; ia.readOnly = true; }
+      const r = $('#v-pres-riep', v);
+      if (r) r.textContent = `${pres} presenti · ${giu.length} assenti giustificati · ${ass} assenti non giustificati`;
+      rigenera();
+    };
+    $$('select[data-pres]', v).forEach((sel) => sel.addEventListener('change', () => {
+      (x.pres || (x.pres = {}))[sel.dataset.pres] = sel.value; sincronizza();
+    }));
+    const tp = $('#v-tuttip', v);
+    if (tp) tp.addEventListener('click', () => { x.pres = {}; $$('select[data-pres]', v).forEach((sel) => { sel.value = 'presente'; }); sincronizza(); });
+    sincronizza();
+    const sb = $('#v-salva', v);
+    if (sb) sb.addEventListener('click', () => salvaNelRegistro(g, ta.value, err, sb));
   }
+
+  /* ---------- registro dei verbali e presenze ---------- */
+  const GRADO_N = { apprendista: 1, compagno: 2, maestro: 3 };
+  const gradoFr = (f) => { const t = norm(f.grado_attuale || ''); return t.startsWith('maestr') ? 3 : t.startsWith('compagn') ? 2 : t.startsWith('apprend') ? 1 : 0; };
+  // chi può partecipare: tornata di Apprendista = tutti; di Compagno = Compagni e Maestri; di Maestro = Maestri (grado non noto = incluso)
+  const eleggibili = (g) => vb.attivi.filter((f) => { const n = gradoFr(f); return !n || n >= GRADO_N[g]; });
+  const statoPres = (x, id) => (x.pres && x.pres[id]) || 'presente';
+
+  async function salvaNelRegistro(g, testo, err, btn) {
+    err.textContent = '';
+    const iso = itToIso(vb.c.data);
+    if (!iso || iso === 'ERR') { err.textContent = 'Scrivi la data della tornata nel formato gg/mm/aaaa.'; $('#v-data').focus(); return; }
+    const c = vb.c, x = vb.g[g], el = eleggibili(g);
+    const etichetta = btn.textContent; btn.disabled = true; btn.textContent = 'Salvo…';
+    try {
+      const rec = {
+        data: iso, grado: g, presenti: Number(c.presenti) || 0, ospiti: c.ospiti || null, testo: testo || null,
+        dati: { c: JSON.parse(JSON.stringify(c)), x: JSON.parse(JSON.stringify(x)) }, aggiornato_il: new Date().toISOString(),
+      };
+      const es = chk(await state.sb.from('verbali').select('id').eq('data', iso).eq('grado', g).maybeSingle());
+      let id, nuovo = !es;
+      if (es) { id = es.id; chk(await state.sb.from('verbali').update(rec).eq('id', id)); }
+      else id = chk(await state.sb.from('verbali').insert(rec).select('id').single()).id;
+      chk(await state.sb.from('presenze_verbale').delete().eq('verbale_id', id));
+      if (el.length) chk(await state.sb.from('presenze_verbale').insert(el.map((f) => ({ verbale_id: id, fratello_id: String(f.id), esito: statoPres(x, f.id) }))));
+      toast(nuovo ? 'Verbale salvato nel registro' : 'Verbale aggiornato nel registro', 'ok');
+      const st = $('#v-stato-reg'); if (st) st.innerHTML = `Salvato nel registro il ${new Date().toLocaleDateString('it-IT')}. <a href="#/verbali">Apri il registro</a>`;
+    } catch (e) {
+      const m = L.messaggioErrore ? L.messaggioErrore(e) : (e && e.message) || 'Errore';
+      err.textContent = /verbali|presenze_verbale/.test(String(e && (e.message || e.details))) && /relation|schema cache|does not exist|not find/i.test(String(e && e.message))
+        ? 'Manca la parte di database del registro: esegui lemmi_aggiornamento_19.sql in Supabase.' : m;
+    } finally { btn.disabled = false; btn.textContent = etichetta; }
+  }
+
+  // usata dal registro: riapre un verbale salvato nel generatore
+  L.apriVerbaleSalvato = async function (rec) {
+    if (!vb.init) await inizializza();
+    const d = rec.dati || {};
+    if (d.c) vb.c = d.c;
+    vb.g[rec.grado] = d.x || { tav: '', extra: '', testo: rec.testo || '', modificato: true, tocco: true };
+    if (rec.testo) { vb.g[rec.grado].testo = rec.testo; vb.g[rec.grado].modificato = true; }
+    location.hash = '#/template/verbale/' + rec.grado;
+  };
+  L.eleggibiliPerGrado = async function () { if (!vb.init) await inizializza(); return { attivi: vb.attivi, gradoFr, GRADO_N }; };
 
   function scaricaDocx(g, testo, err) {
     err.textContent = '';

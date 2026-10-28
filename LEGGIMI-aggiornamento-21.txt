@@ -1,0 +1,23 @@
+AGGIORNAMENTO 21 - Registro verbali e presenze
+
+PASSO 1 - Database (una sola volta)
+  Supabase > SQL Editor > New query: apri lemmi_aggiornamento_19.sql, copia tutto, incolla, Run.
+  Deve rispondere "Success". Si puo' rieseguire senza danni.
+
+PASSO 2 - File su GitHub (Add file > Upload files, mantenendo le cartelle)
+  index.html
+  js/app.js
+  js/template.js
+  js/verbali.js        (NUOVO)
+  js/procedure.js
+  js/backup.js
+  README.md
+  Non servono eliminazioni.
+
+PASSO 3 - Aspetta 1-2 minuti, ricarica con Ctrl+F5.
+
+Come provare:
+  1) Template > Verbali di tornata: compare la card "Presenze". Segna un'assenza e controlla che il testo cambi.
+  2) Premi "Salva nel registro".
+  3) Fratelli/Bussanti > Verbali e presenze: il verbale e' nell'elenco; "Apri" lo riporta nel generatore.
+  4) Scheda "Presenze dei Fratelli": compare il Fratello con le sue presenze.

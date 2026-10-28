@@ -14,7 +14,7 @@
   const APP = {
     bus: { t: 'Bussanti', h: '#/bussanti' }, cal: { t: 'Calendario', h: '#/calendario' }, pag: { t: 'Pagamenti', h: '#/pagamenti' },
     fra: { t: 'Fratelli', h: '#/fratelli' }, ele: { t: 'Elezioni cariche', h: '#/elezioni' }, pie: { t: 'Piè di lista', h: '#/piedilista' },
-    tpl: { t: 'Template', h: '#/template' }, sto: { t: 'Storia', h: '#/storia' },
+    tpl: { t: 'Template', h: '#/template' }, ver: { t: 'Verbali e presenze', h: '#/verbali/presenze' }, sto: { t: 'Storia', h: '#/storia' },
   };
 
   const P = {
@@ -53,7 +53,7 @@
       { a: 'F', t: 'Effetti', d: 'Non si frequentano i lavori e si perdono i diritti massonici, ma restano i doveri dell’iniziazione. Per tornare serve la riammissione (A/2).' },
     ] },
     depennamento: { t: 'Depennamento per assenza o morosità', fonte: 'Costituzione artt. 12-13; Regolamento art. 17', s: [
-      { a: 'L', dec: 1, t: 'Presupposti (art. 12 Cost.)', br: [['Assenza', 'Oltre 6 mesi senza giustificato motivo'], ['Morosità', 'Oltre 12 mesi di capitazioni o tributi']], app: ['pag'] },
+      { a: 'L', dec: 1, t: 'Presupposti (art. 12 Cost.)', br: [['Assenza', 'Oltre 6 mesi senza giustificato motivo'], ['Morosità', 'Oltre 12 mesi di capitazioni o tributi']], app: ['ver', 'pag'] },
       { a: 'L', t: 'Il Consiglio di disciplina diffida il Fratello', d: 'Raccomandata A/R: mettersi in regola con il Tesoro e riprendere la frequenza.', w: '30 giorni dalla ricezione' },
       { a: 'L', dec: 1, t: 'Il Fratello si è giustificato e ha sanato?', br: [['Sì', 'La procedura si chiude'], ['No', 'Il Consiglio riferisce alla Loggia in grado di Maestro']] },
       { a: 'L', t: 'Declaratoria di decadenza e depennamento', d: 'Intervenuta la decadenza, il Consiglio dispone il depennamento dal piè di lista.' },

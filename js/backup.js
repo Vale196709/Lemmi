@@ -13,7 +13,7 @@
     ['scadenze', 'creato_il'], ['versamenti', 'data_versamento'], ['categorie_movimento', 'nome'],
     ['import_estratti', 'creato_il'], ['conto_movimenti', 'data_operazione'],
     ['modelli_messaggio', 'codice'], ['messaggi', 'creato_il'], ['messaggi_destinatari', 'id'],
-    ['cronologia_modifiche', 'id'], ['tornate', 'data'], ['lavori', 'created_at'], ['elezioni', 'anno_massonico'], ['eventi_conto', 'nome'], ['conto_saldi', 'data'], ['modelli_loggia', 'creato_il'],
+    ['cronologia_modifiche', 'id'], ['tornate', 'data'], ['lavori', 'created_at'], ['elezioni', 'anno_massonico'], ['eventi_conto', 'nome'], ['conto_saldi', 'data'], ['modelli_loggia', 'creato_il'], ['verbali', 'data'], ['presenze_verbale', 'id'],
   ];
   const BLOCCO = 1000;
   const MAX_RIGHE = { cronologia_modifiche: 20000 };

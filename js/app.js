@@ -8,7 +8,7 @@
   const RUOLI_ACCESSO = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const TUTTI = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const SOCI = ['amministratore', 'venerabile', 'segretario'];
-  const ACCESSO_SEZ = { home: TUTTI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: TUTTI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: TUTTI, template: SOCI, procedure: SOCI, loggia: TUTTI, utenti: ['amministratore'] };
+  const ACCESSO_SEZ = { home: TUTTI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: TUTTI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: TUTTI, template: SOCI, procedure: SOCI, verbali: SOCI, loggia: TUTTI, utenti: ['amministratore'] };
   const ETICHETTA_RUOLO = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere' };
 
   const TIPI_DOMANDA = {
@@ -237,7 +237,7 @@
     { sez: 'home', href: '#/', t: 'Cruscotto', ic: IC.home },
     { sez: 'calendario', href: '#/calendario', t: 'Calendario', ic: IC.calendar },
     { sez: 'pagamenti', href: '#/pagamenti', t: 'Pagamenti', ic: IC.euro },
-    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli/Bussanti', ic: IC.users, sub: [{ sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user }, { sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }] },
+    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli/Bussanti', ic: IC.users, sub: [{ sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user }, { sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'verbali', href: '#/verbali', t: 'Verbali e presenze', ic: IC.lavori }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }] },
     { sez: 'procedure', href: '#/procedure', t: 'Procedure', ic: IC.procedure },
     { sez: 'template', href: '#/template', t: 'Template', ic: IC.template },
     { gruppo: 'config', t: 'Info di sistema', ic: IC.gear, sub: [{ sez: 'loggia', href: '#/loggia', t: 'Loggia', ic: IC.building }, { sez: 'utenti', href: '#/utenti', t: 'Utenti del sistema', ic: IC.shield }] },
