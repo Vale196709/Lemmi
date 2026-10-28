@@ -1,0 +1,26 @@
+AGGIORNAMENTO 23 - Procedure: bozze di e-mail e sei nuove procedure
+
+Carica su GitHub (Add file > Upload files), mantenendo le cartelle:
+   js/bozze.js        (NUOVO)
+   js/procedure.js
+   index.html
+   css/style.css
+Nessuno script SQL. Nessun file da eliminare.
+Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Novita':
+ 1) Nei passi che richiedono un invio compare il pulsante verde "✉ ...": apre una bozza con
+    destinatari, oggetto e testo gia' scritti (17 modelli, con varianti per tipo di pratica). Si possono modificare
+    i campi e il testo, poi "Copia testo" oppure "Apri nel programma di posta".
+    Gli allegati vanno aggiunti a mano (solo PDF; il piu' di lista anche Excel).
+ 2) Sei procedure nuove: Passaggio all'Oriente Eterno, Fratello Onorario, Cambio di titolo o sede,
+    Delega per Gran Loggia e Assemblea dei MM.VV., Consegne del Venerabile, Consegne tra segretari.
+
+Da controllare (indirizzi presi dal Corso Segretari 2024, possono cambiare):
+ - lazio.collegio@grandeoriente.org, anagrafe@, gran.segreteria@, gran.tesoreria@,
+   ufficio.spedizioni@, ufficio.gm@ (Fratelli Onorari).
+ - Cambio titolo/sede e delega: l'indirizzo di invio non e' indicato nel Corso, e' una proposta.
+ - La casella della Loggia e' proposta come lazio.812@grandeoriente.org (formula del Corso).
+
+Come provare: Procedure > Bussante e iniziazione > passo "Venerabile e Oratore controllano..."
+> "✉ C/1 al Collegio" > cambia la Variante e compila nome e date.

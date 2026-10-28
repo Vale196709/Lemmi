@@ -381,3 +381,9 @@ a.pchip.app:hover { background: var(--info-bg); text-decoration: none; }
 /* ---------- Calendario: feste in rosso ---------- */
 .festa { color: var(--bad) !important; font-weight: 600; }
 tr.festa-riga td { background: var(--bad-bg); }
+
+
+/* ---------- Procedure: bozze e-mail ---------- */
+button.pchip.mail { cursor: pointer; font: inherit; font-size: .75rem; line-height: 1.4; background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); }
+button.pchip.mail:hover { background: var(--ok); color: #fff; }
+@media print { .pchip.mail { display: none; } }
