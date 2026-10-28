@@ -6,7 +6,7 @@
   'use strict';
   const L = window.Lemmi;
   if (!L) return;
-  const { esc } = L;
+  const { esc, $, $$ } = L;
 
   const ATTORI = { L: 'Loggia', C: 'Collegio', G: 'GOI', F: 'Interessato' };
   // Moduli GOI che si compilano da Template (A/1 e C/1 si generano dalla scheda del bussante).
@@ -89,6 +89,11 @@
   };
   const ORDINE = ['bussante', 'grado', 'exeat', 'sonno', 'depennamento', 'riammissione', 'elezioni', 'piedilista'];
 
+  // Promemoria personale: i passi spuntati restano solo su questo browser, non nel database.
+  const chiave = (k) => 'lemmi.procedure.' + k;
+  const leggi = (k) => { try { return JSON.parse(localStorage.getItem(chiave(k))) || []; } catch (e) { return []; } };
+  const salva = (k, a) => { try { localStorage.setItem(chiave(k), JSON.stringify(a)); } catch (e) { /* ignora */ } };
+
   L.viste.procedure = async function (v, parti) {
     const k = P[parti[1]] ? parti[1] : 'bussante';
     const p = P[k];
@@ -96,6 +101,9 @@
       ? `<a class="pchip form" href="#/template/modulo/${MODULO[x]}" title="Apri la compilazione del modulo">${esc(x)}</a>`
       : (x === 'A/1' || x === 'C/1') ? `<a class="pchip form" href="#/bussanti" title="Si genera dalla scheda del bussante">${esc(x)}</a>`
         : `<span class="pchip form">${esc(x)}</span>`);
+    const fatti = leggi(k).filter((i) => i < p.s.length);
+    const moduli = [...new Set(p.s.flatMap((s) => s.f || []))];
+    const scad = p.s.filter((s) => s.w).length;
     const passi = p.s.map((s, i) => {
       const tags = [`<span class="pchip att-${s.a}">${ATTORI[s.a]}</span>`]
         .concat((s.f || []).map(chip))
@@ -103,15 +111,30 @@
         .concat((s.app || []).map((a) => `<a class="pchip app" href="${APP[a].h}">Nell’app: ${esc(APP[a].t)}</a>`))
         .join('');
       const br = s.br ? `<div class="pbr">${s.br.map((b) => `<div><b>${esc(b[0])}</b>${esc(b[1])}</div>`).join('')}</div>` : '';
-      return `<div class="pstep"><div class="pnum"><b>${i + 1}</b>${i < p.s.length - 1 ? '<u></u>' : ''}</div>
+      return `<div class="pstep${fatti.includes(i) ? ' fatto' : ''}" data-i="${i}"><div class="pnum"><button type="button" class="pcheck" aria-pressed="${fatti.includes(i)}" title="Segna il passo come fatto">${fatti.includes(i) ? '✓' : i + 1}</button>${i < p.s.length - 1 ? '<u></u>' : ''}</div>
         <div class="pcard${s.dec ? ' dec' : ''}"><h3>${esc(s.t)}</h3>${s.d ? `<p>${esc(s.d)}</p>` : ''}${br}<div class="ptags">${tags}</div></div></div>`;
     }).join('');
     v.innerHTML = `
       <div class="page-head"><div><h1>Procedure</h1><p>I passi da fare nelle diverse situazioni, con moduli, scadenze e collegamenti all’app</p></div></div>
       <div class="ppills">${ORDINE.map((x) => `<a href="#/procedure/${x}" class="ppill${x === k ? ' on' : ''}">${esc(P[x].t)}</a>`).join('')}</div>
+      <div class="pbar"><div class="pbar-txt"><b id="p-conta">${fatti.length} di ${p.s.length}</b> passi fatti · ${moduli.length ? 'Moduli: ' + esc(moduli.join(', ')) + ' · ' : ''}${scad} ${scad === 1 ? 'scadenza' : 'scadenze'}</div>
+        <div class="pbar-track"><div id="p-barra" style="width:${Math.round(100 * fatti.length / p.s.length)}%"></div></div>
+        <div class="actions"><button class="btn ghost small" id="p-reset" type="button">Azzera spunte</button><button class="btn ghost small" id="p-stampa" type="button">Stampa o salva PDF</button></div></div>
       <div class="pleg"><span><i class="att-L"></i>Loggia</span><span><i class="att-C"></i>Collegio</span><span><i class="att-G"></i>GOI</span><span><i class="att-F"></i>Interessato</span><span><i class="dec"></i>Decisione o condizione</span></div>
       <h2 class="ptit">${esc(p.t)}</h2>
       <div class="pflow">${passi}</div>
       <div class="hint" style="margin-top:12px">Fonte: ${esc(p.fonte)}. È una guida di consultazione: in caso di dubbio valgono Costituzione, Regolamento dell’Ordine e circolari GOI dell’anno.</div>`;
+    const aggiorna = () => {
+      const n = $$('.pstep.fatto', v).length;
+      $('#p-conta', v).textContent = `${n} di ${p.s.length}`;
+      $('#p-barra', v).style.width = Math.round(100 * n / p.s.length) + '%';
+      salva(k, $$('.pstep.fatto', v).map((e) => +e.dataset.i));
+    };
+    $$('.pcheck', v).forEach((b) => b.addEventListener('click', () => {
+      const st = b.closest('.pstep'); const f = st.classList.toggle('fatto');
+      b.textContent = f ? '✓' : (+st.dataset.i + 1); b.setAttribute('aria-pressed', f ? 'true' : 'false'); aggiorna();
+    }));
+    $('#p-reset', v).onclick = () => { $$('.pstep.fatto', v).forEach((st) => { st.classList.remove('fatto'); const b = $('.pcheck', st); b.textContent = +st.dataset.i + 1; b.setAttribute('aria-pressed', 'false'); }); aggiorna(); };
+    $('#p-stampa', v).onclick = () => window.print();
   };
 })();

@@ -1,11 +1,17 @@
-AGGIORNAMENTO 20 - voce di menu "Procedure"
+AGGIORNAMENTO 20 - Procedure, menu Fratelli/Bussanti, numero di Loggia
 
 Carica su GitHub (Add file > Upload files), mantenendo le cartelle:
    index.html            (aggiunge procedure.js)
-   js/app.js             (voce di menu, accesso, icona)
+   js/app.js             (menu, accesso, icona, nome Loggia con numero)
    js/procedure.js       (NUOVO)
    css/style.css         (stili dei flussi)
    README.md
 
 Nessuno script SQL da eseguire. Nessun file da eliminare.
-Aspetta 1-2 minuti e ricarica con Ctrl+F5: nel menu compare "Procedure" prima di "Template".
+Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Novita':
+ - Voce "Procedure" nel menu (prima di Template): otto flussi, con spunte, barra di avanzamento e stampa.
+ - Il menu "Fratelli" diventa "Fratelli/Bussanti" e contiene Bussanti come prima sottovoce.
+ - Nome della Loggia con numero (es. "Adriano Lemmi n. 812") nel menu e nel Cruscotto.
+   Il numero viene da Loggia > N. Se e' vuoto, controllalo li'.

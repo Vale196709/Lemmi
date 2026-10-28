@@ -365,3 +365,15 @@ a.pchip.app:hover { background: var(--info-bg); text-decoration: none; }
 .pbr { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 10px; }
 .pbr div { font-size: .8rem; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; color: var(--muted); background: #f8f9fd; }
 .pbr b { display: block; color: var(--ink); margin-bottom: 2px; }
+.pbar { display: grid; gap: 8px; max-width: 860px; margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.pbar-txt { font-size: .85rem; color: var(--muted); }
+.pbar-txt b { color: var(--ink); }
+.pbar-track { height: 8px; border-radius: 999px; background: #e8ecf5; overflow: hidden; }
+.pbar-track div { height: 100%; background: var(--ok); border-radius: 999px; transition: width .2s; }
+.pbar .actions { margin: 0; }
+.pcheck { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font: inherit; font-size: .8rem; color: var(--ink); cursor: pointer; padding: 0; }
+.pcheck:hover { border-color: var(--ok); }
+.pstep.fatto .pcheck { background: var(--ok); border-color: var(--ok); color: #fff; }
+.pstep.fatto .pcard { opacity: .6; }
+.pstep.fatto .pcard h3 { text-decoration: line-through; }
+@media print { .ppills, .pcheck:not([aria-pressed="true"]) { border: 1px solid #999; } .ppills { display: none !important; } .pcard { break-inside: avoid; } }

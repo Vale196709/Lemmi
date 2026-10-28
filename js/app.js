@@ -237,12 +237,18 @@
     { sez: 'home', href: '#/', t: 'Cruscotto', ic: IC.home },
     { sez: 'calendario', href: '#/calendario', t: 'Calendario', ic: IC.calendar },
     { sez: 'pagamenti', href: '#/pagamenti', t: 'Pagamenti', ic: IC.euro },
-    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli', ic: IC.users, sub: [{ sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }] },
-    { sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user },
+    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli/Bussanti', ic: IC.users, sub: [{ sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user }, { sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }] },
     { sez: 'procedure', href: '#/procedure', t: 'Procedure', ic: IC.procedure },
     { sez: 'template', href: '#/template', t: 'Template', ic: IC.template },
     { gruppo: 'config', t: 'Info di sistema', ic: IC.gear, sub: [{ sez: 'loggia', href: '#/loggia', t: 'Loggia', ic: IC.building }, { sez: 'utenti', href: '#/utenti', t: 'Utenti del sistema', ic: IC.shield }] },
   ];
+
+  // "Adriano Lemmi" + numero → "Adriano Lemmi n. 812" (senza duplicare se il numero è già nel nome).
+  function nomeLoggia(def) {
+    const n = (state.loggia.nome || '').trim(), num = (state.loggia.numero || '').toString().trim();
+    if (!n) return def;
+    return num && !n.includes(num) ? `${n} n. ${num}` : n;
+  }
 
   function menuHtml(p) {
     const puo = (sez) => ACCESSO_SEZ[sez].includes(p.ruolo);
@@ -263,7 +269,7 @@
     const p = state.profilo;
     $('#app').innerHTML = `<div class="shell">
       <aside class="side">
-        <div class="brand"><div class="logo-mark">${logoSvg()}</div><div><b>Lemmi</b><small>${esc(state.loggia.nome || 'Gestione di Loggia')}</small></div></div>
+        <div class="brand"><div class="logo-mark">${logoSvg()}</div><div><b>Lemmi</b><small>${esc(nomeLoggia('Gestione di Loggia'))}</small></div></div>
         <nav class="nav">${menuHtml(p)}</nav>
         <div class="who"><b>${esc(p.nome_visualizzato || state.user.email)}</b><span>${esc(ETICHETTA_RUOLO[p.ruolo] || p.ruolo)}</span>
           <button class="btn ghost small" id="b-logout">Esci</button></div>
@@ -326,7 +332,7 @@
   /* ---------- cruscotto ---------- */
   async function vistaCruscotto(v) {
     if (!SOCI.includes(state.profilo.ruolo)) {   // il Tesoriere vede solo la parte economica
-      v.innerHTML = `<div class="page-head"><div><h1>Cruscotto</h1><p>${esc(state.loggia.nome || 'La tua Loggia')}${state.loggia.oriente ? ' · Oriente di ' + esc(state.loggia.oriente) : ''}</p></div></div>`;
+      v.innerHTML = `<div class="page-head"><div><h1>Cruscotto</h1><p>${esc(nomeLoggia('La tua Loggia'))}${state.loggia.oriente ? ' · Oriente di ' + esc(state.loggia.oriente) : ''}</p></div></div>`;
       await estraCruscotto(v);
       return;
     }
@@ -344,7 +350,7 @@
     });
     eventi.sort((a, b) => a.d.localeCompare(b.d));
     v.innerHTML = `
-      <div class="page-head"><div><h1>Cruscotto</h1><p>${esc(state.loggia.nome || 'La tua Loggia')}${state.loggia.oriente ? ' · Oriente di ' + esc(state.loggia.oriente) : ''}</p></div></div>
+      <div class="page-head"><div><h1>Cruscotto</h1><p>${esc(nomeLoggia('La tua Loggia'))}${state.loggia.oriente ? ' · Oriente di ' + esc(state.loggia.oriente) : ''}</p></div></div>
       <div class="grid stats">
         <div class="stat drillable" data-drill="fratelli" role="button" tabindex="0" title="Clicca per l’elenco"><div class="n">${fratelli.length}</div><div class="l">Fratelli in anagrafica</div></div>
         <div class="stat drillable" data-drill="bussanti" role="button" tabindex="0" title="Clicca per l’elenco"><div class="n">${bussanti.length}</div><div class="l">Pratiche di bussanti</div></div>
