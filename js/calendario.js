@@ -10,7 +10,7 @@
   const puoScrivere = () => RUOLI_SCRITTURA.includes(state.profilo && state.profilo.ruolo);
   const puoCancellare = () => RUOLI_CANCELLA.includes(state.profilo && state.profilo.ruolo);
 
-  const TIPI = { ordinaria: 'Ordinaria', informale: 'Informale (web)', straordinaria: 'Straordinaria', agape: 'Agape' };
+  const TIPI = { ordinaria: 'Ordinaria', informale: 'Conferenza (web)', straordinaria: 'Straordinaria', agape: 'Agape' };
   const TIPO_BADGE = { ordinaria: 'info', informale: 'gray', straordinaria: 'warn', agape: 'gold' };
   const GRADI = { apprendista: 'Apprendista', compagno: 'Compagno d’Arte', maestro: 'Maestro' };
   const STATI = { programmata: 'Programmata', convocata: 'Convocata', svolta: 'Svolta', annullata: 'Annullata' };
@@ -140,18 +140,54 @@
     };
   }
 
+  /* ---------- festività (evidenziate in rosso) ---------- */
+  const pad = (n) => String(n).padStart(2, '0');
+  const isoDi = (a, m, g) => a + '-' + pad(m) + '-' + pad(g);
+  function pasqua(y) {   // algoritmo di Meeus/Jones/Butcher (calendario gregoriano)
+    const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const mese = Math.floor((h + l - 7 * m + 114) / 31), giorno = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(Date.UTC(y, mese - 1, giorno));
+  }
+  // giorni festivi nazionali; per Roma anche i Santi Pietro e Paolo (29 giugno)
+  function festivita(anno) {
+    const f = {};
+    [[1, 1, 'Capodanno'], [1, 6, 'Epifania'], [4, 25, 'Festa della Liberazione'], [5, 1, 'Festa dei Lavoratori'], [6, 2, 'Festa della Repubblica'],
+      [8, 15, 'Ferragosto'], [11, 1, 'Ognissanti'], [12, 8, 'Immacolata Concezione'], [12, 25, 'Natale'], [12, 26, 'Santo Stefano']]
+      .forEach((x) => { f[isoDi(anno, x[0], x[1])] = x[2]; });
+    const p = pasqua(anno), lun = new Date(p.getTime() + 864e5);
+    f[isoDi(anno, p.getUTCMonth() + 1, p.getUTCDate())] = 'Pasqua';
+    f[isoDi(anno, lun.getUTCMonth() + 1, lun.getUTCDate())] = 'Lunedì dell’Angelo (Pasquetta)';
+    if (/roma/i.test((state.loggia && state.loggia.oriente) || '')) f[isoDi(anno, 6, 29)] = 'Santi Pietro e Paolo (patrono di Roma)';
+    return f;
+  }
+  // i lunedì di ogni mese: [[1°, 2°, 3°, 4°, (5°)], ...]
+  function lunedi(anno) {
+    return Array.from({ length: 12 }, (_, m) => {
+      const out = [];
+      for (let g = 1; g <= 31; g++) { const d = new Date(Date.UTC(anno, m, g)); if (d.getUTCMonth() !== m) break; if (d.getUTCDay() === 1) out.push(isoDi(anno, m + 1, g)); }
+      return out;
+    });
+  }
+
   /* ---------- generazione del calendario annuale ---------- */
   function apriGenera() {
     const a = st.anno;
-    const it = (m, g, anno) => String(g).padStart(2, '0') + '/' + String(m).padStart(2, '0') + '/' + (anno || a);
-    const corpo = `<p class="muted" style="margin-top:0">Crea le tornate <b>ordinarie</b> (1° e 3° mercoledì) e <b>informali</b> (2° e 4° lunedì) del ${a}, escluse le sospensioni. Le tornate già presenti non vengono duplicate. Straordinarie e agapi si aggiungono a mano; il grado delle ordinarie si indica tornata per tornata.</p>
+    const it = (m, g, anno) => pad(g) + '/' + pad(m) + '/' + (anno || a);
+    const FE = festivita(a);
+    const feste = [].concat(...lunedi(a).map((l) => l.slice(0, 4))).filter((d) => FE[d]);
+    const corpo = `<p class="muted" style="margin-top:0">Crea le tornate del ${a}: <b>rituali</b> (1° e 3° lunedì del mese) e <b>conferenze via web</b> (2° e 4° lunedì), escluse le sospensioni. Le tornate già presenti non vengono duplicate.
+        Il quinto lunedì, quando c’è, è a scelta del Venerabile. Straordinarie e agapi si aggiungono a mano con “Nuova tornata”.</p>
+      ${feste.length ? `<div class="notice bad" style="margin:10px 0"><b>Attenzione, queste date cadono in un giorno di festa</b> (saranno create ma evidenziate in rosso, da spostare o annullare):<br>
+        ${feste.map((d) => `${fmtData(d)} · ${esc(FE[d])}`).join('<br>')}</div>` : ''}
       <div class="form-grid">
-        <div class="f s6"><label for="g-oo">Ora delle ordinarie</label><input id="g-oo" name="ora_ord" type="time"></div>
-        <div class="f s6"><label for="g-oi">Ora delle informali</label><input id="g-oi" name="ora_inf" type="time"></div>
+        <div class="f s6"><label for="g-oo">Ora dei rituali</label><input id="g-oo" name="ora_ord" type="time"></div>
+        <div class="f s6"><label for="g-oi">Ora delle conferenze</label><input id="g-oi" name="ora_inf" type="time"></div>
         <div class="f s6"><label for="g-ed">Sospensione estiva: dal</label><input id="g-ed" name="estate_dal" value="${it(6, 24)}" data-date="1" inputmode="numeric" maxlength="10"></div>
         <div class="f s6"><label for="g-ea">fino al</label><input id="g-ea" name="estate_al" value="${it(9, 20)}" data-date="1" inputmode="numeric" maxlength="10"></div>
         <div class="f s6"><label for="g-id">Sospensione invernale: dal</label><input id="g-id" name="inv_dal" value="${it(12, 21)}" data-date="1" inputmode="numeric" maxlength="10"></div>
-        <div class="f s6"><label for="g-ia">Riprese di gennaio: sospese fino al</label><input id="g-ia" name="inv_al" value="${it(1, 7)}" data-date="1" inputmode="numeric" maxlength="10"></div></div>`;
+        <div class="f s6"><label for="g-ia">Riprese di gennaio: sospese fino al</label><input id="g-ia" name="inv_al" value="${it(1, 7)}" data-date="1" inputmode="numeric" maxlength="10"></div>
+        <div class="f s12"><label class="check"><input type="checkbox" name="quinti"> Inserisci anche i quinti lunedì come tornate da stabilire (il Venerabile deciderà se farle)</label></div></div>`;
     finestra('Genera il calendario ' + a, corpo, {
       testoOk: 'Genera calendario',
       onSubmit: async (f, chiudi, errore) => {
@@ -159,12 +195,19 @@
         const d = { ed: itToIso(e.estate_dal.value), ea: itToIso(e.estate_al.value), id: itToIso(e.inv_dal.value), ia: itToIso(e.inv_al.value) };
         if (Object.values(d).some((v) => !v || v === 'ERR')) return errore('Controlla le date delle sospensioni (gg/mm/aaaa).');
         if (d.ea < d.ed) return errore('La sospensione estiva termina prima di iniziare.');
-        const n = chk(await state.sb.rpc('genera_calendario', {
-          p_anno: a, p_ora_ordinaria: e.ora_ord.value || null, p_ora_informale: e.ora_inf.value || null,
-          p_estate_dal: d.ed, p_estate_al: d.ea, p_inverno_dal: d.id, p_inverno_al_gen: d.ia,
-        }));
+        const sospesa = (iso) => (iso >= d.ed && iso <= d.ea) || (iso >= d.id && iso <= a + '-12-31') || (iso >= a + '-01-01' && iso <= d.ia);
+        const gia = new Set(chk(await state.sb.from('tornate').select('data,tipo').gte('data', a + '-01-01').lte('data', a + '-12-31')).map((r) => r.data + '|' + r.tipo));
+        const nuove = [];
+        const aggiungi = (data, tipo, ora, note) => { if (!sospesa(data) && !gia.has(data + '|' + tipo)) nuove.push({ data, ora: ora || null, tipo, grado: null, stato: 'programmata', di_famiglia: false, formazione: false, note: note || null }); };
+        lunedi(a).forEach((l) => {
+          [0, 2].forEach((i) => l[i] && aggiungi(l[i], 'ordinaria', e.ora_ord.value));
+          [1, 3].forEach((i) => l[i] && aggiungi(l[i], 'informale', e.ora_inf.value));
+          if (e.quinti.checked && l[4]) aggiungi(l[4], 'straordinaria', e.ora_ord.value, 'Quinto lunedì: a scelta del Venerabile');
+        });
+        if (nuove.length) chk(await state.sb.from('tornate').insert(nuove));
+        const FEm = festivita(a), inFesta = nuove.filter((r) => FEm[r.data]).length;
         chiudi();
-        toast(n ? n + (n === 1 ? ' tornata creata' : ' tornate create') : 'Nessuna nuova tornata: il calendario era già completo', 'ok');
+        toast(nuove.length ? nuove.length + (nuove.length === 1 ? ' tornata creata' : ' tornate create') + (inFesta ? ` (${inFesta} in giorno di festa, in rosso)` : '') : 'Nessuna nuova tornata: il calendario era già completo', 'ok');
         L.route();
       },
     });
@@ -178,7 +221,7 @@
     const oggiIso = L.oggi();
 
     v.innerHTML = `
-      <div class="page-head"><div><h1>Calendario delle tornate</h1><p>Ordinarie, informali, straordinarie e agapi</p></div>
+      <div class="page-head"><div><h1>Calendario delle tornate</h1><p>Rituali (1° e 3° lunedì), conferenze via web (2° e 4°), straordinarie e agapi · le feste sono in rosso</p></div>
         <div class="right actions">${puoScrivere() ? `<button class="btn ghost" id="c-gen">Genera calendario</button><button class="btn gold" id="c-new">${IC.plus} Nuova tornata</button>` : ''}</div></div>
       <div class="actions" style="margin-bottom:14px;flex-wrap:wrap">
         <label class="lbl" for="c-anno">Anno</label>
@@ -198,8 +241,9 @@
       const lista = st.righe.filter((t) => (!st.tipo || t.tipo === st.tipo) && !(st.nascondiAnnullate && t.stato === 'annullata'));
       $('#c-conta').textContent = lista.length + (lista.length === 1 ? ' tornata' : ' tornate');
       const c = $('#c-corpo');
+      const FE = Object.assign({}, festivita(st.anno - 1), festivita(st.anno), festivita(st.anno + 1));
       if (!lista.length) {
-        c.innerHTML = `<div class="card empty">${IC.inbox}<div>Nessuna tornata in calendario per il ${st.anno}.${puoScrivere() ? ' Usa “Genera calendario” per creare quelle ordinarie e informali.' : ''}</div></div>`;
+        c.innerHTML = `<div class="card empty">${IC.inbox}<div>Nessuna tornata in calendario per il ${st.anno}.${puoScrivere() ? ' Usa “Genera calendario” per creare i rituali e le conferenze.' : ''}</div></div>`;
         return;
       }
       c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Ora</th><th>Tipo</th><th>Grado</th><th>Luogo / collegamento</th><th>Dettagli</th><th>Stato</th><th></th></tr></thead><tbody>
@@ -210,9 +254,9 @@
             : esc(t.luogo || '—');
           const segni = [t.di_famiglia ? '<span class="badge gold">di Famiglia</span>' : '', t.formazione ? '<span class="badge info">formazione</span>' : '', t.solennita ? `<span class="badge gray">${esc(t.solennita)}</span>` : ''].filter(Boolean).join(' ');
           const extra = [t.relatore ? 'Relatore: ' + esc(t.relatore) : '', ...(st.lavori[t.id] || []).map((x) => 'Lavoro: ' + esc(x)), t.ordine_del_giorno ? esc(t.ordine_del_giorno).replace(/\n/g, '<br>') : ''].filter(Boolean).join('<br>');
-          const passata = t.data < oggiIso;
-          return `<tr style="${t.stato === 'annullata' ? 'opacity:.55;' : ''}">
-            <td data-sort="${t.data} ${hhmm(t.ora)}"><b>${fmtData(t.data)}</b><br><span class="muted">${giornoSettimana(t.data)}</span>${t.data === oggiIso ? ' <span class="badge ok">oggi</span>' : ''}</td>
+          const passata = t.data < oggiIso, fe = FE[t.data];
+          return `<tr class="${fe ? 'festa-riga' : ''}" style="${t.stato === 'annullata' ? 'opacity:.55;' : ''}">
+            <td data-sort="${t.data} ${hhmm(t.ora)}"><b ${fe ? 'class="festa"' : ''}>${fmtData(t.data)}</b><br><span class="${fe ? 'festa' : 'muted'}">${giornoSettimana(t.data)}</span>${fe ? `<br><span class="badge bad">Festa: ${esc(fe)}</span>` : ''}${t.data === oggiIso ? ' <span class="badge ok">oggi</span>' : ''}</td>
             <td>${esc(hhmm(t.ora) || '—')}</td>
             <td><span class="badge ${TIPO_BADGE[t.tipo]}">${esc(TIPI[t.tipo])}</span></td>
             <td>${t.tipo === 'informale' ? '—' : (t.grado ? esc(GRADI[t.grado]) : '<span class="muted">da stabilire</span>')}</td>

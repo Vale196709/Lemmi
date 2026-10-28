@@ -1,0 +1,17 @@
+AGGIORNAMENTO 22 - Calendario: rituali il lunedì, feste in rosso
+
+Carica su GitHub (Add file > Upload files), mantenendo le cartelle:
+   js/calendario.js
+   css/style.css
+   README.md
+Nessuno script SQL. Nessun file da eliminare.
+Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Come provare:
+  1) Calendario > anno > "Genera calendario": compare l'elenco delle date che cadono in una festa.
+  2) Premi "Genera calendario": 1° e 3° lunedi' = Ordinaria, 2° e 4° = Conferenza (web).
+  3) Le feste sono in rosso con il nome (es. Pasquetta, 6 aprile 2026).
+
+Se avevi gia' tornate generate in passato con altre regole (es. i mercoledi'), eliminale a mano
+(Modifica > Elimina) prima di rigenerare: il generatore non cancella nulla.
+Se compare un errore rosso, copiami il testo esatto.

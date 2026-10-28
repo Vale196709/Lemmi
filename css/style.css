@@ -377,3 +377,7 @@ a.pchip.app:hover { background: var(--info-bg); text-decoration: none; }
 .pstep.fatto .pcard { opacity: .6; }
 .pstep.fatto .pcard h3 { text-decoration: line-through; }
 @media print { .ppills, .pcheck:not([aria-pressed="true"]) { border: 1px solid #999; } .ppills { display: none !important; } .pcard { break-inside: avoid; } }
+
+/* ---------- Calendario: feste in rosso ---------- */
+.festa { color: var(--bad) !important; font-weight: 600; }
+tr.festa-riga td { background: var(--bad-bg); }
