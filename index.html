@@ -7,6 +7,12 @@
   <meta name="theme-color" content="#0f1b3d">
   <title>Lemmi · Gestione di Loggia</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f1b3d'/%3E%3Cpath d='M22 14v32h22' fill='none' stroke='%23c9a24b' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Lemmi">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -46,5 +52,9 @@
   <script src="js/utenti.js"></script>
   <script src="js/sistema.js"></script>
   <script src="js/backup.js"></script>
+  <script>
+    // rende l'app installabile su telefono (Aggiungi a schermata Home)
+    if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  </script>
 </body>
 </html>

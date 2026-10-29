@@ -442,3 +442,16 @@ button.pchip.mail:hover { background: var(--ok); color: #fff; }
 .card.compact table { font-size: .84rem; }
 .card.compact td { padding: 6px 8px; }
 .card.compact .empty { padding: 8px 0; font-size: .85rem; }
+
+/* Telefono (aggiornamento 29): intestazione fissa con menu a scorrimento orizzontale, scritte piccole sotto le icone */
+@media (max-width: 880px) {
+  .side { position: sticky; top: 0; z-index: 50; padding: 8px 10px; gap: 6px 8px; }
+  .side .nav { order: 3; flex: 1 0 100%; flex-wrap: nowrap; overflow-x: auto; gap: 2px; padding-bottom: 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .side .nav::-webkit-scrollbar { display: none; }
+  .nav a { flex: none; flex-direction: column; gap: 2px; padding: 6px 10px; font-size: .68rem; text-align: center; min-width: 60px; margin: 0; }
+  .nav a span { display: block; white-space: nowrap; }
+  .nav a.active { box-shadow: inset 0 -3px 0 var(--gold); }
+  input, select, textarea { font-size: 16px; }
+  .cr-strip { padding: 8px 10px; }
+  .page-head h1 { font-size: 1.35rem; }
+}

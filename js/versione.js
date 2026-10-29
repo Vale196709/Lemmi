@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.28.0',
+  numero: '0.29.0',
   data: '2026-10-29',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.29.0', data: '2026-10-29', t: 'App installabile su Android e iPhone (icona, schermo intero) e menu adatto al telefono' },
     { n: '0.28.0', data: '2026-10-29', t: 'Cruscotto compatto con la vista economica subito visibile; matricola nel piè di lista' },
     { n: '0.27.0', data: '2026-10-29', t: 'Voce Pagamenti rinominata Tesoreria; l’amministratore crea nuovi utenti da Utenti del sistema' },
     { n: '0.26.0', data: '2026-10-29', t: 'Stato del sistema: versione, profili degli utenti, spazio disponibile, backup completo settimanale e incrementale giornaliero' },

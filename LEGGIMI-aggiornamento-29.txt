@@ -1,0 +1,22 @@
+AGGIORNAMENTO 29 - App installabile su telefono (Android e iPhone)
+
+Nessuno script SQL. Carica su GitHub, mantenendo le cartelle (le nuove sono nella radice e in icons/):
+   manifest.webmanifest   (NUOVO, nella radice)
+   sw.js                  (NUOVO, nella radice, accanto a index.html)
+   icons/                 (NUOVA cartella con 4 immagini)
+   index.html, css/style.css, js/versione.js, README.md
+Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Come installarla sul telefono (dall'indirizzo del sito su GitHub Pages):
+ ANDROID (Chrome): apri il sito, tocca i tre puntini in alto a destra > "Installa app" (o "Aggiungi a schermata Home").
+ IPHONE/IPAD (Safari, non Chrome): apri il sito, tocca il pulsante Condividi (quadrato con la freccia) >
+   "Aggiungi alla schermata Home" > Aggiungi.
+ Si apre a schermo intero con l'icona della "L" dorata. Accedi come sempre con e-mail e password.
+
+Sul telefono il menu e' una barra che scorre orizzontalmente, fissa in alto, con le icone e il nome sotto.
+
+Da sapere:
+ - Per vedere l'icona e il nome nuovi su un telefono dove avevi gia' messo il sito tra i preferiti, rimuovi e rimetti.
+ - Senza connessione l'app si apre ma non mostra i dati: restano su Supabase e non vengono salvati sul telefono.
+ - Su iPhone il download di Excel e PDF si apre in un'anteprima da cui si sceglie "Salva su File".
+ - Dati personali dei Fratelli: usa il blocco schermo del telefono ed esci dall'app (pulsante Esci) se lo presti.
