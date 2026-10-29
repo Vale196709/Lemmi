@@ -130,6 +130,7 @@
       { a: 'G', t: 'Conseguenza se manca', d: 'Senza piè di lista la Gran Segreteria non rilascia il Nulla Osta per il rinnovo delle cariche.' },
     ] },
   };
+  L.PROCEDURE = P;
   const ORDINE = ['bussante', 'grado', 'exeat', 'sonno', 'depennamento', 'riammissione', 'oriente', 'onorario', 'titolosede', 'delega', 'elezioni', 'consegnemv', 'consegne', 'piedilista'];
 
   // Promemoria personale: i passi spuntati restano solo su questo browser, non nel database.
@@ -138,13 +139,15 @@
   const salva = (k, a) => { try { localStorage.setItem(chiave(k), JSON.stringify(a)); } catch (e) { /* ignora */ } };
 
   L.viste.procedure = async function (v, parti) {
-    const k = P[parti[1]] ? parti[1] : 'bussante';
+    const pr = (L.pratiche && parti[2]) ? await L.pratiche.contesto(parti[2]) : null;
+    const k = pr ? pr.procedura : (P[parti[1]] ? parti[1] : 'bussante');
+    const blocco = (!pr && L.pratiche) ? await L.pratiche.blocco(k) : '';
     const p = P[k];
     const chip = (x) => (MODULO[x]
       ? `<a class="pchip form" href="#/template/modulo/${MODULO[x]}" title="Apri la compilazione del modulo">${esc(x)}</a>`
       : (x === 'A/1' || x === 'C/1') ? `<a class="pchip form" href="#/bussanti" title="Si genera dalla scheda del bussante">${esc(x)}</a>`
         : `<span class="pchip form">${esc(x)}</span>`);
-    const fatti = leggi(k).filter((i) => i < p.s.length);
+    const fatti = (pr ? pr.fatti : leggi(k)).filter((i) => i < p.s.length);
     const moduli = [...new Set(p.s.flatMap((s) => s.f || []))];
     const scad = p.s.filter((s) => s.w).length;
     const passi = p.s.map((s, i) => {
@@ -177,8 +180,8 @@
     };
     const interruttore = `<div class="pvista"><button type="button" class="ppill${modoCorsie ? '' : ' on'}" data-vista="lista">Elenco</button><button type="button" class="ppill${modoCorsie ? ' on' : ''}" data-vista="corsie">Corsie</button></div>`;
     v.innerHTML = `
-      <div class="page-head"><div><h1>Procedure</h1><p>I passi da fare nelle diverse situazioni, con moduli, scadenze e collegamenti all’app</p></div></div>
-      <div class="ppills">${ORDINE.map((x) => `<a href="#/procedure/${x}" class="ppill${x === k ? ' on' : ''}">${esc(P[x].t)}</a>`).join('')}</div>
+      <div class="page-head"><div><h1>${pr ? esc(pr.titolo) : 'Procedure'}</h1><p>${pr ? pr.sottotitolo : 'I passi da fare nelle diverse situazioni, con moduli, scadenze e collegamenti all’app'}</p></div></div>
+      ${pr ? pr.pannello : `<div class="ppills">${ORDINE.map((x) => `<a href="#/procedure/${x}" class="ppill${x === k ? ' on' : ''}">${esc(P[x].t)}</a>`).join('')}</div>${blocco}`}
       <div class="pbar"><div class="pbar-txt"><b id="p-conta">${fatti.length} di ${p.s.length}</b> passi fatti · ${moduli.length ? 'Moduli: ' + esc(moduli.join(', ')) + ' · ' : ''}${scad} ${scad === 1 ? 'scadenza' : 'scadenze'}</div>
         <div class="pbar-track"><div id="p-barra" style="width:${Math.round(100 * fatti.length / p.s.length)}%"></div></div>
         <div class="actions"><button class="btn ghost small" id="p-reset" type="button">Azzera spunte</button><button class="btn ghost small" id="p-stampa" type="button">Stampa o salva PDF</button></div></div>
@@ -191,18 +194,22 @@
       const n = $$('.pstep.fatto', v).length;
       $('#p-conta', v).textContent = `${n} di ${p.s.length}`;
       $('#p-barra', v).style.width = Math.round(100 * n / p.s.length) + '%';
-      salva(k, $$('.pstep.fatto', v).map((e) => +e.dataset.i));
+      const arr = $$('.pstep.fatto', v).map((e) => +e.dataset.i);
+      if (pr) pr.salva(arr); else salva(k, arr);
     };
+    const bloccata = () => { if (pr && !pr.scrive) { L.toast(pr.procedura && 'Solo il Segretario può aggiornare una pratica in corso.', 'bad'); return true; } return false; };
     $$('.pcheck', v).forEach((b) => b.addEventListener('click', () => {
+      if (bloccata()) return;
       const st = b.closest('.pstep'); const f = st.classList.toggle('fatto');
       b.textContent = f ? '✓' : (+st.dataset.i + 1); b.setAttribute('aria-pressed', f ? 'true' : 'false'); aggiorna();
     }));
-    $('#p-reset', v).onclick = () => { $$('.pstep.fatto', v).forEach((st) => { st.classList.remove('fatto'); const b = $('.pcheck', st); b.textContent = +st.dataset.i + 1; b.setAttribute('aria-pressed', 'false'); }); aggiorna(); };
+    $('#p-reset', v).onclick = () => { if (bloccata()) return; $$('.pstep.fatto', v).forEach((st) => { st.classList.remove('fatto'); const b = $('.pcheck', st); b.textContent = +st.dataset.i + 1; b.setAttribute('aria-pressed', 'false'); }); aggiorna(); };
     $('#p-stampa', v).onclick = () => window.print();
     $$('[data-vista]', v).forEach((b) => b.addEventListener('click', () => {
       try { localStorage.setItem('lemmi.procedure.vista', b.dataset.vista); } catch (e) { /* ignora */ }
       L.viste.procedure(v, parti);
     }));
     $$('.pchip.mail', v).forEach((b) => b.addEventListener('click', () => window.LemmiBozze && window.LemmiBozze.apri(b.dataset.m)));
+    if (L.pratiche) L.pratiche.monta(v, k, pr);
   };
 })();

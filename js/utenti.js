@@ -43,14 +43,33 @@
           <td><b>${esc(r.cognome || '—')}</b></td>
           <td>${esc(cap(r.grado) || '—')}</td>
           <td>${esc(r.email || '—')}</td>
-          <td><span class="badge ${BADGE[r.ruolo] || 'gray'}">${esc(PROFILI[r.ruolo] || r.ruolo || '—')}</span></td>
+          <td data-sort="${esc(r.ruolo || '')}">${String(r.user_id) === String(state.user.id)
+            ? `<span class="badge ${BADGE[r.ruolo] || 'gray'}">${esc(PROFILI[r.ruolo] || r.ruolo || '—')}</span><div class="hint">il tuo profilo</div>`
+            : `<select class="sel-ruolo" data-u="${esc(r.user_id)}" data-prima="${esc(r.ruolo || '')}" data-nome="${esc(((r.nome || '') + ' ' + (r.cognome || '')).trim() || r.email || '')}" style="min-width:160px" aria-label="Profilo di ${esc(r.email || '')}">
+                ${!PROFILI[r.ruolo] ? `<option value="" selected>${esc(r.ruolo || '— nessuno —')}</option>` : ''}
+                ${Object.keys(PROFILI).map((k) => `<option value="${k}" ${k === r.ruolo ? 'selected' : ''}>${esc(PROFILI[k])}</option>`).join('')}</select>`}</td>
           <td data-sort="${esc(r.cognome || '')}"><select class="sel-fr" data-u="${esc(r.user_id)}" style="min-width:190px" aria-label="Fratello collegato a ${esc(r.email || '')}">
             <option value="">— nessuno —</option>
             ${fratelli.map((f) => `<option value="${esc(f.id)}" ${String(f.id) === String(r.fratello_id) ? 'selected' : ''}>${esc(f.cognome)} ${esc(f.nome)}</option>`).join('')}</select>
             ${r.collegamento === 'e-mail' ? '<div class="hint">riconosciuto dall’e-mail</div>' : ''}</td>
           <td>${esc(dataOra(r.ultimo_accesso))}</td></tr>`).join('') : '<tr><td colspan="7"><div class="empty"><div>Nessun utente configurato.</div></div></td></tr>'}</tbody></table></div>
-      <div class="hint" style="margin-top:12px">Nome, cognome e grado vengono dall’anagrafica dei Fratelli: il collegamento avviene dall’e-mail (se è la stessa dell’anagrafica) oppure scegliendo il Fratello dall’elenco. Gli utenti si creano e si tolgono da Supabase (Authentication › Users); il profilo si cambia nella tabella <code>profili</code>.</div>`;
+      <div class="hint" style="margin-top:12px">Nome, cognome e grado vengono dall’anagrafica dei Fratelli: il collegamento avviene dall’e-mail (se è la stessa dell’anagrafica) oppure scegliendo il Fratello dall’elenco. Gli utenti si creano e si tolgono da Supabase (Authentication › Users); il profilo si cambia dal menu della colonna «Profilo» (non si può cambiare il proprio, per non restare senza amministratore).</div>`;
 
+    $$('.sel-ruolo', v).forEach((sel) => sel.addEventListener('change', async () => {
+      const nuovo = sel.value, prima = sel.dataset.prima;
+      if (!nuovo || nuovo === prima) return;
+      if (!window.confirm('Cambiare il profilo di ' + sel.dataset.nome + ' da «' + (PROFILI[prima] || prima || 'nessuno') + '» a «' + PROFILI[nuovo] + '»?\nCambiano subito le sezioni che può vedere e modificare.')) { sel.value = prima; return; }
+      sel.disabled = true;
+      try {
+        chk(await state.sb.rpc('imposta_ruolo_utente', { p_user: sel.dataset.u, p_ruolo: nuovo }));
+        toast('Profilo aggiornato', 'ok');
+        L.route();
+      } catch (e) {
+        const mancante = /could not find the function|schema cache/i.test((e && e.message) || '');
+        toast(mancante ? 'Manca la funzione sul database: esegui lemmi_aggiornamento_26.sql su Supabase.' : messaggioErrore(e), 'bad');
+        sel.value = prima; sel.disabled = false;
+      }
+    }));
     $$('.sel-fr', v).forEach((sel) => sel.addEventListener('change', async () => {
       sel.disabled = true;
       try {

@@ -1,0 +1,33 @@
+AGGIORNAMENTO 26 - Stato del sistema: versione, profili, spazio, backup
+
+PASSO 1 (database) - Supabase > SQL Editor > New query: incolla tutto il contenuto di
+   sql/lemmi_aggiornamento_26.sql e premi Run. Si puo' lanciare anche due volte senza danni.
+   Se compare l'avviso "Pianificazione automatica NON attivata": vai su Database > Extensions,
+   abilita "pg_cron" e rilancia lo script (il backup manuale funziona comunque).
+PASSO 2 (sito) - carica su GitHub, mantenendo le cartelle:
+   js/versione.js     (NUOVO)
+   js/sistema.js      (NUOVO)
+   js/pratiche.js     (NUOVO nella cartella js: dell'aggiornamento 25 era finito nella radice)
+   js/procedure.js    (versione dell'aggiornamento 25: sostituisce quella in js/)
+   js/app.js, js/utenti.js, index.html, css/style.css, README.md
+   Poi CANCELLA dalla radice del repository i due file fuori posto: pratiche.js e procedure.js.
+   Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Come si usa:
+ - Menu > Info di sistema > Stato del sistema (solo amministratore):
+   * Versione e data dell'ultimo aggiornamento (anche in fondo al menu, per tutti).
+   * Spazio disponibile: database (dati, backup interni, sistema) e archivio file. Il piano Free di
+     Supabase ha 500 MB di database e 1 GB di file: se cambi piano, modifica i limiti in js/versione.js.
+   * Backup: completo ogni 7 giorni circa, incrementale ogni notte (01:30 UTC = 02:30/03:30 italiane).
+     Pulsanti "Esegui ora" e "Backup completo ora"; "Scarica Excel" per ogni backup.
+     Si conservano gli ultimi 5 backup completi con i loro incrementali.
+ - Menu > Info di sistema > Utenti del sistema: nella colonna Profilo l'amministratore sceglie il nuovo
+   profilo di ogni utente (con conferma). Il proprio profilo non si cambia da qui.
+ - A ogni futuro aggiornamento ricordati di cambiare numero, data e riga di storia in js/versione.js.
+
+Da sapere:
+ - I backup stanno nello stesso database: proteggono da errori e cancellazioni, non dalla perdita del
+   progetto Supabase. Scarica ogni settimana il backup completo in Excel e conservalo altrove.
+ - I file caricati (documenti, tavole, modelli) non sono inclusi nei backup.
+ - Il ripristino da un backup per ora non e' automatico: i dati sono conservati e si possono riportare
+   nelle tabelle (ne parliamo se serve).
