@@ -8,7 +8,7 @@
   const RUOLI_ACCESSO = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const TUTTI = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const SOCI = ['amministratore', 'venerabile', 'segretario'];
-  const ACCESSO_SEZ = { home: TUTTI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: TUTTI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: TUTTI, template: SOCI, procedure: SOCI, verbali: SOCI, loggia: TUTTI, utenti: ['amministratore'], sistema: ['amministratore'], registro: ['amministratore'] };
+  const ACCESSO_SEZ = { home: TUTTI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: TUTTI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: TUTTI, template: SOCI, procedure: SOCI, verbali: SOCI, loggia: TUTTI, utenti: ['amministratore'], sistema: ['amministratore'], registro: ['amministratore'], cerca: SOCI, completa: SOCI, relazione: SOCI };
   const ETICHETTA_RUOLO = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere' };
 
   const TIPI_DOMANDA = {
@@ -235,11 +235,13 @@
   // è una pagina (Fratelli), altrimenti è solo un contenitore che si apre e si chiude (Configurazione).
   const MENU = [
     { sez: 'home', href: '#/', t: 'Cruscotto', ic: IC.home },
+    { sez: 'cerca', href: '#/cerca', t: 'Cerca', ic: IC.search },
     { sez: 'calendario', href: '#/calendario', t: 'Calendario', ic: IC.calendar },
     { sez: 'pagamenti', href: '#/pagamenti', t: 'Tesoreria', ic: IC.euro },
-    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli/Bussanti', ic: IC.users, sub: [{ sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user }, { sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'verbali', href: '#/verbali', t: 'Verbali e presenze', ic: IC.lavori }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }] },
+    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli/Bussanti', ic: IC.users, sub: [{ sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user }, { sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'verbali', href: '#/verbali', t: 'Verbali e presenze', ic: IC.lavori }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }, { sez: 'completa', href: '#/completa', t: 'Dati da completare', ic: IC.lista }] },
     { sez: 'procedure', href: '#/procedure', t: 'Procedure', ic: IC.procedure },
     { sez: 'template', href: '#/template', t: 'Template', ic: IC.template },
+    { sez: 'relazione', href: '#/relazione', t: 'Relazione annuale', ic: IC.lavori },
     { gruppo: 'config', t: 'Info di sistema', ic: IC.gear, sub: [{ sez: 'loggia', href: '#/loggia', t: 'Loggia', ic: IC.building }, { sez: 'utenti', href: '#/utenti', t: 'Utenti del sistema', ic: IC.shield }, { sez: 'sistema', href: '#/sistema', t: 'Stato del sistema', ic: IC.gear }, { sez: 'registro', href: '#/registro', t: 'Registro attività', ic: IC.lavori }] },
   ];
 

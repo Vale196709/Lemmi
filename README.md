@@ -34,6 +34,10 @@ Nessun server da mantenere e nessun abbonamento.
 - **Info di sistema** (ex Configurazione): contiene Loggia e, solo per l'amministratore, **Utenti del sistema**: nome, cognome, grado, e-mail, profilo e ultimo accesso di chi può entrare nell'app. Il Fratello si riconosce dall'e-mail dell'anagrafica oppure si collega a mano dall'elenco. Richiede `lemmi_aggiornamento_18.sql`.
 - **Grafici del Cruscotto drillabili**: un clic su un mese del grafico, su una categoria, su una voce di quota, sui riquadri (liquidità, entrate, uscite, risultato, quote, Fratelli, bussanti, votazioni) apre il dettaglio e permette di scendere ancora (mese > categoria > movimenti; voce > Fratello; stato > elenco dei Fratelli), con bollini di filtro, totali e percorso per tornare indietro. I nomi dei Fratelli aprono la scheda.
 - **Stato del sistema** (Info di sistema, solo amministratore): *versione* dell'app con data dell'ultimo aggiornamento (anche in fondo al menu, per tutti; si cambia in `js/versione.js`); *spazio disponibile* del database (dati dell'app, backup interni, sistema) e dell'archivio file (documenti, tavole, modelli) con avvisi al 70% e al 90%; *backup*: completo circa una volta alla settimana e incrementale ogni notte (solo righe nuove, modificate o eliminate), pianificati con pg_cron, conservati per 5 settimane, lanciabili anche a mano e scaricabili in Excel. Richiede `lemmi_aggiornamento_26.sql`.
+- **Cerca** (voce di menu, o tasto «/»): una sola ricerca su Fratelli, bussanti, lavori e tavole, pratiche e tornate; ogni risultato apre la scheda.
+- **Dati da completare** (sotto Fratelli/Bussanti): Fratelli attivi e bussanti a cui mancano codice fiscale, contatti, indirizzo, date…; filtri per tipo e dato, esportazione in Excel.
+- **Calendario sul telefono**: nel Calendario, il pulsante «Calendario sul telefono (.ics)» scarica le tornate dell'anno (e le scadenze delle pratiche, per chi le vede) da aprire con il calendario del telefono, con promemoria il giorno prima.
+- **Relazione annuale** (Maestro Venerabile, Segretario, amministratore): bozza della relazione scritta con i dati dell'anno (tornate, presenze, iniziazioni, passaggi, lavori, tesoreria), da completare e scaricare in Word o stampare.
 - **Ripristino guidato** (Stato del sistema > Backup > «Ripristina…», solo amministratore): confronta un backup con i dati di oggi e, tabella per tabella e dopo conferma scritta, recupera le righe eliminate o riporta le righe modificate alla versione del backup; prima di ogni ripristino il sistema fa un backup di sicurezza. Le righe nuove non si cancellano mai. Richiede `lemmi_aggiornamento_30.sql`.
 - **Registro delle attività** (Info di sistema, solo amministratore): chi ha inserito, modificato o eliminato dati e quando, con filtri e dettaglio dei campi cambiati; conservato 24 mesi. Richiede `lemmi_aggiornamento_30.sql`.
 - **Uscita automatica**: dopo 30 minuti senza uso (si cambia in `js/versione.js`, `inattivita_min`) compare un avviso di 60 secondi e poi si esce.
@@ -100,6 +104,10 @@ js/verbali.js       registro dei verbali e presenze dei Fratelli
 js/docx_mini.js     scrittura di file Word senza librerie
 js/utenti.js        Info di sistema: utenti del sistema
 js/registro.js      Info di sistema: registro delle attività
+js/ricerca.js       Cerca in tutta l'app
+js/completa.js      Dati da completare
+js/calendario_ics.js  export del calendario in .ics
+js/relazione.js     Relazione annuale del Venerabile
 js/ripristino.js    ripristino guidato da backup
 js/sicurezza.js     uscita automatica per inattività
 templates/          A1.pdf e C1.pdf (modelli ufficiali ed. 2024)

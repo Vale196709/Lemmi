@@ -1,0 +1,23 @@
+AGGIORNAMENTO 31 - Cerca, Dati da completare, Calendario sul telefono, Relazione annuale
+
+Nessuno script SQL. Applica DOPO l'aggiornamento 30.
+Carica su GitHub, mantenendo le cartelle:
+   index.html, README.md                                   (radice)
+   js/ricerca.js, js/completa.js, js/calendario_ics.js, js/relazione.js     (NUOVI)
+   js/docx_mini.js, js/pratiche.js, js/app.js, js/versione.js
+Aspetta 1-2 minuti e ricarica con Ctrl+F5 (sul telefono: chiudi e riapri l'app).
+
+COSA C'E' DI NUOVO
+ 1. CERCA (nuova voce in alto nel menu, oppure tasto "/" da tastiera): scrivi almeno 2 lettere e cerca insieme in Fratelli,
+    bussanti, lavori e tavole, pratiche e tornate. Con piu' parole (es. "rossi roma") si restringe. Clic sul risultato = apre la scheda.
+ 2. DATI DA COMPLETARE (sotto Fratelli/Bussanti): per i Fratelli attivi e i bussanti, cosa manca (codice fiscale, data di nascita,
+    e-mail, cellulare, indirizzo, data di iniziazione...). Filtri per tipo e per dato; "Solo dati importanti"; "Scarica Excel".
+ 3. CALENDARIO SUL TELEFONO: in Calendario, pulsante "Calendario sul telefono (.ics)". Scarica il file dell'anno scelto:
+    - iPhone: aprilo dai File/Download e tocca "Aggiungi tutti";  Android: aprilo e scegli Google Calendar.
+    Contiene le tornate (con ora, luogo, ordine del giorno, collegamento online) con promemoria il giorno prima e, se il tuo ruolo
+    le vede, le scadenze delle pratiche con promemoria 2 giorni prima. Le tornate annullate sono escluse.
+    E' una fotografia di oggi: se il calendario cambia, riscarica il file (per evitare doppioni, elimina prima il calendario importato).
+ 4. RELAZIONE ANNUALE (voce di menu per Venerabile, Segretario e amministratore): sceglie l'anno e scrive una bozza con i dati
+    registrati: tornate e presenze medie, Fratelli attivi per grado, iniziazioni, passaggi di grado, lavori presentati, entrate/uscite
+    del Conto di Loggia. Il testo e' modificabile nel riquadro; le parti tra [parentesi quadre] sono da scrivere tu (considerazioni,
+    obiettivi). Poi "Scarica in Word" o "Stampa". CONTROLLA I NUMERI: se un dato non e' stato registrato nell'app, non compare.

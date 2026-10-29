@@ -301,13 +301,15 @@
     let lista;
     try { lista = await caricaTutto(true); } catch (e) { return; }
     if (!lista.length && !scrive()) return;
-    const sc = scadenzeDi(lista).slice(0, 8);
-    const sez = document.createElement('section'); sez.id = 'pratiche-cr'; sez.style.marginTop = '28px';
-    sez.innerHTML = `<div class="grid cols-2">
-      <div class="card"><h2>Pratiche in corso</h2>${lista.length ? `<div class="table-wrap"><table><tbody>${lista.slice(0, 8).map((x) => `
+    const tutte = scadenzeDi(lista), sc = tutte.slice(0, 3);
+    const cardPratiche = `<div class="card compact"><h2>Pratiche in corso${lista.length > 3 ? ` <small>${lista.length} in totale · <a href="#/procedure">tutte</a></small>` : ''}</h2>${lista.length ? `<div class="table-wrap"><table><tbody>${lista.slice(0, 3).map((x) => `
         <tr class="click" data-go="#/procedure/${esc(x.p.procedura)}/${esc(x.p.id)}"><td><b>${esc(x.p.titolo)}</b><div class="muted">${esc(prossimo(x.p.procedura, x.fatti))}</div></td><td>${x.fatti.size} di ${passiTot(x.p.procedura)}</td></tr>`).join('')}</tbody></table></div>`
-        : '<div class="empty">Nessuna pratica in corso. Puoi avviarne una dalla sezione Procedure.</div>'}</div>
-      <div class="card"><h2>Prossime scadenze</h2>${sc.length ? righeScad(sc, true) : '<div class="empty">Nessuna scadenza calcolata. Inserisci le date nelle pratiche.</div>'}</div></div>`;
+        : '<div class="empty">Nessuna pratica in corso. Puoi avviarne una dalla sezione Procedure.</div>'}</div>`;
+    const cardScad = `<div class="card compact"><h2>Prossime scadenze${tutte.length > 3 ? ` <small>${tutte.length} in totale · <a href="#/calendario">calendario</a></small>` : ''}</h2>${sc.length ? righeScad(sc, true) : '<div class="empty">Nessuna scadenza calcolata. Inserisci le date nelle pratiche.</div>'}</div>`;
+    const dest = $('#seg-cr', v);
+    if (dest) { dest.insertAdjacentHTML('beforeend', cardPratiche + cardScad); collega(dest); return; }
+    const sez = document.createElement('section'); sez.id = 'pratiche-cr'; sez.style.marginTop = '28px';
+    sez.innerHTML = `<div class="grid cols-2">${cardPratiche}${cardScad}</div>`;
     v.appendChild(sez); collega(sez);
   });
 
@@ -341,5 +343,5 @@
     const b = $('#pr-avvia-b', sez); if (b) b.onclick = () => avvia('bussante', { rif_id: id });
   });
 
-  L.pratiche = { contesto, blocco, monta, avvia };
+  L.pratiche = { contesto, blocco, monta, avvia, scadenze: async () => (vede() ? scadenzeDi(await caricaTutto(true)) : []) };
 })();
