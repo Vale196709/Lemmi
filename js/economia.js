@@ -209,7 +209,7 @@
     if (!RUOLI.includes(state.profilo && state.profilo.ruolo)) return;
     const sez = document.createElement('section');
     sez.id = 'eco';
-    if (v.children.length > 1) sez.style.marginTop = '28px';   // sotto i dati di segreteria, con un po' d'aria
+    if (v.children.length > 1) sez.style.marginTop = '6px';    // subito sotto la segreteria compatta
     v.appendChild(sez);
     const ora = new Date().getFullYear();
     const anni = Array.from(new Set([ora - 2, ora - 1, ora, ora + 1])).sort();

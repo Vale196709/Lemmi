@@ -425,3 +425,20 @@ button.pchip.mail:hover { background: var(--ok); color: #fff; }
 .sys-list { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: .86rem; }
 .sys-list li { margin: 3px 0; }
 .sys-list li b { color: var(--ink); }
+
+/* Cruscotto compatto (aggiornamento 28) */
+.cr-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 8px 14px; margin-bottom: 12px; }
+.cr-kpis { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.cr-kpi { display: flex; align-items: baseline; gap: 6px; padding: 4px 10px; border-radius: 10px; }
+.cr-kpi b { font-size: 1.35rem; letter-spacing: -.02em; }
+.cr-kpi span { color: var(--muted); font-size: .84rem; }
+.cr-stati { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 200px; }
+.chip { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #eef1f7; color: var(--ink); font-size: .78rem; }
+.chip b { margin-left: 3px; }
+.chip.drillable:hover { background: var(--gold-soft); }
+.cr-seg { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.card.compact { padding: 12px 14px; margin-bottom: 0; }
+.card.compact > h2 { font-size: .95rem; margin-bottom: 6px; }
+.card.compact table { font-size: .84rem; }
+.card.compact td { padding: 6px 8px; }
+.card.compact .empty { padding: 8px 0; font-size: .85rem; }

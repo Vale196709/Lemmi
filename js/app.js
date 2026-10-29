@@ -359,22 +359,22 @@
     eventi.sort((a, b) => a.d.localeCompare(b.d));
     v.innerHTML = `
       <div class="page-head"><div><h1>Cruscotto</h1><p>${esc(nomeLoggia('La tua Loggia'))}${state.loggia.oriente ? ' · Oriente di ' + esc(state.loggia.oriente) : ''}</p></div></div>
-      <div class="grid stats">
-        <div class="stat drillable" data-drill="fratelli" role="button" tabindex="0" title="Clicca per l’elenco"><div class="n">${fratelli.length}</div><div class="l">Fratelli in anagrafica</div></div>
-        <div class="stat drillable" data-drill="bussanti" role="button" tabindex="0" title="Clicca per l’elenco"><div class="n">${bussanti.length}</div><div class="l">Pratiche di bussanti</div></div>
-        <div class="stat drillable" data-drill="votazioni" role="button" tabindex="0" title="Clicca per l’elenco"><div class="n">${eventi.length}</div><div class="l">Votazioni in programma</div></div>
+      <div class="cr-strip">
+        <div class="cr-kpis">
+          <div class="cr-kpi drillable" data-drill="fratelli" role="button" tabindex="0" title="Clicca per l’elenco"><b>${fratelli.length}</b><span>Fratelli</span></div>
+          <div class="cr-kpi drillable" data-drill="bussanti" role="button" tabindex="0" title="Clicca per l’elenco"><b>${bussanti.length}</b><span>Bussanti</span></div>
+          <div class="cr-kpi drillable" data-drill="votazioni" role="button" tabindex="0" title="Clicca per l’elenco"><b>${eventi.length}</b><span>Votazioni in programma</span></div>
+        </div>
+        <div class="cr-stati" aria-label="Fratelli per stato">${Object.entries(perStato).map(([st, n]) => `<span class="chip drillable" data-drill="fratelli" data-k="${esc(st)}" role="button" tabindex="0" title="Clicca per l’elenco">${esc(st)} <b>${n}</b></span>`).join('')}</div>
+        ${canEdit() ? `<a class="btn gold small" href="#/bussanti/nuovo">${IC.plus} Nuovo bussante</a>` : ''}
       </div>
-      <div class="grid cols-2">
-        <div class="card"><h2>Prossime votazioni</h2>
-          ${eventi.length ? `<div class="table-wrap"><table><tbody>${eventi.slice(0, 8).map((e) => `
+      <div class="grid cr-seg" id="seg-cr">
+        <div class="card compact"><h2>Prossime votazioni${eventi.length > 3 ? ` <small>${eventi.length} in totale</small>` : ''}</h2>
+          ${eventi.length ? `<div class="table-wrap"><table><tbody>${eventi.slice(0, 3).map((e) => `
             <tr class="click" data-go="#/bussanti/${esc(e.b.id)}"><td><b>${fmtData(e.d)}</b></td><td>${esc(e.t)}</td><td>${esc(e.b.cognome)} ${esc(e.b.nome)}</td></tr>`).join('')}</tbody></table></div>`
             : '<div class="empty">Nessuna votazione in programma.</div>'}
         </div>
-        <div class="card"><h2>Fratelli per stato</h2>
-          ${Object.keys(perStato).length ? Object.entries(perStato).map(([s, n]) => `<div class="actions drillable riga-d" data-drill="fratelli" data-k="${esc(s)}" role="button" tabindex="0" title="Clicca per l’elenco" style="justify-content:space-between;padding:7px 8px;border-bottom:1px solid var(--line)"><span>${esc(s)}</span><span class="badge info">${n}</span></div>`).join('') : '<div class="empty">Nessun dato.</div>'}
-        </div>
-      </div>
-      ${canEdit() ? `<div class="actions"><a class="btn gold" href="#/bussanti/nuovo">${IC.plus} Nuovo bussante</a></div>` : ''}`;
+      </div>`;
     collegaRighe(v);
     await estraCruscotto(v);
   }

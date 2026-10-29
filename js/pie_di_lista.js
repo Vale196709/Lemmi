@@ -26,7 +26,7 @@
     chk(vc).forEach((x) => { grado[x.id] = String(x.grado_attuale || '').toLowerCase(); });
     const campoEson = frat.length ? ['esonero_capitazione', 'percentuale_esonero', 'esonero'].find((k) => k in frat[0]) : null;
     st.righe = frat.map((f) => ({
-      id: f.id, stato: f.stato || '', grado: grado[f.id] || '', cognome: f.cognome, nome: f.nome, nascita: f.data_nascita || '',
+      id: f.id, matricola: f.matricola || '', stato: f.stato || '', grado: grado[f.id] || '', cognome: f.cognome, nome: f.nome, nascita: f.data_nascita || '',
       indirizzo: [f.indirizzo, [f.cap, f.citta].filter(Boolean).join(' ') + (f.provincia ? ' (' + f.provincia + ')' : '')].map((x) => String(x || '').trim()).filter((x) => x && x !== '()').join(', '),
       professione: f.professione || '', cellulare: f.cellulare || '', email: f.email || '',
       esonero: campoEson && f[campoEson] != null ? String(f[campoEson]) : '',
@@ -47,13 +47,13 @@
     .sort((a, b) => (ORD_GRADO[a.grado] ?? 9) - (ORD_GRADO[b.grado] ?? 9) || a.cognome.localeCompare(b.cognome, 'it') || a.nome.localeCompare(b.nome, 'it'));
   const gradoTesto = (g) => GRADI[g] || '';
   const percEson = (r) => (st.esoneri[r.id] !== undefined ? st.esoneri[r.id] : r.esonero);
-  const mancanze = (r) => [!r.nascita && 'data di nascita', !r.indirizzo && 'indirizzo', !r.cellulare && 'cellulare', !r.email && 'e-mail', !r.grado && 'grado'].filter(Boolean);
+  const mancanze = (r) => [!r.matricola && 'matricola', !r.nascita && 'data di nascita', !r.indirizzo && 'indirizzo', !r.cellulare && 'cellulare', !r.email && 'e-mail', !r.grado && 'grado'].filter(Boolean);
   const titolo = () => ({
     riga1: "PIE' DI LISTA AGGIORNATO AL " + isoToIt(st.data),
     riga2: 'RISPETTABILE LOGGIA ' + String((state.loggia && state.loggia.nome) || '').toUpperCase() + ' N° ' + ((state.loggia && state.loggia.numero) || '') + " ALL'ORIENTE DI " + String((state.loggia && state.loggia.oriente) || '').toUpperCase(),
   });
-  const COLONNE = ['GRADO', 'COGNOME E NOME', 'DATA DI NASCITA', 'INDIRIZZO (VIA, NUMERO CIVICO, CITTA\', CAP)', 'PROFESSIONE', 'CELLULARE', 'INDIRIZZO MAIL', 'PERCENTUALE DI ESONERO CAPITAZIONE'];
-  const riga = (r) => [gradoTesto(r.grado), r.cognome + ' ' + r.nome, r.nascita ? fmtData(r.nascita) : '', r.indirizzo, r.professione, r.cellulare, r.email, percEson(r)];
+  const COLONNE = ['MATRICOLA', 'GRADO', 'COGNOME E NOME', 'DATA DI NASCITA', 'INDIRIZZO (VIA, NUMERO CIVICO, CITTA\', CAP)', 'PROFESSIONE', 'CELLULARE', 'INDIRIZZO MAIL', 'PERCENTUALE DI ESONERO CAPITAZIONE'];
+  const riga = (r) => [r.matricola, gradoTesto(r.grado), r.cognome + ' ' + r.nome, r.nascita ? fmtData(r.nascita) : '', r.indirizzo, r.professione, r.cellulare, r.email, percEson(r)];
   const nomeFile = (est) => 'Pie_di_lista_' + st.data + '.' + est;
   const scarica = (bytes, nome, tipo) => {
     const url = URL.createObjectURL(new Blob([bytes], { type: tipo }));
@@ -67,7 +67,7 @@
     const t = titolo(), righe = visibili();
     const aoa = [[t.riga1], [t.riga2], [], COLONNE, ...righe.map(riga), [], ['', 'L’ORATORE', '', 'IL MAESTRO VENERABILE', '', 'IL SEGRETARIO'], ['', st.firme.oratore, '', st.firme.mv, '', st.firme.segretario]];
     const ws = window.XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 52 }, { wch: 24 }, { wch: 16 }, { wch: 32 }, { wch: 18 }];
+    ws['!cols'] = [{ wch: 11 }, { wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 52 }, { wch: 24 }, { wch: 16 }, { wch: 32 }, { wch: 18 }];
     const wb = window.XLSX.utils.book_new();
     window.XLSX.utils.book_append_sheet(wb, ws, 'Pie di lista');
     const out = window.XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -81,7 +81,7 @@
     const doc = await PDFDocument.create();
     const f = await doc.embedFont(StandardFonts.Helvetica), fb = await doc.embedFont(StandardFonts.HelveticaBold);
     const W = 841.89, H = 595.28, M = 28;
-    const larg = [50, 118, 56, 175, 85, 66, 150, 78];                        // totale 778
+    const larg = [44, 46, 112, 56, 160, 80, 64, 140, 76];                    // totale 778
     const t = titolo(), righe = visibili();
     const perPagina = 31, nPag = Math.max(1, Math.ceil(righe.length / perPagina));
     const adatta = (testo, w, sz, font) => { let s = pulisci(testo), tagliato = false; while (s.length > 1 && font.widthOfTextAtSize(s + (tagliato ? '…' : ''), sz) > w - 4) { s = s.slice(0, -1); tagliato = true; } return s + (tagliato ? '…' : ''); };
@@ -137,9 +137,9 @@
           <div class="actions" style="margin-top:12px;flex-wrap:wrap"><button class="btn gold" id="p-xls">Scarica Excel</button><button class="btn gold" id="p-pdf">Scarica PDF da firmare</button></div>
           <div class="hint" style="margin-top:8px">Il piè di lista va inviato firmato (Venerabile, Oratore e Segretario) all’<b>Anagrafe</b>, alla <b>Gran Segreteria</b> e alla <b>Segreteria del Collegio</b>, aggiornato al 30 giugno e al 31 dicembre di ogni anno. Senza questo invio la Gran Segreteria non rilascia il Nulla Osta per il rinnovo delle cariche.</div></div>
         ${manc.length ? `<div class="notice" style="margin-top:14px"><b>${manc.length} ${manc.length === 1 ? 'Fratello ha' : 'Fratelli hanno'} dati mancanti</b> in anagrafica (evidenziati nella tabella): completali dalla scheda del Fratello prima di inviare.</div>` : ''}
-        <div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Grado</th><th>Cognome e nome</th><th>Data di nascita</th><th>Indirizzo</th><th>Professione</th><th>Cellulare</th><th>E-mail</th><th>% esonero capitazione</th></tr></thead><tbody>
-        ${righe.length ? righe.map((r) => { const m = mancanze(r); return `<tr ${m.length ? `style="background:var(--warn-bg,#fff7e0)" title="Manca: ${esc(m.join(', '))}"` : ''}><td>${esc(gradoTesto(r.grado)) || '<span class="muted">—</span>'}</td><td><b>${esc(r.cognome + ' ' + r.nome)}</b></td><td data-sort="${esc(r.nascita)}">${r.nascita ? fmtData(r.nascita) : '<span class="muted">—</span>'}</td><td>${esc(r.indirizzo) || '<span class="muted">—</span>'}</td><td>${esc(r.professione)}</td><td>${esc(r.cellulare)}</td><td>${esc(r.email)}</td>
-          <td data-sort="${esc(percEson(r))}"><input data-es="${esc(r.id)}" value="${esc(percEson(r))}" style="width:70px" placeholder="—" inputmode="numeric"></td></tr>`; }).join('') : '<tr><td colspan="8"><div class="empty">Nessun Fratello con gli stati scelti.</div></td></tr>'}</tbody></table></div>
+        <div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Matricola</th><th>Grado</th><th>Cognome e nome</th><th>Data di nascita</th><th>Indirizzo</th><th>Professione</th><th>Cellulare</th><th>E-mail</th><th>% esonero capitazione</th></tr></thead><tbody>
+        ${righe.length ? righe.map((r) => { const m = mancanze(r); return `<tr ${m.length ? `style="background:var(--warn-bg,#fff7e0)" title="Manca: ${esc(m.join(', '))}"` : ''}><td>${esc(r.matricola) || '<span class="muted">—</span>'}</td><td>${esc(gradoTesto(r.grado)) || '<span class="muted">—</span>'}</td><td><b>${esc(r.cognome + ' ' + r.nome)}</b></td><td data-sort="${esc(r.nascita)}">${r.nascita ? fmtData(r.nascita) : '<span class="muted">—</span>'}</td><td>${esc(r.indirizzo) || '<span class="muted">—</span>'}</td><td>${esc(r.professione)}</td><td>${esc(r.cellulare)}</td><td>${esc(r.email)}</td>
+          <td data-sort="${esc(percEson(r))}"><input data-es="${esc(r.id)}" value="${esc(percEson(r))}" style="width:70px" placeholder="—" inputmode="numeric"></td></tr>`; }).join('') : '<tr><td colspan="9"><div class="empty">Nessun Fratello con gli stati scelti.</div></td></tr>'}</tbody></table></div>
         <div class="hint" style="margin-top:6px">La percentuale di esonero si compila solo per i Fratelli esonerati (es. dispensa dagli oneri finanziari per gli over 75, deliberata dalla Giunta): vale per questo invio e non viene salvata.</div>`;
       mascheraDate(v);
       $('#p-data', v).addEventListener('change', (e) => { const i = itToIso(e.target.value); if (!i || i === 'ERR') return toast('Data non valida: usa gg/mm/aaaa.', 'bad'); st.data = i; });

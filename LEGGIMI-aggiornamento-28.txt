@@ -1,0 +1,19 @@
+AGGIORNAMENTO 28 - Cruscotto compatto e matricola nel piè di lista
+
+Nessuno script SQL. Carica su GitHub, mantenendo le cartelle:
+   js/app.js, js/pratiche.js, js/pie_di_lista.js, js/economia.js, js/versione.js,
+   css/style.css, README.md
+   (js/pratiche.js sostituisce quello dell'aggiornamento 26/27, che e' lo stesso file con questa modifica)
+Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Cruscotto:
+ - In alto una barra sola: Fratelli, Bussanti, Votazioni in programma (cliccabili come prima), i Fratelli per
+   stato come etichette cliccabili e il pulsante Nuovo bussante.
+ - Sotto, tre riquadri bassi con al massimo 3 righe ciascuno: Prossime votazioni, Pratiche in corso, Prossime
+   scadenze (con il rimando all'elenco completo).
+ - Subito dopo, senza dover scorrere, la vista economica.
+ - Il Tesoriere continua a vedere solo la parte economica.
+
+Piè di lista:
+ - Nuova colonna Matricola (prima del Grado) in anteprima, Excel e PDF. Viene dall'anagrafe dei Fratelli
+   (campo Matricola); chi non ce l'ha compare tra i dati mancanti, evidenziato in giallo.
