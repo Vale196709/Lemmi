@@ -1,0 +1,26 @@
+AGGIORNAMENTO 25 - Pratiche legate a una persona, con scadenze automatiche
+
+PASSO 1 (database) - Supabase > SQL Editor > New query: incolla tutto il contenuto di
+   sql/lemmi_pratiche.sql e premi Run. Deve rispondere "Success. No rows returned".
+   Si puo' lanciare anche due volte senza danni.
+PASSO 2 (sito) - carica su GitHub, mantenendo le cartelle:
+   js/pratiche.js     (NUOVO)
+   js/procedure.js
+   index.html
+   (e, se non l'hai ancora fatto, i file degli aggiornamenti 23 e 24: js/bozze.js, css/style.css)
+   Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Come si usa:
+ - Procedure > Iniziazione (o Passaggio di grado, Exeat, Consegne tra segretari) > "Avvia una pratica".
+   Scegli la persona; il titolo si compila da solo ("Iniziazione di Mario Rossi") e si puo' cambiare.
+   Per i bussanti le date gia' presenti nella scheda (invio C/1, votazioni) vengono riportate.
+ - Nella pratica: i passi fatti restano nel database; inserisci le "Date della pratica" e premi
+   "Salva date": l'app calcola le scadenze (60 giorni di preavviso, 30 di affissione, seconda
+   votazione dopo 3/6/12 mesi secondo i voti contrari, 30 giorni per l'Exeat, 20 per le consegne).
+ - Cruscotto: riquadri "Pratiche in corso" e "Prossime scadenze".
+   Calendario: riquadro "Scadenze delle pratiche" sopra l'elenco delle tornate.
+   Scheda del bussante: riquadro "Pratica e procedura".
+ - Solo Segretario e amministratore possono avviare e aggiornare le pratiche; il Venerabile le vede.
+ - Una pratica si puo' segnare conclusa, annullare o riaprire. Le altre procedure restano guide.
+ - Le scadenze "entro il" scadute e non fatte compaiono con l'etichetta "Scaduta"; quelle "dal" sono
+   date minime (non prima del) e spariscono quando il passo relativo e' spuntato.
