@@ -34,6 +34,9 @@ Nessun server da mantenere e nessun abbonamento.
 - **Info di sistema** (ex Configurazione): contiene Loggia e, solo per l'amministratore, **Utenti del sistema**: nome, cognome, grado, e-mail, profilo e ultimo accesso di chi può entrare nell'app. Il Fratello si riconosce dall'e-mail dell'anagrafica oppure si collega a mano dall'elenco. Richiede `lemmi_aggiornamento_18.sql`.
 - **Grafici del Cruscotto drillabili**: un clic su un mese del grafico, su una categoria, su una voce di quota, sui riquadri (liquidità, entrate, uscite, risultato, quote, Fratelli, bussanti, votazioni) apre il dettaglio e permette di scendere ancora (mese > categoria > movimenti; voce > Fratello; stato > elenco dei Fratelli), con bollini di filtro, totali e percorso per tornare indietro. I nomi dei Fratelli aprono la scheda.
 - **Stato del sistema** (Info di sistema, solo amministratore): *versione* dell'app con data dell'ultimo aggiornamento (anche in fondo al menu, per tutti; si cambia in `js/versione.js`); *spazio disponibile* del database (dati dell'app, backup interni, sistema) e dell'archivio file (documenti, tavole, modelli) con avvisi al 70% e al 90%; *backup*: completo circa una volta alla settimana e incrementale ogni notte (solo righe nuove, modificate o eliminate), pianificati con pg_cron, conservati per 5 settimane, lanciabili anche a mano e scaricabili in Excel. Richiede `lemmi_aggiornamento_26.sql`.
+- **Ripristino guidato** (Stato del sistema > Backup > «Ripristina…», solo amministratore): confronta un backup con i dati di oggi e, tabella per tabella e dopo conferma scritta, recupera le righe eliminate o riporta le righe modificate alla versione del backup; prima di ogni ripristino il sistema fa un backup di sicurezza. Le righe nuove non si cancellano mai. Richiede `lemmi_aggiornamento_30.sql`.
+- **Registro delle attività** (Info di sistema, solo amministratore): chi ha inserito, modificato o eliminato dati e quando, con filtri e dettaglio dei campi cambiati; conservato 24 mesi. Richiede `lemmi_aggiornamento_30.sql`.
+- **Uscita automatica**: dopo 30 minuti senza uso (si cambia in `js/versione.js`, `inattivita_min`) compare un avviso di 60 secondi e poi si esce.
 - **Profilo degli utenti** (Info di sistema > Utenti del sistema): l'amministratore cambia il profilo (amministratore, Maestro Venerabile, Segretario, Tesoriere) dal menu della colonna Profilo; il proprio non si può cambiare. Richiede `lemmi_aggiornamento_26.sql`.
 - **App sul telefono** (PWA): su Android (Chrome) e iPhone (Safari) si può installare con «Aggiungi a schermata Home»: icona propria e schermo intero, senza store né abbonamenti. Il menu su telefono è una barra a scorrimento orizzontale. Il file `sw.js` salva solo i file del sito per i momenti senza connessione; i dati restano su Supabase e non vengono mai salvati sul telefono dall'app.
 - **Loggia**: nome, numero e Oriente che intestano i moduli (solo amministratore).
@@ -96,6 +99,9 @@ js/template.js      Template: verbali in Word, moduli GOI, modelli della Loggia
 js/verbali.js       registro dei verbali e presenze dei Fratelli
 js/docx_mini.js     scrittura di file Word senza librerie
 js/utenti.js        Info di sistema: utenti del sistema
+js/registro.js      Info di sistema: registro delle attività
+js/ripristino.js    ripristino guidato da backup
+js/sicurezza.js     uscita automatica per inattività
 templates/          A1.pdf e C1.pdf (modelli ufficiali ed. 2024)
 vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file Excel): nessun CDN
 ```

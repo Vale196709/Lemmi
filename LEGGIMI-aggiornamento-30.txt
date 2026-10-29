@@ -1,0 +1,26 @@
+AGGIORNAMENTO 30 - Ripristino guidato, Registro delle attivita', uscita automatica
+
+PASSO 1 - Database (obbligatorio, PRIMA di caricare i file)
+ Supabase > SQL Editor > New query > incolla il contenuto di sql/lemmi_aggiornamento_30.sql > Run.
+ Si puo' rieseguire senza danni. (Richiede che l'aggiornamento 26 sia gia' stato eseguito.)
+
+PASSO 2 - File su GitHub (mantieni le cartelle)
+   index.html, sw.js, README.md           (radice)
+   js/registro.js, js/ripristino.js, js/sicurezza.js    (NUOVI)
+   js/sistema.js, js/app.js, js/versione.js
+ Aspetta 1-2 minuti e ricarica con Ctrl+F5 (sul telefono: chiudi e riapri l'app).
+
+COSA C'E' DI NUOVO (solo amministratore, in Info di sistema)
+ 1. Ripristino guidato: Stato del sistema > Backup > accanto a un backup riuscito, "Ripristina...".
+    Vedi per ogni tabella quante righe sono state eliminate o modificate dopo quel backup, esamini degli esempi e
+    scegli: "Recupera le righe eliminate" oppure "Riporta alla versione del backup". Si conferma scrivendo RIPRISTINA.
+    - Le righe nuove non vengono mai cancellate; le righe attuali non toccate restano com'erano.
+    - Prima di ogni ripristino il sistema fa da solo un backup di sicurezza (compare nell'elenco).
+    - Ripristina prima le tabelle principali (es. Fratelli) e poi quelle collegate (es. Quote): se una riga dipende da
+      un'altra ancora mancante, il ripristino si annulla da solo senza cambiare nulla.
+ 2. Registro delle attivita' (nuova voce nel menu): chi ha inserito, modificato o eliminato dati e quando, con filtri per
+    dati, operazione, date e utente, e il dettaglio dei campi cambiati. Si conserva 24 mesi. Parte da oggi.
+ 3. Uscita automatica: dopo 30 minuti senza uso compare un avviso di 60 secondi, poi si esce. "Resto collegato" lo annulla.
+    Per cambiare i minuti: js/versione.js, riga inattivita_min.
+
+Da sapere: il registro e i backup non contengono le password (sono gestite da Supabase e non stanno nelle tabelle dell'app).
