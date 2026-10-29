@@ -12,7 +12,7 @@
   // Moduli GOI che si compilano da Template (A/1 e C/1 si generano dalla scheda del bussante).
   const MODULO = { 'A/2': 'A2', 'A/R': 'AR', 'C/2': 'C2', 'C/3': 'C3', 'C/3 bis': 'C3BIS', 'N/1': 'N1', 'N/2-3': 'N23', 'N/4': 'N4', 'E/1': 'E1', 'E/2': 'E2', 'D/1': 'D1', 'D/2': 'D2', 'V/1': 'V1' };
   const APP = {
-    bus: { t: 'Bussanti', h: '#/bussanti' }, cal: { t: 'Calendario', h: '#/calendario' }, pag: { t: 'Pagamenti', h: '#/pagamenti' },
+    bus: { t: 'Bussanti', h: '#/bussanti' }, cal: { t: 'Calendario', h: '#/calendario' }, pag: { t: 'Tesoreria', h: '#/pagamenti' },
     fra: { t: 'Fratelli', h: '#/fratelli' }, ele: { t: 'Elezioni cariche', h: '#/elezioni' }, pie: { t: 'Piè di lista', h: '#/piedilista' },
     tpl: { t: 'Template', h: '#/template' }, ver: { t: 'Verbali e presenze', h: '#/verbali/presenze' }, sto: { t: 'Storia', h: '#/storia' },
   };

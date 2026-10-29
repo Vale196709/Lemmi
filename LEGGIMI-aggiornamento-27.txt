@@ -1,0 +1,24 @@
+AGGIORNAMENTO 27 - Tesoreria e creazione di nuovi utenti
+
+PASSO 1 (Supabase) - pubblica la funzione che crea gli utenti (una volta sola, nessun costo):
+   Supabase > Edge Functions > "Deploy a new function" > "Via Editor".
+   Nome della funzione: crea-utente   (esattamente cosi')
+   Cancella il codice di esempio, incolla tutto il contenuto di
+   supabase/functions/crea-utente/index.ts e premi "Deploy function".
+   (Lascia le impostazioni predefinite. Se provando a creare un utente compare un errore 401,
+   nella pagina della funzione disattiva "Verify JWT" e ripubblica: i controlli li fa la funzione stessa.)
+PASSO 2 (sito) - carica su GitHub, mantenendo le cartelle:
+   js/app.js, js/utenti.js, js/versione.js, js/pagamenti.js, js/economia.js, js/procedure.js, README.md
+   (la cartella supabase/ e' solo per il passo 1: sul sito non serve, ma puoi tenerla nel repository).
+   Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Novita':
+ - La voce di menu "Pagamenti" ora si chiama "Tesoreria" (anche titolo della pagina, Cruscotto e Procedure).
+   Gli indirizzi interni non cambiano, quindi nessun segnalibro si rompe.
+ - Info di sistema > Utenti del sistema > "Nuovo utente" (solo amministratore): e-mail, nome da mostrare,
+   profilo e password temporanea (generata dall'app, modificabile). L'utente entra subito con quei dati e
+   puo' cambiare la password dalla pagina Loggia. La password si vede una sola volta: comunicala a voce.
+ - Se l'e-mail e' gia' presente nell'anagrafe dei Fratelli, nome, cognome e grado si collegano da soli.
+
+Sicurezza: la chiave "service_role" resta dentro la funzione su Supabase e non e' mai nel sito.
+La funzione controlla che chi la chiama sia amministratore.

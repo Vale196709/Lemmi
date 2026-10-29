@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.26.0',
+  numero: '0.27.0',
   data: '2026-10-29',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.27.0', data: '2026-10-29', t: 'Voce Pagamenti rinominata Tesoreria; l’amministratore crea nuovi utenti da Utenti del sistema' },
     { n: '0.26.0', data: '2026-10-29', t: 'Stato del sistema: versione, profili degli utenti, spazio disponibile, backup completo settimanale e incrementale giornaliero' },
     { n: '0.25', t: 'Pratiche legate a una persona con scadenze automatiche (Cruscotto e Calendario)' },
     { n: '0.24', t: 'Procedure: vista a corsie (Loggia, Collegio, GOI)' },

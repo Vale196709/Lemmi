@@ -34,7 +34,24 @@
     righe.forEach((r) => { conta[r.ruolo] = (conta[r.ruolo] || 0) + 1; });
 
     v.innerHTML = `
-      <div class="page-head"><div><h1>Utenti del sistema</h1><p>Chi può accedere a Lemmi, con il suo profilo · visibile solo all’amministratore</p></div></div>
+      <div class="page-head"><div><h1>Utenti del sistema</h1><p>Chi può accedere a Lemmi, con il suo profilo · visibile solo all’amministratore</p></div>
+        <div class="right actions"><button class="btn gold" id="b-nu" type="button">${L.IC.plus} Nuovo utente</button></div></div>
+      <div class="card" id="nu-box" hidden>
+        <h2>Nuovo utente</h2>
+        <p class="muted" style="margin:0 0 14px">Crea l’accesso a Lemmi: l’utente entra con la sua e-mail e la password temporanea che gli comunichi, poi può cambiarla dalla pagina Loggia.</p>
+        <form id="nu-form" autocomplete="off">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
+            <div><label for="nu-email">E-mail</label><input id="nu-email" type="email" required placeholder="nome@esempio.it"></div>
+            <div><label for="nu-nome">Nome da mostrare</label><input id="nu-nome" type="text" required placeholder="es. Mario Rossi"></div>
+            <div><label for="nu-ruolo">Profilo</label><select id="nu-ruolo">${Object.keys(PROFILI).map((k) => `<option value="${k}" ${k === 'segretario' ? 'selected' : ''}>${esc(PROFILI[k])}</option>`).join('')}</select></div>
+            <div><label for="nu-pw">Password temporanea</label><input id="nu-pw" type="text" required minlength="8" autocomplete="off"></div>
+          </div>
+          <div class="actions" style="margin-top:14px"><button class="btn" type="submit" id="nu-ok">Crea utente</button>
+            <button class="btn ghost" type="button" id="nu-gen">Genera password</button>
+            <button class="btn ghost" type="button" id="nu-ann">Annulla</button></div>
+        </form>
+        <div id="nu-esito"></div>
+      </div>
       <div class="actions" style="margin-bottom:14px">${Object.keys(PROFILI).filter((k) => conta[k]).map((k) => `<span class="badge ${BADGE[k]}">${esc(PROFILI[k])}: ${conta[k]}</span>`).join('')}
         <span class="muted">${righe.length} ${righe.length === 1 ? 'utente configurato' : 'utenti configurati'}</span></div>
       <div class="table-wrap"><table><thead><tr><th>Nome</th><th>Cognome</th><th>Grado</th><th>E-mail</th><th>Profilo</th><th>Collegato al Fratello</th><th>Ultimo accesso</th></tr></thead>
@@ -53,7 +70,41 @@
             ${fratelli.map((f) => `<option value="${esc(f.id)}" ${String(f.id) === String(r.fratello_id) ? 'selected' : ''}>${esc(f.cognome)} ${esc(f.nome)}</option>`).join('')}</select>
             ${r.collegamento === 'e-mail' ? '<div class="hint">riconosciuto dall’e-mail</div>' : ''}</td>
           <td>${esc(dataOra(r.ultimo_accesso))}</td></tr>`).join('') : '<tr><td colspan="7"><div class="empty"><div>Nessun utente configurato.</div></div></td></tr>'}</tbody></table></div>
-      <div class="hint" style="margin-top:12px">Nome, cognome e grado vengono dall’anagrafica dei Fratelli: il collegamento avviene dall’e-mail (se è la stessa dell’anagrafica) oppure scegliendo il Fratello dall’elenco. Gli utenti si creano e si tolgono da Supabase (Authentication › Users); il profilo si cambia dal menu della colonna «Profilo» (non si può cambiare il proprio, per non restare senza amministratore).</div>`;
+      <div class="hint" style="margin-top:12px">Nome, cognome e grado vengono dall’anagrafica dei Fratelli: il collegamento avviene dall’e-mail (se è la stessa dell’anagrafica) oppure scegliendo il Fratello dall’elenco. Gli utenti si creano da qui con «Nuovo utente»; per toglierli si usa Supabase (Authentication › Users). il profilo si cambia dal menu della colonna «Profilo» (non si può cambiare il proprio, per non restare senza amministratore).</div>`;
+
+    // ---- nuovo utente (funzione "crea-utente" su Supabase) ----
+    const genPw = () => {
+      const set = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const r = new Uint32Array(12); crypto.getRandomValues(r);
+      return Array.from(r, (n) => set[n % set.length]).join('');
+    };
+    const box = $('#nu-box', v), form = $('#nu-form', v), esito = $('#nu-esito', v);
+    $('#b-nu', v).addEventListener('click', () => { box.hidden = !box.hidden; if (!box.hidden) { $('#nu-pw', v).value = genPw(); $('#nu-email', v).focus(); } });
+    $('#nu-ann', v).addEventListener('click', () => { box.hidden = true; esito.innerHTML = ''; form.reset(); });
+    $('#nu-gen', v).addEventListener('click', () => { $('#nu-pw', v).value = genPw(); });
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const body = { email: $('#nu-email', v).value.trim(), nome: $('#nu-nome', v).value.trim(), ruolo: $('#nu-ruolo', v).value, password: $('#nu-pw', v).value };
+      if (!window.confirm('Creare l’utente ' + body.email + ' con il profilo «' + PROFILI[body.ruolo] + '»?')) return;
+      const ok = $('#nu-ok', v); ok.disabled = true; esito.innerHTML = '';
+      try {
+        const { data, error } = await state.sb.functions.invoke('crea-utente', { body });
+        if (error) {
+          let msg = error.message || 'Errore';
+          const st = error.context && error.context.status;
+          try { const j = await error.context.json(); if (j && j.errore) msg = j.errore; } catch (_) { /* nessun dettaglio */ }
+          if (st === 404 || /failed to send|fetch/i.test(msg)) msg = 'La funzione «crea-utente» non risulta pubblicata su Supabase: segui il passo 1 del file LEGGIMI-aggiornamento-27.txt.';
+          throw new Error(msg);
+        }
+        if (data && data.errore) throw new Error(data.errore);
+        esito.innerHTML = `<div class="notice" style="margin-top:14px;background:var(--ok-bg);color:var(--ok)"><b>Utente creato.</b> Comunicagli, possibilmente a voce, questi dati di accesso:<br>
+          E-mail: <b>${esc(body.email)}</b> · Password temporanea: <b>${esc(body.password)}</b><br><span class="hint">La password non verrà più mostrata. L’utente può cambiarla dalla pagina Loggia.</span><div class="actions" style="margin-top:10px"><button class="btn ghost small" type="button" id="nu-agg">Aggiorna l’elenco</button></div></div>`;
+        toast('Utente creato', 'ok');
+        form.reset();
+        $('#nu-agg', v).addEventListener('click', () => L.route());
+      } catch (e) { esito.innerHTML = `<div class="notice bad" style="margin-top:14px">${esc(messaggioErrore(e))}</div>`; }
+      ok.disabled = false;
+    });
 
     $$('.sel-ruolo', v).forEach((sel) => sel.addEventListener('change', async () => {
       const nuovo = sel.value, prima = sel.dataset.prima;

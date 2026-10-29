@@ -90,7 +90,7 @@
           <div class="actions drillable riga-d" data-drill="eco" data-a="scadute" role="button" tabindex="0" title="Clicca per vedere le quote scadute" style="justify-content:space-between;padding:4px 8px"><span>Di cui già scaduto</span><b style="color:${scaduto ? 'var(--bad)' : 'inherit'}">${eur(scaduto)}</b></div>
           ${voci.length ? `<div style="margin-top:12px">${voci.map(([k, x]) => `<div class="drillable riga-d" data-drill="eco" data-a="voce" data-k="${esc(k)}" role="button" tabindex="0" title="Clicca per l’elenco di questa voce" style="margin:4px 0;padding:6px 8px"><div style="display:flex;justify-content:space-between;font-size:.9rem"><span>${esc(k)}</span><span>${eur(x.ver)} / ${eur(x.dov)}</span></div>${barra(x.ver, x.dov, 'var(--gold)')}</div>`).join('')}</div>` : ''}`
           : '<div class="empty"><div>Nessuna scadenza per il ' + anno + '.</div></div>'}
-          <div style="margin-top:12px"><a href="#/pagamenti/scadenze">Vai a Pagamenti e quote</a></div></div>
+          <div style="margin-top:12px"><a href="#/pagamenti/scadenze">Vai a Tesoreria</a></div></div>
         <div class="card"><h2>Da dove arrivano i soldi</h2>${elencoCat(perCategoria(mov, 1), 'var(--ok)', 1)}</div>
         <div class="card"><h2>Dove vanno i soldi</h2>${elencoCat(perCategoria(mov, -1), 'var(--bad)', -1)}</div>
         <div class="card"><h2>Quote scadute <small>${morosi.length}</small></h2>

@@ -1,4 +1,4 @@
-/* Lemmi - sezione Pagamenti e quote.
+/* Lemmi - sezione Tesoreria (pagamenti e quote).
  * Usa le tabelle e le viste create dallo script lemmi_pagamenti.sql. */
 (function () {
   'use strict';
@@ -420,7 +420,7 @@
     const tabExtra = extra.find((t) => t.id === tab);
     await carica(pag.anno);
     v.innerHTML = `
-      <div class="page-head"><div><h1>Pagamenti e quote</h1><p>Capitazione, aumenti di salario, iniziazioni e Tronco della Vedova</p></div>
+      <div class="page-head"><div><h1>Tesoreria</h1><p>Capitazione, aumenti di salario, iniziazioni e Tronco della Vedova</p></div>
         <div class="right actions">
           <label class="lbl" for="p-anno">Anno</label><select id="p-anno" style="width:auto">${pag.anni.map((a) => `<option value="${a}" ${a === pag.anno ? 'selected' : ''}>${a}</option>`).join('')}</select>
           ${canPay() ? `<button class="btn gold" id="b-nver">${IC.plus} Nuovo versamento</button><button class="btn ghost" id="b-nsc">Nuova scadenza</button><button class="btn ghost" id="b-gen">Genera capitazione</button>` : ''}
