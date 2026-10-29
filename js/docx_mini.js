@@ -57,7 +57,8 @@
     const p = [];
     (d.intestazione || []).forEach((r) => p.push(par(r, { jc: 'center', b: true })));
     if (d.titolo) { p.push(par('', { jc: 'center' })); p.push(par(d.titolo, { jc: 'center', b: true })); p.push(par('', { jc: 'center' })); }
-    (d.paragrafi || []).forEach((t) => p.push(par(t, { rientro: true, dopo: 120 })));
+    // un paragrafo può essere un testo semplice oppure { titolo: 'Testo' } per un titoletto di sezione in grassetto
+    (d.paragrafi || []).forEach((t) => p.push(t && typeof t === 'object' ? par(t.titolo, { b: true, jc: 'left', dopo: 120 }) : par(t, { rientro: true, dopo: 120 })));
     p.push(par('', { jc: 'center' }));
     if (d.mv) { p.push(par(d.mv.titolo, { jc: 'center' })); p.push(par(d.mv.nome || '', { jc: 'center' })); p.push(par('', { jc: 'center' })); }
     if (d.firme && d.firme.length) {

@@ -1,9 +1,11 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.29.0',
+  numero: '0.31.0',
   data: '2026-10-29',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.31.0', data: '2026-10-29', t: 'Cerca in tutta l’app, Dati da completare, calendario .ics per il telefono e Relazione annuale del Venerabile' },
+    { n: '0.30.0', data: '2026-10-29', t: 'Ripristino guidato da backup, registro delle attività e uscita automatica dopo 30 minuti di inattività' },
     { n: '0.29.0', data: '2026-10-29', t: 'App installabile su Android e iPhone (icona, schermo intero) e menu adatto al telefono' },
     { n: '0.28.0', data: '2026-10-29', t: 'Cruscotto compatto con la vista economica subito visibile; matricola nel piè di lista' },
     { n: '0.27.0', data: '2026-10-29', t: 'Voce Pagamenti rinominata Tesoreria; l’amministratore crea nuovi utenti da Utenti del sistema' },
@@ -16,5 +18,6 @@ window.LEMMI_VERSIONE = {
     { n: '0.20', t: 'Procedure: flussi delle situazioni di Loggia' },
   ],
   // Limiti del piano Supabase in uso (piano Free: 500 MB di database, 1 GB di file). Cambiali se passi a un altro piano.
+  inattivita_min: 30,   // minuti senza uso prima dell'uscita automatica
   limiti: { db_mb: 500, file_mb: 1024 },
 };

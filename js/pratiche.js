@@ -343,5 +343,5 @@
     const b = $('#pr-avvia-b', sez); if (b) b.onclick = () => avvia('bussante', { rif_id: id });
   });
 
-  L.pratiche = { contesto, blocco, monta, avvia };
+  L.pratiche = { contesto, blocco, monta, avvia, scadenze: async () => (vede() ? scadenzeDi(await caricaTutto(true)) : []) };
 })();

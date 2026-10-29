@@ -109,6 +109,7 @@
       <div class="actions"><button class="btn" type="button" id="b-bk-auto">Esegui ora (sceglie da solo)</button>
         <button class="btn ghost" type="button" id="b-bk-full">Backup completo ora</button>
         <span class="muted" id="bk-stato"></span></div>
+      <div id="rip-box" hidden style="margin-top:16px"></div>
       <div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Data</th><th>Tipo</th><th>Origine</th><th>Esito</th><th style="text-align:right">Righe nuove o modificate</th><th style="text-align:right">Righe eliminate</th><th style="text-align:right">Dimensione</th><th></th></tr></thead>
         <tbody>${elenco.length ? elenco.map((x) => `<tr>
           <td data-sort="${esc(x.avviato_il)}">${esc(dataOra(x.avviato_il))}</td>
@@ -118,7 +119,7 @@
           <td style="text-align:right">${x.esito === 'riuscito' ? Number(x.righe_nuove).toLocaleString('it-IT') : '—'}</td>
           <td style="text-align:right">${x.esito === 'riuscito' ? Number(x.righe_eliminate).toLocaleString('it-IT') : '—'}</td>
           <td style="text-align:right">${x.esito === 'riuscito' ? esc(fmtByte(x.byte)) : '—'}</td>
-          <td>${x.esito === 'riuscito' ? `<button class="btn ghost small" type="button" data-scarica="${esc(x.id)}" data-tipo="${esc(x.tipo)}">Scarica Excel</button>` : ''}</td></tr>`).join('')
+          <td>${x.esito === 'riuscito' ? `<button class="btn ghost small" type="button" data-scarica="${esc(x.id)}" data-tipo="${esc(x.tipo)}">Scarica Excel</button> <button class="btn ghost small" type="button" data-ripristina="${esc(x.id)}">Ripristina…</button>` : ''}</td></tr>`).join('')
           : '<tr><td colspan="8"><div class="empty"><div>Nessun backup ancora eseguito.</div></div></td></tr>'}</tbody></table></div>
       <div class="notice" style="margin-top:16px"><b>Da sapere.</b> I backup stanno nello stesso database di Supabase: proteggono da errori e cancellazioni, ma non se il progetto andasse perso o sospeso. Una volta alla settimana scarica quindi il backup completo in Excel e conservalo fuori da Supabase. I file caricati (documenti, tavole, modelli) non sono inclusi nei backup. Il file contiene dati personali: non inviarlo per e-mail.</div></div>`;
   }
@@ -193,6 +194,10 @@
       $('#b-bk-auto', v).addEventListener('click', () => lancia('auto', btns, stEl));
       $('#b-bk-full', v).addEventListener('click', () => lancia('completo', btns, stEl));
       $$('[data-scarica]', v).forEach((b) => b.addEventListener('click', () => scarica(b)));
+      $$('[data-ripristina]', v).forEach((b) => b.addEventListener('click', () => {
+        if (L.ripristino) L.ripristino.apri(b.dataset.ripristina, $('#rip-box', v));
+        else toast('Funzione di ripristino non caricata: ricarica la pagina.', 'bad');
+      }));
     }
   };
 })();
