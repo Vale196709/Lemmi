@@ -1,0 +1,11 @@
+AGGIORNAMENTO 32 - Procedure: linee tratteggiate tra gli attori
+
+Nessuno script SQL. Carica sostituendo i file, ognuno NELLA SUA CARTELLA:
+   js/procedure.js     (dentro la cartella js)
+   js/versione.js      (dentro la cartella js)
+   css/style.css       (dentro la cartella css)
+Su GitHub: apri la cartella (js, poi css), Add file > Upload files, trascina il file, Commit changes.
+Attendi 1-2 minuti e ricarica con Ctrl+F5. In fondo al menu: "Versione 0.32.0".
+
+Cosa cambia: in Procedure, vista "Corsie", una linea verticale tratteggiata separa le colonne Loggia, Collegio, GOI e Interessato
+(anche nella stampa).

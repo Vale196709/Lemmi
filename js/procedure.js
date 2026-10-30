@@ -176,7 +176,9 @@
           <div class="pcard${s.dec ? ' dec' : ''}"><div class="pl-h"><button type="button" class="pcheck" aria-pressed="${fatti.includes(i)}" title="Segna il passo come fatto">${fatti.includes(i) ? '✓' : i + 1}</button><h3>${esc(s.t)}</h3></div>
           <div class="ptags">${tagsDi(s)}</div>${det}</div></div>`;
       }).join('');
-      return `<div class="pcorsie" style="grid-template-columns:repeat(${usati.length}, minmax(220px, 1fr))">${testa}${celle}</div>`;
+      // linee tratteggiate verticali tra un attore e il successivo
+      const sep = usati.slice(1).map((a, c) => `<div class="pl-sep" aria-hidden="true" style="grid-row:1 / span ${p.s.length + 1};grid-column:${c + 2}"></div>`).join('');
+      return `<div class="pcorsie" style="grid-template-columns:repeat(${usati.length}, minmax(220px, 1fr))">${sep}${testa}${celle}</div>`;
     };
     const interruttore = `<div class="pvista"><button type="button" class="ppill${modoCorsie ? '' : ' on'}" data-vista="lista">Elenco</button><button type="button" class="ppill${modoCorsie ? ' on' : ''}" data-vista="corsie">Corsie</button></div>`;
     v.innerHTML = `

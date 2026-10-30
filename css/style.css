@@ -397,6 +397,8 @@ button.pchip.mail:hover { background: var(--ok); color: #fff; }
 .pl-col.att-C { background: var(--info-bg); color: var(--info); }
 .pl-col.att-G { background: var(--warn-bg); color: var(--warn); }
 .pl-col.att-F { background: #eef1f7; color: var(--muted); }
+.pl-sep { align-self: stretch; justify-self: start; width: 0; margin-left: -7px; border-left: 2px dashed #b9c3dc; pointer-events: none; }
+@media print { .pl-sep { border-left-color: #888; } }
 .pcorsie .pstep.pl { display: block; }
 .pcorsie .pcard { margin: 0; padding: 10px 12px; }
 .pl-h { display: flex; gap: 8px; align-items: flex-start; }
