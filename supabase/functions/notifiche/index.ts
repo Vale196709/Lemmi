@@ -6,8 +6,8 @@
 //   "invia"  -> controlla tornate, votazioni, quote e tavole e manda gli avvisi del giorno (la chiama il database ogni mattina)
 // Ogni avviso parte una sola volta (registro push_inviati), quindi richiamare "invia" più volte non crea doppioni.
 // Le chiavi stanno nella tabella push_chiavi, leggibile solo da questa funzione.
+// Nessuna libreria esterna per le notifiche: cifratura e firma con la crittografia integrata (Web Crypto).
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import webpush from 'npm:web-push@3.6.7';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +16,76 @@ const CORS = {
 };
 const risposta = (dati: unknown, stato = 200) =>
   new Response(JSON.stringify(dati), { status: stato, headers: { ...CORS, 'Content-Type': 'application/json' } });
+
+// ---------- Web Push senza librerie esterne (RFC 8291 cifratura aes128gcm + RFC 8292 VAPID), solo Web Crypto ----------
+const enc = new TextEncoder();
+const b64u = (b: Uint8Array) => btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const deb64u = (s: string) => {
+  const t = s.replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(t + '='.repeat((4 - (t.length % 4)) % 4)), (c) => c.charCodeAt(0));
+};
+const unisci = (...parti: Uint8Array[]) => {
+  const out = new Uint8Array(parti.reduce((n, p) => n + p.length, 0));
+  let i = 0; for (const p of parti) { out.set(p, i); i += p.length; }
+  return out;
+};
+async function hmac(chiave: Uint8Array, dati: Uint8Array) {
+  const k = await crypto.subtle.importKey('raw', chiave as BufferSource, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', k, dati as BufferSource));
+}
+
+// coppia di chiavi VAPID: pubblica = punto P-256 non compresso (65 byte), privata = d (32 byte), entrambe in base64url
+async function nuoveChiaviVapid() {
+  const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']) as CryptoKeyPair;
+  const pub = new Uint8Array(await crypto.subtle.exportKey('raw', kp.publicKey));
+  const jwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+  return { pubblica: b64u(pub), privata: jwk.d! };
+}
+
+async function firmaVapid(endpoint: string, pubblica: string, privata: string, contatto: string) {
+  const pub = deb64u(pubblica);
+  const chiave = await crypto.subtle.importKey('jwk', {
+    kty: 'EC', crv: 'P-256', d: privata, x: b64u(pub.slice(1, 33)), y: b64u(pub.slice(33, 65)), ext: true,
+  }, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const testa = b64u(enc.encode(JSON.stringify({ typ: 'JWT', alg: 'ES256' })));
+  const corpo = b64u(enc.encode(JSON.stringify({ aud: new URL(endpoint).origin, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: contatto })));
+  const firma = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, chiave, enc.encode(testa + '.' + corpo)));
+  return `vapid t=${testa}.${corpo}.${b64u(firma)}, k=${pubblica}`;
+}
+
+async function cifra(testo: string, p256dh: string, auth: string) {
+  const uaPub = deb64u(p256dh), segreto = deb64u(auth);
+  const eph = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']) as CryptoKeyPair;
+  const asPub = new Uint8Array(await crypto.subtle.exportKey('raw', eph.publicKey));
+  const uaKey = await crypto.subtle.importKey('raw', uaPub as BufferSource, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+  const ecdh = new Uint8Array(await crypto.subtle.deriveBits({ name: 'ECDH', public: uaKey }, eph.privateKey, 256));
+  const prkKey = await hmac(segreto, ecdh);
+  const ikm = await hmac(prkKey, unisci(enc.encode('WebPush: info\0'), uaPub, asPub, new Uint8Array([1])));
+  const sale = crypto.getRandomValues(new Uint8Array(16));
+  const prk = await hmac(sale, ikm);
+  const cek = (await hmac(prk, unisci(enc.encode('Content-Encoding: aes128gcm\0'), new Uint8Array([1])))).slice(0, 16);
+  const nonce = (await hmac(prk, unisci(enc.encode('Content-Encoding: nonce\0'), new Uint8Array([1])))).slice(0, 12);
+  const k = await crypto.subtle.importKey('raw', cek as BufferSource, 'AES-GCM', false, ['encrypt']);
+  const cifrato = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce as BufferSource }, k, unisci(enc.encode(testo), new Uint8Array([2])) as BufferSource));
+  const rs = new Uint8Array([0, 0, 16, 0]);                       // dimensione del record: 4096
+  return unisci(sale, rs, new Uint8Array([asPub.length]), asPub, cifrato);
+}
+
+// invia un avviso; restituisce il codice HTTP del servizio di notifica (201 = consegnato, 404/410 = dispositivo non più valido)
+async function inviaPush(iscr: { endpoint: string; keys: { p256dh: string; auth: string } }, testo: string,
+  vapid: { pubblica: string; privata: string }, contatto = 'mailto:noreply@lemmi.app') {
+  const corpo = await cifra(testo, iscr.keys.p256dh, iscr.keys.auth);
+  const r = await fetch(iscr.endpoint, {
+    method: 'POST',
+    headers: {
+      Authorization: await firmaVapid(iscr.endpoint, vapid.pubblica, vapid.privata, contatto),
+      'Content-Encoding': 'aes128gcm', 'Content-Type': 'application/octet-stream', TTL: '86400', Urgency: 'normal',
+    },
+    body: corpo as BufferSource,
+  });
+  await r.body?.cancel();
+  return r.status;
+}
 
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -30,8 +100,9 @@ const eur = (n: number) => n.toLocaleString('it-IT', { minimumFractionDigits: 2,
 async function chiavi() {
   const { data } = await db.from('push_chiavi').select('pubblica, privata').eq('id', 1).maybeSingle();
   if (data) return data;
-  const k = webpush.generateVAPIDKeys();
-  await db.from('push_chiavi').upsert({ id: 1, pubblica: k.publicKey, privata: k.privateKey });
+  const k = await nuoveChiaviVapid();
+  const { error } = await db.from('push_chiavi').upsert({ id: 1, pubblica: k.pubblica, privata: k.privata });
+  if (error) throw new Error('Tabella push_chiavi non disponibile: esegui sql/lemmi_aggiornamento_35.sql (' + error.message + ')');
   const { data: salvate } = await db.from('push_chiavi').select('pubblica, privata').eq('id', 1).single();
   return salvate!;
 }
@@ -40,7 +111,6 @@ type Avviso = { chiave: string; titolo: string; testo: string; url: string };
 
 async function spedisci(userIds: string[] | null, avvisi: Map<string, Avviso[]>) {
   const k = await chiavi();
-  webpush.setVapidDetails('mailto:noreply@lemmi.app', k.pubblica, k.privata);
   let q = db.from('push_iscrizioni').select('endpoint, user_id, chiavi');
   if (userIds) q = q.in('user_id', userIds);
   const { data: iscr } = await q;
@@ -53,12 +123,10 @@ async function spedisci(userIds: string[] | null, avvisi: Map<string, Avviso[]>)
         if (dup) continue;                                   // già inviato a questo dispositivo
       }
       try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: s.chiavi }, JSON.stringify({ titolo: a.titolo, testo: a.testo, url: a.url }), { TTL: 86400 });
-        inviati++;
-      } catch (e) {
-        const st = (e as { statusCode?: number }).statusCode;
+        const st = await inviaPush({ endpoint: s.endpoint, keys: s.chiavi }, JSON.stringify({ titolo: a.titolo, testo: a.testo, url: a.url }), k);
         if (st === 404 || st === 410) { await db.from('push_iscrizioni').delete().eq('endpoint', s.endpoint); rimossi++; break; }
-      }
+        if (st >= 200 && st < 300) inviati++;
+      } catch (_) { /* servizio di notifica non raggiungibile: si riprova domani */ }
     }
   }
   return { inviati, rimossi };
