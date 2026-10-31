@@ -2,7 +2,8 @@
  * Riconosce da solo la riga delle intestazioni e le colonne; l'utente può correggere l'abbinamento. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('xlsx'));
-  else root.LemmiEstratto = factory(root.XLSX);
+  // XLSX viene caricata solo quando serve: la si cerca al momento dell'uso
+  else root.LemmiEstratto = factory(new Proxy({}, { get: (_, k) => root.XLSX[k] }));
 })(typeof self !== 'undefined' ? self : this, function (XLSX) {
   'use strict';
 

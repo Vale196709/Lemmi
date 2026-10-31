@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.32.0',
-  data: '2026-10-30',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
+  numero: '0.33.0',
+  data: '2026-10-31',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.33.0', data: '2026-10-31', t: 'Telefono: pagina della larghezza giusta; menu che scorre sui portatili; data di oggi in ora italiana; apertura più veloce (Excel e PDF caricati solo quando servono)' },
     { n: '0.32.0', data: '2026-10-30', t: 'Procedure: linee tratteggiate tra gli attori (Loggia, Collegio, GOI) nella vista a corsie' },
     { n: '0.31.0', data: '2026-10-29', t: 'Cerca in tutta l’app, Dati da completare, calendario .ics per il telefono e Relazione annuale del Venerabile' },
     { n: '0.30.0', data: '2026-10-29', t: 'Ripristino guidato da backup, registro delle attività e uscita automatica dopo 30 minuti di inattività' },

@@ -43,7 +43,7 @@ a:hover { text-decoration: underline; }
 .right { margin-left: auto; }
 
 /* ---------- Layout ---------- */
-.shell { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+.shell { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 100vh; }
 .side {
   background: linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%);
   color: #cfd7ee;
@@ -89,7 +89,10 @@ a:hover { text-decoration: underline; }
 .side .who span { color: #9fb0da; font-size: .78rem; }
 .side .who button { margin-top: 10px; width: 100%; }
 
-main { padding: 30px clamp(18px, 3vw, 42px) 60px; max-width: 1180px; width: 100%; }
+main { padding: 30px clamp(18px, 3vw, 42px) 60px; max-width: 1180px; width: 100%; min-width: 0; }
+/* menu laterale: se le voci non entrano in altezza (portatili con schermo basso), il menu scorre e "Esci" resta visibile */
+.side > .nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.18) transparent; margin-right: -6px; padding-right: 6px; }
+.side > .who { flex: none; }
 .page-head { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
 .page-head p { margin: 4px 0 0; color: var(--muted); }
 .crumb { font-size: .82rem; color: var(--muted); margin-bottom: 6px; }
@@ -223,7 +226,9 @@ input[type=file] { display: none; }
 
 /* ---------- Mobile ---------- */
 @media (max-width: 880px) {
-  .shell { grid-template-columns: 1fr; }
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .side { min-width: 0; }
+  .side > .nav { overflow-y: visible; margin-right: 0; padding-right: 0; }
   .side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px 14px; gap: 8px; }
   .brand { padding: 0 8px 0 0; }
   .brand small { display: none; }

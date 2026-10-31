@@ -80,15 +80,15 @@
       $('#dc-imp', v).addEventListener('change', disegna);
       disegna();
     }
-    $('#dc-xls', v).addEventListener('click', () => {
-      if (!window.XLSX) { toast('Libreria Excel non caricata: ricarica la pagina.', 'bad'); return; }
+    $('#dc-xls', v).addEventListener('click', async () => {
+      try { await L.libreria('xlsx'); } catch (e) { toast(e.message, 'bad'); return; }
       try {
         const righe = (tutti.length ? filtrati() : []).map((x) => ({ Nominativo: x.nome, Tipo: x.tipo, 'Dati mancanti': x.m.map((c) => c.t).join(', ') }));
         const wb = window.XLSX.utils.book_new();
         window.XLSX.utils.book_append_sheet(wb, righe.length ? window.XLSX.utils.json_to_sheet(righe) : window.XLSX.utils.aoa_to_sheet([['(nessun dato da completare)']]), 'Da completare');
         const bytes = window.XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         const url = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-        const a = document.createElement('a'); a.href = url; a.download = 'Lemmi_dati_da_completare_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+        const a = document.createElement('a'); a.href = url; a.download = 'Lemmi_dati_da_completare_' + window.Lemmi.oggi() + '.xlsx';
         document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 15000);
       } catch (e) { toast(messaggioErrore(e), 'bad'); }
     });

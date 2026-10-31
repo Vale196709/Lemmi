@@ -8,6 +8,7 @@
   const pulisci = (s) => String(s == null ? '' : s).normalize('NFC').replace(/[^\x20-\x7E\u00A0-\u00FF\u2019\u2018\u201C\u201D\u2013\u2014\u2026\u20AC\u2022]/g, '?');
 
   async function compila(bytes, d) {
+    if (!root.PDFLib && root.Lemmi) await root.Lemmi.libreria('pdflib');   // caricata solo quando serve
     const { PDFDocument, StandardFonts, rgb } = root.PDFLib;
     const doc = await PDFDocument.load(bytes);
     const pg = doc.getPages();

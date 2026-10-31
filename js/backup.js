@@ -36,7 +36,7 @@
   }
 
   async function esporta(btn, stato) {
-    if (!window.XLSX) { toast('Libreria Excel non caricata: ricarica la pagina.', 'bad'); return; }
+    try { await L.libreria('xlsx'); } catch (e) { toast(e.message, 'bad'); return; }
     const etichetta = btn.textContent;
     btn.disabled = true;
     const wb = window.XLSX.utils.book_new();
@@ -55,7 +55,7 @@
     }
     window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(esito), 'Esito');
     const bytes = window.XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const nomeFile = 'Lemmi_copia_di_sicurezza_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    const nomeFile = 'Lemmi_copia_di_sicurezza_' + window.Lemmi.oggi() + '.xlsx';
     const url = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const a = document.createElement('a');
     a.href = url; a.download = nomeFile; document.body.appendChild(a); a.click(); a.remove();

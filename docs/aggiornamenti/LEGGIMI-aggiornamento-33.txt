@@ -1,0 +1,23 @@
+AGGIORNAMENTO 33 - Correzioni e velocità (review globale, tappa A)
+
+Nessuno script da eseguire per far funzionare l'app. Pubblicato direttamente sul repository.
+
+COSA CAMBIA
+ 1. TELEFONO: la pagina era larga circa 5 volte lo schermo (si poteva trascinare di lato e i riquadri risultavano tagliati).
+    Ora ha la larghezza del telefono.
+ 2. MENU LATERALE: sui portatili con schermo basso, aprendo Fratelli/Bussanti le ultime voci ed "Esci" uscivano dallo schermo.
+    Ora il menu scorre.
+ 3. DATA DI OGGI: era calcolata in ora UTC (tra mezzanotte e l'1, o le 2 d'estate, l'app pensava fosse ancora ieri).
+    Ora è l'ora italiana: votazioni in programma, scadenze, controlli e nomi dei file.
+ 4. APERTURA PIU' VELOCE: le librerie per Excel (860 KB) e per i PDF (500 KB) si caricano solo quando si esporta o si genera
+    un modulo. Librerie, modelli PDF e icone restano salvati sul dispositivo e si aggiornano in sottofondo.
+    La prima volta che generi un PDF o un Excel dopo l'apertura può servire un secondo in più.
+ 5. ORDINE NEL REPOSITORY: i file LEGGIMI sono in docs/aggiornamenti, gli script SQL in sql/.
+    Tolta una vecchia schermata Fratelli non più usata; la maschera delle date è una sola.
+
+DA FARE (5 minuti) - SALVARE LA STRUTTURA DEL DATABASE
+   Supabase > SQL Editor > New query: incolla sql/esporta_schema.sql e premi Run (sola lettura, non cambia nulla).
+   Scarica il risultato in CSV e allegalo in chat: diventerà sql/schema_completo.sql e permetterà di verificare i permessi.
+
+DOPO LA PUBBLICAZIONE: attendi 1-2 minuti e ricarica con Ctrl+F5 (sul telefono: chiudi e riapri l'app).
+In fondo al menu: "Versione 0.33.0".

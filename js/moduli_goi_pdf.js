@@ -8,8 +8,13 @@
   else root.LemmiModuli = factory(root.PDFLib);
 })(typeof self !== 'undefined' ? self : this, function (PDFLib) {
   'use strict';
-  const { PDFDocument, StandardFonts, rgb } = PDFLib;
-  const COLORE = rgb(0.04, 0.1, 0.38);
+  // pdf-lib viene caricata solo quando serve (vedi Lemmi.libreria): qui la si cerca al momento dell'uso
+  const lib = () => PDFLib || (typeof self !== 'undefined' && self.PDFLib);
+  const pronto = async () => { if (!lib() && typeof self !== 'undefined' && self.Lemmi) await self.Lemmi.libreria('pdflib'); return lib(); };
+  const PDFDocument = { load: (...a) => lib().PDFDocument.load(...a), create: (...a) => lib().PDFDocument.create(...a) };
+  const StandardFonts = { get Helvetica() { return lib().StandardFonts.Helvetica; }, get HelveticaBold() { return lib().StandardFonts.HelveticaBold; } };
+  const rgb = (...a) => lib().rgb(...a);
+  const COLORE = { type: 'RGB', red: 0.04, green: 0.1, blue: 0.38 };   // = rgb(0.04, 0.1, 0.38)
 
   // intestazione comune: R∴L∴ nome e numero, Oriente
   const testata = (nome, num, or) => [
@@ -411,6 +416,7 @@
   /* ---------- compilazione ---------- */
   // v: valori per chiave (le date in AAAA-MM-GG); loggia: {nome, numero, oriente}
   async function compila(codice, v, loggia, templateBytes) {
+    await pronto();
     const M = MODULI[codice];
     if (!M) throw new Error('Modulo sconosciuto: ' + codice);
     const doc = await PDFDocument.load(templateBytes);

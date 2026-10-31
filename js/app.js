@@ -56,7 +56,27 @@
     if (d.getUTCFullYear() !== a || d.getUTCMonth() !== me - 1 || d.getUTCDate() !== g || a < 1900 || a > 2200) return 'ERR';
     return m[3] + '-' + m[2] + '-' + m[1];
   };
-  const oggi = () => new Date().toISOString().slice(0, 10);
+  // data di oggi secondo l'ora italiana (non UTC: tra mezzanotte e l'1-2 di notte l'UTC dà ancora "ieri")
+  const isoLocale = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const oggi = () => isoLocale(new Date());
+
+  // Librerie pesanti caricate solo quando servono (Excel ~860 KB, PDF ~500 KB): l'app si apre prima, soprattutto sul telefono.
+  const LIBRERIE = { xlsx: ['vendor/xlsx.full.min.js', 'XLSX'], pdflib: ['vendor/pdf-lib.min.js', 'PDFLib'] };
+  const libInCarico = {};
+  function libreria(nome) {
+    const [src, glob] = LIBRERIE[nome];
+    if (window[glob]) return Promise.resolve(window[glob]);
+    if (!libInCarico[nome]) {
+      libInCarico[nome] = new Promise((ok, ko) => {
+        const sc = document.createElement('script');
+        sc.src = src;
+        sc.onload = () => (window[glob] ? ok(window[glob]) : ko(new Error('Libreria ' + nome + ' non disponibile.')));
+        sc.onerror = () => { delete libInCarico[nome]; sc.remove(); ko(new Error('Impossibile caricare la libreria ' + (nome === 'xlsx' ? 'Excel' : 'PDF') + ': controlla la connessione e riprova.')); };
+        document.head.appendChild(sc);
+      });
+    }
+    return libInCarico[nome];
+  }
   const canEdit = () => ['amministratore', 'segretario'].includes(state.profilo && state.profilo.ruolo);
   const isAdmin = () => state.profilo && state.profilo.ruolo === 'amministratore';
   const chk = (res) => { if (res.error) throw res.error; return res.data; };
@@ -326,7 +346,6 @@
       else if (sez === 'bussanti' && parti[1] && parti[2] === 'modifica') await vistaForm(v, parti[1]);
       else if (sez === 'bussanti' && parti[1]) await vistaDettaglio(v, parti[1]);
       else if (sez === 'bussanti') await vistaBussanti(v);
-      else if (sez === 'fratelli') await vistaFratelli(v);
       else if (sez === 'loggia') await vistaLoggia(v);
       else v.innerHTML = '<div class="card empty">Pagina non trovata.</div>';
     } catch (e) {
@@ -535,14 +554,7 @@
     f.elements.dom_same.addEventListener('change', aggiorna);
     aggiorna();
 
-    // maschera gg/mm/aaaa: inserisce le barre mentre si scrive
-    $$('[data-date]', f).forEach((inp) => inp.addEventListener('input', () => {
-      let d = inp.value.replace(/\D/g, '').slice(0, 8);
-      if (d.length > 4) d = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4);
-      else if (d.length > 2) d = d.slice(0, 2) + '/' + d.slice(2);
-      inp.value = d;
-      inp.classList.remove('invalid');
-    }));
+    mascheraDate(f);   // maschera gg/mm/aaaa: inserisce le barre mentre si scrive
     $$('input', f).forEach((inp) => inp.addEventListener('input', () => inp.classList.remove('invalid')));
 
     f.addEventListener('submit', async (ev) => {
@@ -760,6 +772,7 @@
     const etichetta = btn.innerHTML;
     btn.disabled = true; btn.textContent = 'Genero…';
     try {
+      await libreria('pdflib');
       const comuni = { bussante: b, loggia: state.loggia, presentatore: pres ? pres.cognome + ' ' + pres.nome : '', copiaCollegio };
       const out = [];
       if (quale === 'A1' || quale === 'ENTRAMBI') out.push(await window.LemmiPDF.genera({ ...comuni, modello: 'A1', templateBytes: await modello('A1') }));
@@ -777,27 +790,6 @@
     const a = document.createElement('a');
     a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 15000);
-  }
-
-  /* ---------- fratelli (sola lettura) ---------- */
-  async function vistaFratelli(v) {
-    const lista = chk(await state.sb.from('v_fratelli_completi')
-      .select('id,cognome,nome,matricola,stato,grado_attuale,carica_attuale,citta,email,cellulare').order('cognome').order('nome'));
-    v.innerHTML = `
-      <div class="page-head"><div><h1>Fratelli</h1><p>Anagrafica della Loggia · sola consultazione</p></div></div>
-      <div class="actions" style="margin-bottom:14px"><div class="searchbar">${IC.search}<input id="q" type="search" placeholder="Cerca per cognome, nome o matricola…"></div><span class="muted" id="conta"></span></div>
-      <div class="table-wrap"><table><thead><tr><th>Matricola</th><th>Nominativo</th><th>Stato</th><th>Grado</th><th>Carica</th><th>Città</th><th>Contatti</th></tr></thead><tbody id="righe"></tbody></table></div>`;
-    const disegna = () => {
-      const q = $('#q').value.trim().toLowerCase();
-      const f = lista.filter((x) => [x.cognome, x.nome, x.matricola].join(' ').toLowerCase().includes(q));
-      $('#conta').textContent = f.length + ' di ' + lista.length;
-      $('#righe').innerHTML = f.length ? f.map((x) => `<tr><td>${esc(x.matricola) || '—'}</td><td><b>${esc(x.cognome)} ${esc(x.nome)}</b></td>
-        <td><span class="badge ${x.stato === 'attivo' ? 'ok' : 'gray'}">${esc(x.stato) || '—'}</span></td>
-        <td>${esc(x.grado_attuale) || '—'}</td><td>${esc(x.carica_attuale) || '—'}</td><td>${esc(x.citta) || '—'}</td>
-        <td>${esc(x.cellulare || x.email) || '—'}</td></tr>`).join('') : '<tr><td colspan="7"><div class="empty">Nessun risultato.</div></td></tr>';
-    };
-    $('#q').addEventListener('input', disegna);
-    disegna();
   }
 
   /* ---------- dati della Loggia ---------- */
@@ -840,7 +832,7 @@
   // Interfaccia messa a disposizione dei moduli aggiuntivi (es. js/pagamenti.js)
   // importi in euro nel formato 1.234,56 €
   const eur = (x) => { const n = Math.round(Number(x || 0) * 100) / 100; const [i, d] = Math.abs(n).toFixed(2).split('.'); return (n < 0 ? '-' : '') + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d + ' €'; };
-  const API = window.Lemmi = { state, $, $$, esc, chk, toast, messaggioErrore, fmtData, isoToIt, itToIso, oggi, eur, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
+  const API = window.Lemmi = { state, $, $$, esc, chk, toast, messaggioErrore, fmtData, isoToIt, itToIso, oggi, isoLocale, libreria, eur, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
   API.estensioniLoggia.push(schedaPassword);
 
   function schedaPassword(v) {

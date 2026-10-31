@@ -125,7 +125,7 @@
   }
 
   async function scarica(btn) {
-    if (!window.XLSX) { toast('Libreria Excel non caricata: ricarica la pagina.', 'bad'); return; }
+    try { await L.libreria('xlsx'); } catch (e) { toast(e.message, 'bad'); return; }
     const id = btn.dataset.scarica, tipo = btn.dataset.tipo;
     const etichetta = btn.textContent;
     btn.disabled = true; btn.textContent = 'Preparo…';
@@ -148,7 +148,7 @@
       Object.keys(per).sort().forEach((t) => window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(per[t]), t.slice(0, 31)));
       if (!Object.keys(per).length) window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet([['(nessuna riga: nulla è cambiato)']]), 'Vuoto');
       const bytes = window.XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const nome = 'Lemmi_backup_' + tipo + '_' + new Date().toISOString().slice(0, 10) + '_n' + id + '.xlsx';
+      const nome = 'Lemmi_backup_' + tipo + '_' + window.Lemmi.oggi() + '_n' + id + '.xlsx';
       const url = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const a = document.createElement('a');
       a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();

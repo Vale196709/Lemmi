@@ -62,8 +62,8 @@
   };
 
   /* ---------- Excel ---------- */
-  function excel() {
-    if (!window.XLSX) throw new Error('Lettore Excel non caricato: ricarica la pagina.');
+  async function excel() {
+    await L.libreria('xlsx');
     const t = titolo(), righe = visibili();
     const aoa = [[t.riga1], [t.riga2], [], COLONNE, ...righe.map(riga), [], ['', 'L’ORATORE', '', 'IL MAESTRO VENERABILE', '', 'IL SEGRETARIO'], ['', st.firme.oratore, '', st.firme.mv, '', st.firme.segretario]];
     const ws = window.XLSX.utils.aoa_to_sheet(aoa);
@@ -77,7 +77,7 @@
 
   /* ---------- PDF da firmare (A4 orizzontale) ---------- */
   async function pdf() {
-    const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+    const { PDFDocument, StandardFonts, rgb } = await L.libreria('pdflib');
     const doc = await PDFDocument.create();
     const f = await doc.embedFont(StandardFonts.Helvetica), fb = await doc.embedFont(StandardFonts.HelveticaBold);
     const W = 841.89, H = 595.28, M = 28;
@@ -146,7 +146,7 @@
       $$('[data-f]', v).forEach((i) => i.addEventListener('input', (e) => { st.firme[e.target.dataset.f] = e.target.value; }));
       $$('[data-st]', v).forEach((i) => i.addEventListener('change', (e) => { if (e.target.checked) st.inclusi.add(e.target.dataset.st); else st.inclusi.delete(e.target.dataset.st); disegna(); }));
       $$('[data-es]', v).forEach((i) => i.addEventListener('input', (e) => { st.esoneri[e.target.dataset.es] = e.target.value.replace(/[^\d,.]/g, ''); e.target.closest('td').dataset.sort = st.esoneri[e.target.dataset.es]; }));
-      $('#p-xls', v).onclick = () => { try { const n = excel(); toast('Excel creato: ' + n + ' Fratelli', 'ok'); } catch (e) { toast(messaggioErrore(e), 'bad'); } };
+      $('#p-xls', v).onclick = async () => { try { const n = await excel(); toast('Excel creato: ' + n + ' Fratelli', 'ok'); } catch (e) { toast(messaggioErrore(e), 'bad'); } };
       $('#p-pdf', v).onclick = async () => { try { const n = await pdf(); toast('PDF creato: ' + n + ' Fratelli', 'ok'); } catch (e) { toast(messaggioErrore(e), 'bad'); } };
     };
     disegna();

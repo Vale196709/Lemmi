@@ -7,6 +7,7 @@
   const pulisci = (s) => String(s == null ? '' : s).normalize('NFC').replace(/[^\x20-\x7E\u00A0-\u00FF\u2019\u2018\u201C\u201D\u2013\u2014\u2026\u20AC\u2022]/g, '?');
 
   async function compila(bytes, d) {
+    if (!root.PDFLib && root.Lemmi) await root.Lemmi.libreria('pdflib');   // caricata solo quando serve
     const { PDFDocument, StandardFonts, rgb } = root.PDFLib;
     const doc = await PDFDocument.load(bytes);
     const pg = doc.getPages();
@@ -118,6 +119,7 @@
 
   /* Estrae alcune pagine in un nuovo PDF (es. per le diverse destinazioni di invio) */
   async function estrai(bytes, indici) {
+    if (!root.PDFLib && root.Lemmi) await root.Lemmi.libreria('pdflib');   // caricata solo quando serve
     const { PDFDocument } = root.PDFLib;
     const src = await PDFDocument.load(bytes), out = await PDFDocument.create();
     const pagine = await out.copyPages(src, indici);

@@ -1,7 +1,7 @@
-/* Lemmi - service worker minimo, per rendere l'app installabile su telefono.
+/* Lemmi - service worker, per rendere l'app installabile su telefono.
  * Prima prova sempre la rete (così gli aggiornamenti arrivano subito); la copia salvata serve solo se non c'è
  * connessione, e solo per i file del sito. I dati di Supabase (altro indirizzo) non vengono mai salvati qui. */
-const CACHE = 'lemmi-guscio-v2';
+const CACHE = 'lemmi-guscio-v3';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -18,6 +18,16 @@ self.addEventListener('fetch', (e) => {
   if (r.method !== 'GET' || r.headers.has('range')) return;
   const url = new URL(r.url);
   if (url.origin !== self.location.origin) return;           // Supabase e altri servizi: sempre rete, mai copia
+  // Librerie, modelli PDF e icone cambiano di rado: si usa subito la copia salvata e intanto la si aggiorna dalla rete.
+  // Il codice dell'app (html, js, css) invece arriva sempre prima dalla rete, così gli aggiornamenti si vedono subito.
+  if (/\/(vendor|templates|icons)\//.test(url.pathname)) {
+    e.respondWith(caches.open(CACHE).then((c) => c.match(r).then((salvata) => {
+      const rete = fetch(r).then((risp) => { if (risp && risp.ok && risp.type === 'basic') c.put(r, risp.clone()).catch(() => {}); return risp; });
+      if (salvata) { e.waitUntil(rete.catch(() => {})); return salvata; }
+      return rete;
+    })));
+    return;
+  }
   e.respondWith(
     fetch(r).then((risp) => {
       if (risp && risp.ok && risp.type === 'basic') {

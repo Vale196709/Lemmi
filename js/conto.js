@@ -173,8 +173,9 @@
   }
 
   /* ---------- import dell'estratto conto ---------- */
-  function apriImporta(P) {
-    if (!E || !window.XLSX) { toast('Lettore di file Excel non caricato: ricarica la pagina.', 'bad'); return; }
+  async function apriImporta(P) {
+    try { await L.libreria('xlsx'); } catch (e) { toast(e.message, 'bad'); return; }
+    if (!E) { toast('Lettore degli estratti conto non caricato: ricarica la pagina.', 'bad'); return; }
     let an = null; let nomeFile = '';
     const corpo = `<div class="form-grid">
       <div class="f"><label for="i-file">File dell’estratto conto (PDF di BancoPosta, oppure .xls, .xlsx o .csv)</label><input id="i-file" class="vis" type="file" accept=".pdf,.xls,.xlsx,.csv,.txt"></div>

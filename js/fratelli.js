@@ -246,7 +246,7 @@
           if (c.anno) { if (v && (!/^\d{4}$/.test(v) || Number(v) < 1900 || Number(v) > 2100)) return errore('Anno di iniziazione non valido (4 cifre).'); dati[c.k] = v ? Number(v) : null; continue; }
           dati[c.k] = v || null;
         }
-        if ('data_nascita' in dati && dati.data_nascita && dati.data_nascita >= new Date().toISOString().slice(0, 10)) return errore('La data di nascita deve essere nel passato.');
+        if ('data_nascita' in dati && dati.data_nascita && dati.data_nascita >= window.Lemmi.oggi()) return errore('La data di nascita deve essere nel passato.');
         if (dati.data_nascita && dati.data_iniziazione && dati.data_iniziazione < dati.data_nascita) return errore('L’iniziazione non può precedere la nascita.');
         if (dati.data_iniziazione && 'anno_iniziazione' in dati) dati.anno_iniziazione = Number(dati.data_iniziazione.slice(0, 4));
         const r = chk(await state.sb.from('fratelli').update(dati).eq('id', f.id).select('id'));
@@ -267,7 +267,7 @@
       onSubmit: async (fm, chiudi, errore) => {
         const nasc = itToIso(fm.elements.nascita.value), ini = itToIso(fm.elements.inizi.value);
         if (nasc === 'ERR' || ini === 'ERR') return errore('Data non valida: usa il formato gg/mm/aaaa.');
-        if (nasc && nasc >= new Date().toISOString().slice(0, 10)) return errore('La data di nascita deve essere nel passato.');
+        if (nasc && nasc >= window.Lemmi.oggi()) return errore('La data di nascita deve essere nel passato.');
         let anno = fm.elements.anno.value.trim() ? Number(fm.elements.anno.value) : null;
         if (ini) anno = Number(ini.slice(0, 4));   // se c'è la data, l'anno si ricava da lì
         if (anno !== null && (!Number.isInteger(anno) || anno < 1900 || anno > 2100)) return errore('Anno di iniziazione non valido (4 cifre).');

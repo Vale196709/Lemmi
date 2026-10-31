@@ -614,7 +614,7 @@
       if (!r.ok) throw new Error('Modello templates/' + M.file + '.pdf non trovato.');
       const bytes = await window.LemmiModuli.compila(cod, out, state.loggia, new Uint8Array(await r.arrayBuffer()));
       const chi = vals.cognome ? (vals.cognome + '_' + (vals.nome || '')) : (vals.nominativo || '');
-      const nome = M.file + (chi ? '_' + nomeFile(chi) : '_' + new Date().toISOString().slice(0, 10)) + '.pdf';
+      const nome = M.file + (chi ? '_' + nomeFile(chi) : '_' + window.Lemmi.oggi()) + '.pdf';
       const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
       const a = document.createElement('a'); a.href = url; a.download = nome; a.style.display = 'none';
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 15000);
