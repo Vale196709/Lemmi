@@ -47,8 +47,9 @@ select definizione from (
     and i.indexname not in (select conname from pg_constraint)
   union all
   -- 3. viste
-  select 3, v.viewname, format(E'create or replace view public.%I as\n%s', v.viewname, pg_get_viewdef(format('public.%I', v.viewname)::regclass, true))
-  from pg_views v where v.schemaname = 'public'
+  select 3, c.relname::text, format(E'create or replace view public.%I as\n%s', c.relname, pg_get_viewdef(c.oid, true))
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relkind in ('v', 'm')
   union all
   -- 4. funzioni
   select 4, p.proname, pg_get_functiondef(p.oid) || ';'
