@@ -217,11 +217,13 @@ Deno.serve(async (req) => {
     if (azione === 'chiave') return risposta({ chiave: (await chiavi()).pubblica });
 
     if (azione === 'prova') {
-      const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-      const { data: chi } = token ? await db.auth.getUser(token) : { data: null };
-      if (!chi?.user) return risposta({ errore: 'Accesso richiesto.' }, 401);
-      const m = new Map<string, Avviso[]>([[chi.user.id, [{ chiave: 'prova|' + Date.now(), titolo: 'Lemmi', testo: 'Le notifiche funzionano su questo dispositivo.', url: '#/' }]]]);
-      return risposta(await spedisci([chi.user.id], m));
+      // avviso di prova al solo dispositivo che lo chiede (riconosciuto dal suo indirizzo di iscrizione, già registrato)
+      const endpoint = String(b.endpoint || '');
+      const { data: iscr } = endpoint ? await db.from('push_iscrizioni').select('endpoint, chiavi').eq('endpoint', endpoint).maybeSingle() : { data: null };
+      if (!iscr) return risposta({ errore: 'Questo dispositivo non risulta iscritto: premi Disattiva e poi Attiva le notifiche.' }, 404);
+      const st = await inviaPush({ endpoint: iscr.endpoint, keys: iscr.chiavi }, JSON.stringify({ titolo: 'Lemmi', testo: 'Le notifiche funzionano su questo dispositivo.', url: '#/' }), await chiavi());
+      if (st === 404 || st === 410) { await db.from('push_iscrizioni').delete().eq('endpoint', iscr.endpoint); return risposta({ errore: 'Iscrizione scaduta: premi Attiva le notifiche di nuovo.' }, 410); }
+      return risposta({ inviati: st >= 200 && st < 300 ? 1 : 0, stato: st });
     }
 
     if (azione === 'invia') {

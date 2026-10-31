@@ -24,11 +24,11 @@
     return so + ' · ' + br;
   };
 
-  async function funzione(azione) {
+  async function funzione(azione, extra) {
     // si passa esplicitamente il "biglietto" dell'utente collegato, così la funzione sa chi chiama
     const { data: ses } = await state.sb.auth.getSession();
     const headers = ses && ses.session ? { Authorization: 'Bearer ' + ses.session.access_token } : {};
-    const { data, error } = await state.sb.functions.invoke('notifiche', { body: { azione }, headers });
+    const { data, error } = await state.sb.functions.invoke('notifiche', { body: Object.assign({ azione }, extra || {}), headers });
     if (error) {
       let msg = error.message || 'Errore';
       try { const j = await error.context.json(); if (j && j.errore) msg = j.errore; } catch (_) { /* nessun dettaglio */ }
@@ -112,7 +112,7 @@
       }); };
       conErrore('#nt-on', attiva, 'Notifiche attivate su questo dispositivo');
       conErrore('#nt-off', disattiva, 'Notifiche disattivate su questo dispositivo');
-      conErrore('#nt-prova', async () => { const r = await funzione('prova'); if (!r || !r.inviati) throw new Error('Nessun avviso inviato: disattiva e riattiva le notifiche.'); }, 'Avviso di prova inviato');
+      conErrore('#nt-prova', async () => { const sub = await iscrizioneAttuale(); const r = await funzione('prova', { endpoint: sub ? sub.endpoint : '' }); if (!r || !r.inviati) throw new Error('Nessun avviso inviato: disattiva e riattiva le notifiche.'); }, 'Avviso di prova inviato');
     };
     try { await disegna(); } catch (e) { box.innerHTML = `<h2>Notifiche sul telefono</h2><div class="notice bad">${esc(messaggioErrore(e))}</div>`; }
   }

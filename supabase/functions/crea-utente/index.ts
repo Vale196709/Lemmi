@@ -24,10 +24,13 @@ Deno.serve(async (req) => {
     // 1. chi chiama deve essere un amministratore
     const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     if (!token) return risposta({ errore: 'Accesso richiesto.' }, 401);
-    const { data: chi, error: eChi } = await admin.auth.getUser(token);
-    if (eChi || !chi?.user) return risposta({ errore: 'Accesso non valido: esci e rientra nell’app.' }, 401);
-    const { data: prof } = await admin.from('profili').select('ruolo').eq('user_id', chi.user.id).maybeSingle();
-    if (!prof || String(prof.ruolo) !== 'amministratore') return risposta({ errore: 'Solo l’amministratore può creare utenti.' }, 403);
+    // il database stesso verifica il token dell'utente e risponde se è amministratore
+    const comeUtente = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
+      auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: 'Bearer ' + token } },
+    });
+    const { data: eAdmin, error: eChi } = await comeUtente.rpc('lemmi_e_admin');
+    if (eChi) return risposta({ errore: 'Accesso non riconosciuto: esci e rientra nell’app (' + eChi.message + ').' }, 401);
+    if (eAdmin !== true) return risposta({ errore: 'Solo l’amministratore può creare utenti.' }, 403);
 
     // 2. dati del nuovo utente
     const b = await req.json().catch(() => ({}));
