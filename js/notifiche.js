@@ -50,12 +50,17 @@
     avviso('Rispondi alla richiesta del browser (di solito in alto a sinistra, accanto all’indirizzo): scegli «Consenti».');
     const permesso = await Notification.requestPermission();
     if (permesso !== 'granted') throw new Error('Permesso non concesso: abilita le notifiche per questo sito nelle impostazioni del browser (icona accanto all’indirizzo) e riprova.');
-    avviso('Collego questo dispositivo…');
+    avviso('1/4 · Preparo il servizio in background dell’app…');
     let reg = await navigator.serviceWorker.getRegistration();
     if (!reg) reg = await navigator.serviceWorker.register('sw.js');
-    reg = await conLimite(navigator.serviceWorker.ready, 15000, 'Il servizio in background dell’app non è pronto: ricarica la pagina con Ctrl+F5 e riprova.');
-    const { chiave } = await funzione('chiave');
-    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chiaveBin(chiave) });
+    reg = await conLimite(navigator.serviceWorker.ready, 15000, 'Passo 1: il servizio in background dell’app non è pronto. Ricarica la pagina con Ctrl+F5 e riprova.');
+    avviso('2/4 · Chiedo la chiave al server di Lemmi (la prima volta può servire qualche secondo)…');
+    const { chiave } = await conLimite(funzione('chiave'), 30000, 'Passo 2: la funzione «notifiche» su Supabase non risponde. Controlla che sia pubblicata con il nome notifiche e che «Verify JWT» sia spento.');
+    if (!chiave) throw new Error('Passo 2: la funzione «notifiche» non ha restituito la chiave.');
+    avviso('3/4 · Registro questo dispositivo presso il servizio di notifica del browser…');
+    const sub = await conLimite(reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chiaveBin(chiave) }), 30000,
+      'Passo 3: il browser non completa la registrazione. Se usi Brave o una modalità con protezioni avanzate, abilita i servizi di notifica di Google o prova con Chrome/Edge.');
+    avviso('4/4 · Salvo il dispositivo…');
     const j = sub.toJSON();
     await state.sb.from('push_iscrizioni').delete().eq('endpoint', j.endpoint);   // se era già registrato, si rinnova
     chk(await state.sb.from('push_iscrizioni').insert({ endpoint: j.endpoint, chiavi: j.keys, dispositivo: dispositivo() }));
@@ -94,7 +99,7 @@
           : ruolo === 'amministratore' ? 'della tornata del giorno dopo, delle votazioni dei bussanti e delle quote in scadenza'
             : 'della tornata del giorno dopo e delle votazioni dei bussanti';
       box.innerHTML = `<h2>Notifiche sul telefono</h2>
-        <p class="muted" style="margin:0 0 10px">Ogni mattina Lemmi ti avvisa di ${cosa}. Vale per questo dispositivo: attivale su ognuno che usi.</p>
+        <p class="muted" style="margin:0 0 10px">Ogni mattina Lemmi ti avvisa ${cosa}. Vale per questo dispositivo: attivale su ognuno che usi.</p>
         <div class="actions">${stato}${azioni}</div><div class="err" id="nt-err" style="margin-top:8px"></div>`;
       const conErrore = (id, fn, ok) => { const b = $(id, box); if (b) b.addEventListener('click', async () => {
         const msg = $('#nt-err', box);

@@ -1,7 +1,7 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.35.1',
+  numero: '0.35.2',
   data: '2026-10-31',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
     { n: '0.35.0', data: '2026-10-31', t: 'Libro Matricola, area personale dei Fratelli (profilo Fratello), notifiche sul telefono, foglio presenze dei verbali anche senza rete' },
