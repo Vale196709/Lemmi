@@ -569,3 +569,9 @@ button.pchip.mail:hover { background: var(--ok); color: #fff; }
   .nav .nav-top > a { flex: none; min-width: 60px; }               /* "Fratelli/Bussanti" non si sovrappone più alle voci vicine */
 }
 @media (max-width: 880px) { .side .who .tema-sw .t-ic { display: inline; } }   /* icona del tema visibile anche sul telefono */
+/* pulsanti WhatsApp (aggiornamento 37) */
+.btn.wa { color: #128c4a; border-color: rgba(18, 140, 74, .35); }
+.btn.wa:hover { background: rgba(37, 211, 102, .12); }
+:root[data-tema="scuro"] .btn.wa { color: #4cd98a; }
+@media (prefers-color-scheme: dark) { :root:not([data-tema="chiaro"]) .btn.wa { color: #4cd98a; } }
+td.act .btn + .btn, td.act .btn.wa { margin-left: 4px; }

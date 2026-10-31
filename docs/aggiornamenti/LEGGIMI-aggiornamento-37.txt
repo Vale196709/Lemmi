@@ -1,0 +1,13 @@
+AGGIORNAMENTO 37 - WhatsApp con un tocco
+
+Nessuno script SQL, niente da fare su Supabase: già pubblicato. Ricarica con Ctrl+F5 (versione 0.37.0).
+
+Il pulsante verde con il fumetto prepara il messaggio già scritto e apre WhatsApp (sul telefono l'app, sul computer
+WhatsApp Web o Desktop): scegli il contatto o il gruppo e premi Invia. Gratuito, link ufficiali wa.me, nessun account aziendale.
+ - Calendario: su ogni tornata, convocazione (tipo, grado, data, ora, luogo o collegamento, relatore, ordine del giorno)
+   da inoltrare al gruppo della Loggia.
+ - Scheda del Fratello: "WhatsApp" (messaggio libero) e "Sollecito" (elenco delle quote ancora da versare con importi e scadenze).
+ - Cruscotto > Quote scadute: sollecito per ogni Fratello in elenco.
+ - Lavori e tavole: promemoria all'autore per i lavori ancora aperti.
+ - Scheda del bussante: riquadro "Comunicazioni" con le date della pratica da mandare al Fratello presentatore.
+Serve il numero di cellulare in anagrafica (si completa da "Dati da completare").

@@ -263,7 +263,7 @@
             <td>${dove}</td>
             <td>${segni}${segni && extra ? '<br>' : ''}${extra ? `<span class="muted" style="font-size:.85rem">${extra}</span>` : ''}</td>
             <td><span class="badge ${STATO_BADGE[t.stato]}">${esc(STATI[t.stato])}</span>${passata && t.stato === 'programmata' ? '<br><span class="muted" style="font-size:.8rem">da aggiornare</span>' : ''}</td>
-            <td class="act">${puoScrivere() ? `<button class="btn ghost small" data-mod="${esc(t.id)}">Modifica</button>` : ''}</td></tr>`;
+            <td class="act">${L.wa ? (L.wa.tornate[t.id] = t, L.wa.tornata(t)) : ''} ${puoScrivere() ? `<button class="btn ghost small" data-mod="${esc(t.id)}">Modifica</button>` : ''}</td></tr>`;
         }).join('')}</tbody></table></div>`;
       $$('[data-mod]', c).forEach((b) => b.addEventListener('click', () => apriTornata(st.righe.find((x) => x.id === b.dataset.mod))));
     }

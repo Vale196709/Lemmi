@@ -144,7 +144,7 @@
       <div class="crumb"><a href="#/fratelli">Fratelli</a> › ${esc(f.cognome)} ${esc(f.nome)}</div>
       <div class="page-head"><div><h1>${esc(f.cognome)} ${esc(f.nome)}</h1>
         <p>${f.stato ? `<span class="badge ${f.stato === 'attivo' ? 'ok' : 'gray'}">${esc(cap(f.stato))}</span> ` : ''}${att.grado_attuale ? `<span class="badge gold">${esc(cap(att.grado_attuale))}</span> ` : ''}${att.carica_attuale ? `<span class="badge info">${esc(att.carica_attuale)}</span>` : ''}</p></div>
-        ${canEdit() ? `<div class="right actions"><button class="btn gold" id="s-car">${IC.plus} Aggiungi carica</button><button class="btn ghost" id="s-gra">Passaggio di grado</button><button class="btn ghost" id="s-ana">Modifica anagrafica</button></div>` : ''}</div>
+        ${canEdit() ? `<div class="right actions"><button class="btn gold" id="s-car">${IC.plus} Aggiungi carica</button><button class="btn ghost" id="s-gra">Passaggio di grado</button><button class="btn ghost" id="s-ana">Modifica anagrafica</button>${L.wa && f.cellulare ? L.wa.fratello(f.id) + L.wa.sollecito(f.id) : ''}</div>` : ''}</div>
 
       <div class="card"><h2>Dati</h2><div class="kv">
         ${kv('Matricola', f.matricola)}${kv('Data di nascita', f.data_nascita ? fmtData(f.data_nascita) + (e !== null ? ' · ' + e + ' anni' : '') : '')}

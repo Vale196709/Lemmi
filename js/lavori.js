@@ -265,7 +265,7 @@
             <td>${r.data_consegna_prevista ? fmtData(r.data_consegna_prevista) : '—'}${ritardo ? '<div><span class="badge bad">in ritardo</span></div>' : ''}</td>
             <td><span class="badge ${STATO_BADGE[r.stato]}">${esc(STATI[r.stato])}</span>${r.data_presentazione ? `<div class="hint">${fmtData(r.data_presentazione)}</div>` : ''}</td>
             <td>${r.file_path ? `<button class="btn ghost small" data-dl="${esc(r.id)}" title="${esc(r.file_nome || '')}">Scarica</button>` : '<span class="muted">—</span>'}</td>
-            <td class="act">${puoGestire() ? `<button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`;
+            <td class="act">${L.wa && r.fratello_id && APERTI.includes(r.stato) ? L.wa.fratello(r.fratello_id, `Carissimo Fratello, ti ricordo il lavoro «${r.titolo}»${r.data_consegna_prevista ? ', da consegnare entro il ' + fmtData(r.data_consegna_prevista) : ''}${t ? ', per la tornata del ' + fmtData(t.data) : ''}. Un triplice fraterno abbraccio.`, '') : ''} ${puoGestire() ? `<button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`;
         }).join('')}</tbody></table></div>`;
       $$('[data-mod]', c).forEach((b) => b.addEventListener('click', () => apriLavoro(lv.righe.find((x) => x.id === b.dataset.mod)).catch((e) => toast(messaggioErrore(e), 'bad'))));
       $$('[data-dl]', c).forEach((b) => b.addEventListener('click', async () => {
