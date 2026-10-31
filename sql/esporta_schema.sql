@@ -18,6 +18,25 @@ declare
   r record;
   t text;
 begin
+  -- 0a. tipi personalizzati (elenchi di valori, es. ruolo_app)
+  for r in
+    select t.typname::text as nome, string_agg(quote_literal(e.enumlabel), ', ' order by e.enumsortorder) as valori
+    from pg_type t join pg_namespace n on n.oid = t.typnamespace join pg_enum e on e.enumtypid = t.oid
+    where n.nspname = 'public' group by t.typname order by t.typname
+  loop
+    return next format('do $t$ begin create type public.%I as enum (%s); exception when duplicate_object then null; end $t$;', r.nome, r.valori);
+  end loop;
+
+  -- 0b. contatori (sequenze) usati come numerazione automatica
+  for r in
+    select c.relname::text as nome from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind = 'S'
+      and not exists (select 1 from pg_depend d where d.objid = c.oid and d.deptype = 'i')
+    order by c.relname
+  loop
+    return next format('create sequence if not exists public.%I;', r.nome);
+  end loop;
+
   -- 1. tabelle con colonne, vincoli e RLS
   for r in
     select c.oid, c.relname::text as nome, c.relrowsecurity as rls
@@ -28,7 +47,9 @@ begin
       select format(E'create table if not exists public.%I (\n%s%s\n);%s', r.nome,
                (select string_agg(format('  %I %s%s%s', a.attname, format_type(a.atttypid, a.atttypmod),
                                          case when a.attnotnull then ' not null' else '' end,
-                                         coalesce(' default ' || pg_get_expr(d.adbin, d.adrelid), '')), E',\n' order by a.attnum)
+                                         case when a.attgenerated = 's' then ' generated always as (' || pg_get_expr(d.adbin, d.adrelid) || ') stored'
+                                              when a.attidentity in ('a', 'd') then ' generated ' || case a.attidentity when 'a' then 'always' else 'by default' end || ' as identity'
+                                              else coalesce(' default ' || pg_get_expr(d.adbin, d.adrelid), '') end), E',\n' order by a.attnum)
                   from pg_attribute a left join pg_attrdef d on d.adrelid = a.attrelid and d.adnum = a.attnum
                   where a.attrelid = r.oid and a.attnum > 0 and not a.attisdropped),
                coalesce(E',\n' || (select string_agg(format('  constraint %I %s', co.conname, pg_get_constraintdef(co.oid)), E',\n' order by co.contype, co.conname)
