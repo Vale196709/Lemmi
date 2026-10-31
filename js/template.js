@@ -258,14 +258,25 @@
     return { prima, prox };
   }
 
+  // Copia sul dispositivo di nomi, gradi e cariche: serve a compilare le presenze in tornata anche senza rete.
+  const CACHE_V = 'lemmi.verbali.dati';
+  const leggiCacheV = () => { try { return JSON.parse(localStorage.getItem(CACHE_V) || 'null'); } catch (e) { return null; } };
   async function inizializza() {
-    const fr = await L.caricaFratelli();
-    try {
-      const vc = chk(await state.sb.from('v_fratelli_completi').select('id,cognome,nome,stato,grado_attuale'));
-      const att = vc.filter((x) => String(x.stato || '').toLowerCase() === 'attivo');
-      vb.attivi = (att.length ? att : vc).sort((a, b) => a.cognome.localeCompare(b.cognome, 'it'));
-    } catch (e) { vb.attivi = fr.slice().sort((a, b) => a.cognome.localeCompare(b.cognome, 'it')); }
-    try { vb.cariche = chk(await state.sb.from('cariche_storico').select('fratello_id,carica,anno_dal,anno_al')); } catch (e) { vb.cariche = []; }
+    const cache = leggiCacheV();
+    let fr, daRete = true;
+    try { fr = await L.caricaFratelli(); } catch (e) { if (!cache) throw e; fr = cache.fr; daRete = false; }
+    if (daRete) {
+      try {
+        const vc = chk(await state.sb.from('v_fratelli_completi').select('id,cognome,nome,stato,grado_attuale'));
+        const att = vc.filter((x) => String(x.stato || '').toLowerCase() === 'attivo');
+        vb.attivi = (att.length ? att : vc).sort((a, b) => a.cognome.localeCompare(b.cognome, 'it'));
+      } catch (e) { vb.attivi = cache ? cache.attivi : fr.slice().sort((a, b) => a.cognome.localeCompare(b.cognome, 'it')); }
+      try { vb.cariche = chk(await state.sb.from('cariche_storico').select('fratello_id,carica,anno_dal,anno_al')); } catch (e) { vb.cariche = cache ? cache.cariche : []; }
+      try { localStorage.setItem(CACHE_V, JSON.stringify({ fr, attivi: vb.attivi, cariche: vb.cariche, il: new Date().toISOString() })); } catch (e) { /* spazio esaurito: si lavora solo in rete */ }
+    } else {
+      vb.attivi = cache.attivi; vb.cariche = cache.cariche;
+      toast('Senza rete: uso l’elenco dei Fratelli salvato su questo dispositivo il ' + new Date(cache.il).toLocaleDateString('it-IT') + '.');
+    }
     vb.nomi = {}; fr.forEach((f) => { vb.nomi[f.id] = f; });
 
     let gem = 'R.·. L.·. Adriano Lemmi n° 704 all’Oriente di Livorno';
@@ -430,6 +441,33 @@
   const eleggibili = (g) => vb.attivi.filter((f) => { const n = gradoFr(f); return !n || n >= GRADO_N[g]; });
   const statoPres = (x, id) => (x.pres && x.pres[id]) || 'presente';
 
+  // scrittura di un verbale con le sue presenze (usata anche per inviare quelli salvati senza rete)
+  async function scriviVerbale(rec, pres) {
+    const es = chk(await state.sb.from('verbali').select('id').eq('data', rec.data).eq('grado', rec.grado).maybeSingle());
+    let id;
+    if (es) { id = es.id; chk(await state.sb.from('verbali').update(rec).eq('id', id)); }
+    else id = chk(await state.sb.from('verbali').insert(rec).select('id').single()).id;
+    chk(await state.sb.from('presenze_verbale').delete().eq('verbale_id', id));
+    if (pres.length) chk(await state.sb.from('presenze_verbale').insert(pres.map((p) => ({ verbale_id: id, fratello_id: p.fratello_id, esito: p.esito }))));
+    return !es;
+  }
+
+  // coda dei verbali salvati senza rete: si svuota da sola al ritorno della connessione
+  const CODA = 'lemmi.verbali.coda';
+  L.codaVerbali = {
+    leggi() { try { return JSON.parse(localStorage.getItem(CODA) || '[]'); } catch (e) { return []; } },
+    scrivi(arr) { try { if (arr.length) localStorage.setItem(CODA, JSON.stringify(arr)); else localStorage.removeItem(CODA); } catch (e) { /* niente */ } },
+    aggiungi(rec, pres) { const a = this.leggi().filter((x) => !(x.rec.data === rec.data && x.rec.grado === rec.grado)); a.push({ rec, pres }); this.scrivi(a); },
+    async invia() {
+      const a = this.leggi(); if (!a.length || !state.sb || !state.user) return;
+      const restano = []; let ok = 0;
+      for (const v of a) { try { await scriviVerbale(v.rec, v.pres); ok++; } catch (e) { restano.push(v); } }
+      this.scrivi(restano);
+      if (ok) toast(ok === 1 ? 'Inviato al registro il verbale salvato senza rete' : 'Inviati al registro ' + ok + ' verbali salvati senza rete', 'ok');
+    },
+  };
+  window.addEventListener('online', () => L.codaVerbali.invia());
+
   async function salvaNelRegistro(g, testo, err, btn) {
     err.textContent = '';
     const iso = itToIso(vb.c.data);
@@ -441,12 +479,15 @@
         data: iso, grado: g, presenti: Number(c.presenti) || 0, ospiti: c.ospiti || null, testo: testo || null,
         dati: { c: JSON.parse(JSON.stringify(c)), x: JSON.parse(JSON.stringify(x)) }, aggiornato_il: new Date().toISOString(),
       };
-      const es = chk(await state.sb.from('verbali').select('id').eq('data', iso).eq('grado', g).maybeSingle());
-      let id, nuovo = !es;
-      if (es) { id = es.id; chk(await state.sb.from('verbali').update(rec).eq('id', id)); }
-      else id = chk(await state.sb.from('verbali').insert(rec).select('id').single()).id;
-      chk(await state.sb.from('presenze_verbale').delete().eq('verbale_id', id));
-      if (el.length) chk(await state.sb.from('presenze_verbale').insert(el.map((f) => ({ verbale_id: id, fratello_id: String(f.id), esito: statoPres(x, f.id) }))));
+      const pres = el.map((f) => ({ fratello_id: String(f.id), esito: statoPres(x, f.id) }));
+      let nuovo;
+      try { nuovo = await scriviVerbale(rec, pres); } catch (e) {
+        if (!L.senzaRete(e)) throw e;
+        L.codaVerbali.aggiungi(rec, pres);                       // senza rete: resta sul dispositivo e parte da solo dopo
+        toast('Senza rete: verbale e presenze salvati su questo dispositivo. Verranno inviati appena torna la connessione.', 'ok');
+        const st = $('#v-stato-reg'); if (st) st.innerHTML = '<b>In attesa di rete:</b> il verbale è salvato su questo dispositivo e sarà inviato da solo.';
+        return;
+      }
       toast(nuovo ? 'Verbale salvato nel registro' : 'Verbale aggiornato nel registro', 'ok');
       const st = $('#v-stato-reg'); if (st) st.innerHTML = `Salvato nel registro il ${new Date().toLocaleDateString('it-IT')}. <a href="#/verbali">Apri il registro</a>`;
     } catch (e) {

@@ -1,0 +1,36 @@
+AGGIORNAMENTO 35 - Libro Matricola, area Fratelli, notifiche, verbali senza rete (review globale, tappa C)
+
+Il sito è già pubblicato. Restano 3 passi su Supabase (10 minuti in tutto).
+
+PASSO 1 - Database
+   Supabase > SQL Editor > New query: incolla sql/lemmi_aggiornamento_35.sql e premi Run.
+   Si può rieseguire senza danni. Aggiunge: luogo/provincia di nascita e codice fiscale nell'anagrafica dei Fratelli
+   (prima mancavano nella tabella), il profilo "fratello" con le sue regole di sicurezza, le tabelle delle notifiche
+   e l'invio automatico ogni mattina.
+
+PASSO 2 - Funzione "notifiche" (nuova)
+   Supabase > Edge Functions > Deploy a new function > Via Editor.
+   Nome: notifiche   (esattamente così)
+   Cancella il codice di esempio, incolla tutto supabase/functions/notifiche/index.ts e premi Deploy.
+   Poi nella pagina della funzione: Details (o Settings) > disattiva "Verify JWT" (o "Enforce JWT") e salva:
+   la chiama il database ogni mattina senza utente. È sicura: manda solo gli avvisi previsti, una volta sola.
+
+PASSO 3 - Funzione "crea-utente" (aggiornata)
+   Supabase > Edge Functions > crea-utente > Code: sostituisci tutto con supabase/functions/crea-utente/index.ts e Deploy.
+   Serve per creare gli accessi con il profilo Fratello.
+
+COSA C'E' DI NUOVO
+ 1. LIBRO MATRICOLA (Fratelli/Bussanti > Libro Matricola): registro cronologico sul modello del Corso Segretari 2024,
+    due schede per pagina, PDF da stampare ed Excel. Numeri di brevetto e giudizi restano da compilare a mano.
+ 2. AREA DEI FRATELLI: in Utenti del sistema > Nuovo utente scegli il profilo "Fratello" e il Fratello dell'anagrafica.
+    Il Fratello vede solo: La mia scheda (dati, storia, tavole, quote, prossime tornate del suo grado), il Calendario
+    e Il mio accesso (password e notifiche). Il database gli impedisce di leggere qualsiasi altro dato.
+ 3. NOTIFICHE SUL TELEFONO: in Loggia (o "Il mio accesso") > Attiva le notifiche, poi "Manda una prova".
+    Ogni mattina: tornata del giorno dopo (tutti), votazioni dei bussanti (Venerabile, Segretario, amministratore),
+    quote in scadenza tra 7 giorni (Tesoriere, amministratore, e al Fratello le sue), consegna della tavola tra 3 giorni.
+    Su iPhone: prima installa l'app (Safari > Condividi > Aggiungi alla schermata Home) e attiva dall'app installata.
+ 4. VERBALI SENZA RETE: aperto almeno una volta con la rete, il generatore dei verbali funziona anche senza connessione
+    (elenco dei Fratelli salvato sul dispositivo). "Salva nel registro" senza rete conserva il verbale sul dispositivo
+    e lo invia da solo appena torna la connessione. Anche l'app si apre senza rete se l'avevi già usata.
+
+DOPO: ricarica con Ctrl+F5 (sul telefono chiudi e riapri l'app). In fondo al menu: "Versione 0.35.0".

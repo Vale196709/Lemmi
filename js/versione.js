@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.34.0',
+  numero: '0.35.0',
   data: '2026-10-31',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.35.0', data: '2026-10-31', t: 'Libro Matricola, area personale dei Fratelli (profilo Fratello), notifiche sul telefono, foglio presenze dei verbali anche senza rete' },
     { n: '0.34.0', data: '2026-10-31', t: 'Modalità scura (automatica o scelta dal menu), colori uniformi, grafico mensile con scala, riquadri vuoti compatti, Procedure raggruppate, accessibilità da tastiera' },
     { n: '0.33.0', data: '2026-10-31', t: 'Telefono: pagina della larghezza giusta; menu che scorre sui portatili; data di oggi in ora italiana; apertura più veloce (Excel e PDF caricati solo quando servono)' },
     { n: '0.32.0', data: '2026-10-30', t: 'Procedure: linee tratteggiate tra gli attori (Loggia, Collegio, GOI) nella vista a corsie' },

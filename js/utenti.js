@@ -8,8 +8,8 @@
   if (!L) return;
   const { state, $, $$, esc, chk, toast, messaggioErrore, isAdmin } = L;
 
-  const PROFILI = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere' };
-  const BADGE = { amministratore: 'gold', venerabile: 'info', segretario: 'ok', tesoriere: 'warn' };
+  const PROFILI = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere', fratello: 'Fratello (sola lettura dei propri dati)' };
+  const BADGE = { amministratore: 'gold', venerabile: 'info', segretario: 'ok', tesoriere: 'warn', fratello: 'gray' };
   const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : '');
   const dataOra = (iso) => {
     if (!iso) return 'mai';
@@ -44,6 +44,7 @@
             <div><label for="nu-email">E-mail</label><input id="nu-email" type="email" required placeholder="nome@esempio.it"></div>
             <div><label for="nu-nome">Nome da mostrare</label><input id="nu-nome" type="text" required placeholder="es. Mario Rossi"></div>
             <div><label for="nu-ruolo">Profilo</label><select id="nu-ruolo">${Object.keys(PROFILI).map((k) => `<option value="${k}" ${k === 'segretario' ? 'selected' : ''}>${esc(PROFILI[k])}</option>`).join('')}</select></div>
+            <div id="nu-fr-box"><label for="nu-fr">Fratello dell’anagrafica</label><select id="nu-fr"><option value="">— dall’e-mail, se coincide —</option>${fratelli.map((f) => `<option value="${esc(f.id)}">${esc(f.cognome)} ${esc(f.nome)}</option>`).join('')}</select></div>
             <div><label for="nu-pw">Password temporanea</label><input id="nu-pw" type="text" required minlength="8" autocomplete="off"></div>
           </div>
           <div class="actions" style="margin-top:14px"><button class="btn" type="submit" id="nu-ok">Crea utente</button>
@@ -84,7 +85,8 @@
     $('#nu-gen', v).addEventListener('click', () => { $('#nu-pw', v).value = genPw(); });
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
-      const body = { email: $('#nu-email', v).value.trim(), nome: $('#nu-nome', v).value.trim(), ruolo: $('#nu-ruolo', v).value, password: $('#nu-pw', v).value };
+      const body = { email: $('#nu-email', v).value.trim(), nome: $('#nu-nome', v).value.trim(), ruolo: $('#nu-ruolo', v).value, password: $('#nu-pw', v).value, fratello_id: $('#nu-fr', v).value || null };
+      if (body.ruolo === 'fratello' && !body.fratello_id && !fratelli.length) { esito.innerHTML = '<div class="notice bad" style="margin-top:14px">Per il profilo Fratello serve il collegamento a un Fratello dell’anagrafica.</div>'; return; }
       if (!window.confirm('Creare l’utente ' + body.email + ' con il profilo «' + PROFILI[body.ruolo] + '»?')) return;
       const ok = $('#nu-ok', v); ok.disabled = true; esito.innerHTML = '';
       try {

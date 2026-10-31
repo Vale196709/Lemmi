@@ -5,11 +5,12 @@
   const cfg = window.LEMMI_CONFIG || {};
   const BUCKET = 'documenti-loggia';
   const MAX_FILE = 10 * 1024 * 1024;
-  const RUOLI_ACCESSO = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
+  const RUOLI_ACCESSO = ['amministratore', 'venerabile', 'segretario', 'tesoriere', 'fratello'];
   const TUTTI = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const SOCI = ['amministratore', 'venerabile', 'segretario'];
-  const ACCESSO_SEZ = { home: TUTTI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: TUTTI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: TUTTI, template: SOCI, procedure: SOCI, verbali: SOCI, loggia: TUTTI, utenti: ['amministratore'], sistema: ['amministratore'], registro: ['amministratore'], cerca: SOCI, completa: SOCI, relazione: SOCI };
-  const ETICHETTA_RUOLO = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere' };
+  const CONFRATELLI = TUTTI.concat('fratello');   // il profilo Fratello vede solo la propria scheda, il calendario e il proprio accesso
+  const ACCESSO_SEZ = { home: CONFRATELLI, libromatricola: SOCI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: CONFRATELLI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: TUTTI, template: SOCI, procedure: SOCI, verbali: SOCI, loggia: CONFRATELLI, utenti: ['amministratore'], sistema: ['amministratore'], registro: ['amministratore'], cerca: SOCI, completa: SOCI, relazione: SOCI };
+  const ETICHETTA_RUOLO = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere', fratello: 'Fratello' };
 
   const TIPI_DOMANDA = {
     iniziazione: 'Iniziazione',
@@ -148,6 +149,10 @@
     if (data && data.session) await avvia(data.session.user); else renderLogin();
   }
 
+  // errore dovuto alla mancanza di rete (non a un problema dei dati)
+  const senzaRete = (e) => !navigator.onLine || /Failed to fetch|NetworkError|Load failed|network/i.test(String((e && (e.message || e)) || ''));
+  const CACHE_AVVIO = 'lemmi.avvio';
+
   async function avvia(user) {
     $('#app').innerHTML = '<div class="loading"><span class="spin"></span></div>';
     try {
@@ -158,9 +163,19 @@
       if (!p || !RUOLI_ACCESSO.includes(p.ruolo)) return renderNegato(p);
       const l = await state.sb.from('loggia').select('*').limit(1).maybeSingle();
       state.loggia = l.data || {};
+      try { localStorage.setItem(CACHE_AVVIO, JSON.stringify({ u: user.id, p, l: state.loggia })); } catch (e) { /* facoltativo */ }
       renderShell();
       route();
+      if (API.codaVerbali) API.codaVerbali.invia();   // verbali salvati in tornata senza rete
     } catch (e) {
+      // senza rete: si entra con il profilo dell'ultima volta (i dati si leggono di nuovo appena torna la connessione)
+      let c = null; try { c = JSON.parse(localStorage.getItem(CACHE_AVVIO) || 'null'); } catch (x) { c = null; }
+      if (senzaRete(e) && c && c.u === user.id && c.p && RUOLI_ACCESSO.includes(c.p.ruolo)) {
+        state.profilo = c.p; state.loggia = c.l || {};
+        renderShell(); route();
+        toast('Sei senza rete: alcune pagine non si caricano. Il foglio presenze dei verbali funziona comunque.', 'bad');
+        return;
+      }
       renderLogin(messaggioErrore(e));
     }
   }
@@ -258,7 +273,7 @@
     { sez: 'cerca', href: '#/cerca', t: 'Cerca', ic: IC.search },
     { sez: 'calendario', href: '#/calendario', t: 'Calendario', ic: IC.calendar },
     { sez: 'pagamenti', href: '#/pagamenti', t: 'Tesoreria', ic: IC.euro },
-    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli/Bussanti', ic: IC.users, sub: [{ sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user }, { sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'verbali', href: '#/verbali', t: 'Verbali e presenze', ic: IC.lavori }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }, { sez: 'completa', href: '#/completa', t: 'Dati da completare', ic: IC.lista }] },
+    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli/Bussanti', ic: IC.users, sub: [{ sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user }, { sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'verbali', href: '#/verbali', t: 'Verbali e presenze', ic: IC.lavori }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }, { sez: 'libromatricola', href: '#/libromatricola', t: 'Libro Matricola', ic: IC.storia }, { sez: 'completa', href: '#/completa', t: 'Dati da completare', ic: IC.lista }] },
     { sez: 'procedure', href: '#/procedure', t: 'Procedure', ic: IC.procedure },
     { sez: 'template', href: '#/template', t: 'Template', ic: IC.template },
     { sez: 'relazione', href: '#/relazione', t: 'Relazione annuale', ic: IC.lavori },
@@ -274,14 +289,15 @@
 
   function menuHtml(p) {
     const puo = (sez) => ACCESSO_SEZ[sez].includes(p.ruolo);
-    const link = (x, cls) => `<a href="${x.href}" data-nav="${x.sez}"${cls ? ` class="${cls}"` : ''}>${x.ic}<span>${esc(x.t)}</span></a>`;
+    const titolo = (x) => (p.ruolo === 'fratello' && x.sez === 'home' ? 'La mia scheda' : p.ruolo === 'fratello' && x.sez === 'loggia' ? 'Il mio accesso' : x.t);
+    const link = (x, cls) => `<a href="${x.href}" data-nav="${x.sez}"${cls ? ` class="${cls}"` : ''}>${x.ic}<span>${esc(titolo(x))}</span></a>`;
     return MENU.map((x) => {
       if (!x.sub) return puo(x.sez) ? link(x) : '';
       const subs = x.sub.filter((s) => puo(s.sez));
       const conPagina = !!x.sez;
       const testa = conPagina
         ? (puo(x.sez) ? `<div class="nav-top">${link(x)}<button type="button" class="nav-tog" aria-expanded="false" aria-label="Apri o chiudi le sottovoci di ${esc(x.t)}"></button></div>` : '')
-        : (subs.length ? `<button type="button" class="nav-head" aria-expanded="false">${x.ic}<span>${esc(x.t)}</span></button>` : '');
+        : (subs.length ? `<button type="button" class="nav-head" aria-expanded="false">${x.ic}<span>${esc(p.ruolo === 'fratello' && x.gruppo === 'config' ? 'Account' : x.t)}</span></button>` : '');
       if (!testa && !subs.length) return '';
       return `<div class="nav-group chiudibile" data-grp="${esc(x.sez || x.gruppo)}">${testa}<div class="nav-sub">${subs.map((s) => link(s, 'sub')).join('')}</div></div>`;
     }).join('');
@@ -380,6 +396,7 @@
 
   /* ---------- cruscotto ---------- */
   async function vistaCruscotto(v) {
+    if (state.profilo.ruolo === 'fratello') { await API.vistaFratello(v); return; }   // area personale del Fratello
     if (!SOCI.includes(state.profilo.ruolo)) {   // il Tesoriere vede solo la parte economica
       v.innerHTML = `<div class="page-head"><div><h1>Cruscotto</h1><p>${esc(nomeLoggia('La tua Loggia'))}${state.loggia.oriente ? ' · Oriente di ' + esc(state.loggia.oriente) : ''}</p></div></div>`;
       await estraCruscotto(v);
@@ -814,6 +831,11 @@
 
   /* ---------- dati della Loggia ---------- */
   async function vistaLoggia(v) {
+    if (state.profilo.ruolo === 'fratello') {   // il Fratello qui gestisce solo il proprio accesso (password e notifiche)
+      v.innerHTML = '<div class="page-head"><div><h1>Il mio accesso</h1><p>Password e notifiche su questo dispositivo</p></div></div>';
+      API.estensioniLoggia.forEach((fn) => fn(v));
+      return;
+    }
     const l = state.loggia || {};
     const modifica = isAdmin();
     v.innerHTML = `
@@ -852,7 +874,7 @@
   // Interfaccia messa a disposizione dei moduli aggiuntivi (es. js/pagamenti.js)
   // importi in euro nel formato 1.234,56 €
   const eur = (x) => { const n = Math.round(Number(x || 0) * 100) / 100; const [i, d] = Math.abs(n).toFixed(2).split('.'); return (n < 0 ? '-' : '') + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d + ' €'; };
-  const API = window.Lemmi = { state, $, $$, esc, chk, toast, messaggioErrore, fmtData, isoToIt, itToIso, oggi, isoLocale, libreria, eur, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
+  const API = window.Lemmi = { state, $, $$, esc, chk, toast, messaggioErrore, senzaRete, fmtData, isoToIt, itToIso, oggi, isoLocale, libreria, eur, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
   API.estensioniLoggia.push(schedaPassword);
 
   function schedaPassword(v) {
