@@ -1,0 +1,20 @@
+AGGIORNAMENTO 34 - Grafica, modalità scura e accessibilità (review globale, tappa B)
+
+Nessuno script SQL. Pubblicato direttamente sul repository.
+
+COSA CAMBIA
+ 1. MODALITA' SCURA: in fondo al menu laterale tre pulsanti, Automatico (segue l'impostazione del telefono o del computer),
+    Chiaro, Scuro. Sul telefono c'è un'icona accanto a "Esci": ogni tocco passa al tema successivo.
+    La scelta resta salvata su quel dispositivo. In stampa i colori sono sempre quelli chiari.
+ 2. COLORI UNIFORMI: tutti i colori dell'app passano da un'unica tavolozza (base per la modalità scura).
+ 3. CRUSCOTTO: il grafico mensile ha la scala con gli importi; i riquadri senza dati non occupano più spazio
+    e diventano piccole etichette "nessun dato" sotto i riquadri con i dati.
+ 4. PROCEDURE: i 14 pulsanti sono divisi in tre famiglie (Ingresso e gradi, Movimenti dei Fratelli, Cariche e adempimenti);
+    la legenda dei colori (Loggia, Collegio, GOI, Interessato) è leggibile.
+ 5. ACCESSIBILITA': chi usa la tastiera vede sempre dove si trova (contorno evidente); testi grigi un po' più scuri;
+    animazioni ridotte se il dispositivo lo chiede.
+ 6. TELEFONO: l'icona nei titoli dei riquadri (es. "Moduli GOI precompilati") non è più enorme; la voce "Fratelli/Bussanti"
+    non si sovrappone più alle vicine; nell'intestazione non compare più la riga della versione.
+
+DOPO LA PUBBLICAZIONE: attendi 1-2 minuti e ricarica con Ctrl+F5 (sul telefono: chiudi e riapri l'app).
+In fondo al menu: "Versione 0.34.0".

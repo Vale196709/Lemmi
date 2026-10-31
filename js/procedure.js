@@ -132,6 +132,12 @@
   };
   L.PROCEDURE = P;
   const ORDINE = ['bussante', 'grado', 'exeat', 'sonno', 'depennamento', 'riammissione', 'oriente', 'onorario', 'titolosede', 'delega', 'elezioni', 'consegnemv', 'consegne', 'piedilista'];
+  // le procedure raggruppate per famiglia, per trovarle a colpo d'occhio
+  const GRUPPI = [
+    ['Ingresso e gradi', ['bussante', 'grado', 'riammissione', 'onorario']],
+    ['Movimenti dei Fratelli', ['exeat', 'sonno', 'depennamento', 'oriente']],
+    ['Cariche e adempimenti', ['elezioni', 'consegnemv', 'consegne', 'delega', 'piedilista', 'titolosede']],
+  ];
 
   // Promemoria personale: i passi spuntati restano solo su questo browser, non nel database.
   const chiave = (k) => 'lemmi.procedure.' + k;
@@ -183,11 +189,11 @@
     const interruttore = `<div class="pvista"><button type="button" class="ppill${modoCorsie ? '' : ' on'}" data-vista="lista">Elenco</button><button type="button" class="ppill${modoCorsie ? ' on' : ''}" data-vista="corsie">Corsie</button></div>`;
     v.innerHTML = `
       <div class="page-head"><div><h1>${pr ? esc(pr.titolo) : 'Procedure'}</h1><p>${pr ? pr.sottotitolo : 'I passi da fare nelle diverse situazioni, con moduli, scadenze e collegamenti all’app'}</p></div></div>
-      ${pr ? pr.pannello : `<div class="ppills">${ORDINE.map((x) => `<a href="#/procedure/${x}" class="ppill${x === k ? ' on' : ''}">${esc(P[x].t)}</a>`).join('')}</div>${blocco}`}
+      ${pr ? pr.pannello : `<nav class="pgruppi" aria-label="Procedure">${GRUPPI.map(([nome, el]) => `<div class="pgruppo"><h3>${esc(nome)}</h3><div class="ppills">${el.filter((x) => P[x]).map((x) => `<a href="#/procedure/${x}" class="ppill${x === k ? ' on' : ''}"${x === k ? ' aria-current="page"' : ''}>${esc(P[x].t)}</a>`).join('')}</div></div>`).join('')}</nav>${blocco}`}
       <div class="pbar"><div class="pbar-txt"><b id="p-conta">${fatti.length} di ${p.s.length}</b> passi fatti · ${moduli.length ? 'Moduli: ' + esc(moduli.join(', ')) + ' · ' : ''}${scad} ${scad === 1 ? 'scadenza' : 'scadenze'}</div>
         <div class="pbar-track"><div id="p-barra" style="width:${Math.round(100 * fatti.length / p.s.length)}%"></div></div>
         <div class="actions"><button class="btn ghost small" id="p-reset" type="button">Azzera spunte</button><button class="btn ghost small" id="p-stampa" type="button">Stampa o salva PDF</button></div></div>
-      <div class="pleg"><span><i class="att-L"></i>Loggia</span><span><i class="att-C"></i>Collegio</span><span><i class="att-G"></i>GOI</span><span><i class="att-F"></i>Interessato</span><span><i class="dec"></i>Decisione o condizione</span></div>
+      <div class="pleg" aria-label="Legenda"><span class="att-L">Loggia</span><span class="att-C">Collegio</span><span class="att-G">GOI</span><span class="att-F">Interessato</span><span class="dec">Decisione o condizione</span></div>
       <h2 class="ptit">${esc(p.t)}</h2>
       ${interruttore}
       ${modoCorsie ? corsie() : `<div class="pflow">${passi}</div>`}

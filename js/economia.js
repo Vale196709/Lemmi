@@ -49,11 +49,16 @@
 
     const mensili = MESI.map((_, i) => ({ e: 0, u: 0 }));
     mov.forEach((x) => { const i = Number(String(x.data_operazione).slice(5, 7)) - 1; if (i >= 0) { if (num(x.importo) > 0) mensili[i].e += num(x.importo); else mensili[i].u -= num(x.importo); } });
-    const maxM = Math.max(1, ...mensili.map((m) => Math.max(m.e, m.u)));
-    const grafico = `<div style="display:flex;gap:6px;align-items:flex-end;height:150px;padding-top:6px">${mensili.map((m, i) => `
+    // scala "tonda" (1, 2 o 5 per una potenza di 10): righe guida a 0, metà e massimo con gli importi
+    const grezzo = Math.max(1, ...mensili.map((m) => Math.max(m.e, m.u)));
+    const pot = Math.pow(10, Math.floor(Math.log10(grezzo)));
+    const maxM = [1, 2, 2.5, 5, 10].map((x) => x * pot).find((x) => x >= grezzo);
+    const tacca = (v) => Math.round(v).toLocaleString('it-IT') + ' €';
+    const griglia = `<div class="gm-griglia" aria-hidden="true">${[1, 0.5, 0].map((f) => `<div style="top:${Math.round((1 - f) * 124)}px"><span>${tacca(maxM * f)}</span></div>`).join('')}</div>`;
+    const grafico = `<div class="gm">${griglia}<div style="display:flex;gap:6px;align-items:flex-end;height:150px;padding-top:6px;position:relative">${mensili.map((m, i) => `
       <div class="drillable mese-col" data-drill="eco" data-a="mese" data-i="${i}" role="button" tabindex="0" style="flex:1;min-width:0;text-align:center;border-radius:8px" title="${MESI[i]}: entrate ${eur(m.e)}, uscite ${eur(m.u)} · clicca per il dettaglio">
         <div style="display:flex;gap:2px;align-items:flex-end;justify-content:center;height:124px"><div style="width:42%;height:${Math.round(m.e / maxM * 124)}px;background:var(--ok);border-radius:3px 3px 0 0;min-height:${m.e ? 2 : 0}px"></div><div style="width:42%;height:${Math.round(m.u / maxM * 124)}px;background:var(--bad);border-radius:3px 3px 0 0;min-height:${m.u ? 2 : 0}px"></div></div>
-        <div class="muted" style="font-size:.72rem;margin-top:4px">${MESI[i]}</div></div>`).join('')}</div>
+        <div class="muted" style="font-size:.72rem;margin-top:4px"><span class="m3">${MESI[i]}</span><span class="m1">${MESI[i].charAt(0)}</span></div></div>`).join('')}</div></div>
       <div class="muted" style="font-size:.8rem;margin-top:6px"><span style="color:var(--ok)">■</span> entrate &nbsp; <span style="color:var(--bad)">■</span> uscite &nbsp;· clicca su un mese per il dettaglio</div>`;
 
     const elencoCat = (lista, colore, segno) => { const tot = lista.reduce((a, [, v]) => a + v, 0); const max = lista.length ? lista[0][1] : 0;
@@ -82,23 +87,27 @@
         <div class="stat drillable" data-drill="eco" data-a="kpi" data-k="usc" role="button" tabindex="0" title="Clicca per il dettaglio"><div class="n" style="font-size:1.8rem;color:var(--bad)">${eur(uscite)}</div><div class="l">Uscite ${anno}</div></div>
         <div class="stat drillable" data-drill="eco" data-a="kpi" data-k="ris" role="button" tabindex="0" title="Clicca per il dettaglio"><div class="n" style="font-size:1.8rem;color:${entrate - uscite >= 0 ? 'var(--ok)' : 'var(--bad)'}">${eur(entrate - uscite)}</div><div class="l">Risultato ${anno}</div></div>
       </div>
-      <div class="grid cols-2">
-        <div class="card"><h2>Entrate e uscite per mese</h2>${mov.length ? grafico : '<div class="empty"><div>Nessun movimento nel ' + anno + '.</div></div>'}</div>
-        <div class="card"><h2>Quote dei Fratelli ${anno}</h2>
-          ${sc.length ? `<div class="stat drillable" data-drill="eco" data-a="quote" role="button" tabindex="0" title="Clicca per l’elenco delle quote" style="box-shadow:none;padding:0 0 8px"><div class="n" style="font-size:1.5rem">${eur(versato)} <span class="muted" style="font-size:.9rem;font-weight:400">su ${eur(dovuto)} (${dovuto ? Math.round(versato / dovuto * 100) : 0}%)</span></div></div>${barra(versato, dovuto, 'var(--ok)')}
-          <div class="actions drillable riga-d" data-drill="eco" data-a="aperte" role="button" tabindex="0" title="Clicca per vedere chi deve versare" style="justify-content:space-between;margin:10px 0;padding:4px 8px"><span>Residuo da incassare</span><b>${eur(residuo)}</b></div>
-          <div class="actions drillable riga-d" data-drill="eco" data-a="scadute" role="button" tabindex="0" title="Clicca per vedere le quote scadute" style="justify-content:space-between;padding:4px 8px"><span>Di cui già scaduto</span><b style="color:${scaduto ? 'var(--bad)' : 'inherit'}">${eur(scaduto)}</b></div>
-          ${voci.length ? `<div style="margin-top:12px">${voci.map(([k, x]) => `<div class="drillable riga-d" data-drill="eco" data-a="voce" data-k="${esc(k)}" role="button" tabindex="0" title="Clicca per l’elenco di questa voce" style="margin:4px 0;padding:6px 8px"><div style="display:flex;justify-content:space-between;font-size:.9rem"><span>${esc(k)}</span><span>${eur(x.ver)} / ${eur(x.dov)}</span></div>${barra(x.ver, x.dov, 'var(--gold)')}</div>`).join('')}</div>` : ''}`
-          : '<div class="empty"><div>Nessuna scadenza per il ' + anno + '.</div></div>'}
-          <div style="margin-top:12px"><a href="#/pagamenti/scadenze">Vai a Tesoreria</a></div></div>
-        <div class="card"><h2>Da dove arrivano i soldi</h2>${elencoCat(perCategoria(mov, 1), 'var(--ok)', 1)}</div>
-        <div class="card"><h2>Dove vanno i soldi</h2>${elencoCat(perCategoria(mov, -1), 'var(--bad)', -1)}</div>
-        <div class="card"><h2>Quote scadute <small>${morosi.length}</small></h2>
-          ${morosi.length ? `<div class="table-wrap"><table><tbody>${morosi.slice(0, 8).map((m) => `<tr class="click" data-drill="eco" data-a="fr" data-id="${esc(m.id)}" tabindex="0" title="Clicca per il dettaglio"><td><b>${esc(m.nome)}</b><div class="hint">dal ${fmtData(m.da)}</div></td><td class="num" style="color:var(--bad)"><b>${eur(m.res)}</b></td></tr>`).join('')}</tbody></table></div>${morosi.length > 8 ? `<div class="muted" style="margin-top:6px">… e altri ${morosi.length - 8}</div>` : ''}` : '<div class="empty"><div>Nessuna quota scaduta.</div></div>'}</div>
-        <div class="card"><h2>Eventi ${anno}</h2>
-          ${eventi.length ? `<div class="table-wrap"><table><thead><tr><th>Evento</th><th class="num">Entrate</th><th class="num">Uscite</th><th class="num">Risultato</th></tr></thead><tbody>${eventi.map((e) => `<tr class="click" data-drill="eco" data-a="ev" data-id="${esc(e.id)}" tabindex="0" title="Clicca per i movimenti"><td><b>${esc(e.nome)}</b></td><td class="num">${eur(e.en)}</td><td class="num">${eur(e.us)}</td><td class="num" style="color:${e.ris >= 0 ? 'var(--ok)' : 'var(--bad)'}"><b>${eur(e.ris)}</b></td></tr>`).join('')}</tbody></table></div>`
-            : '<div class="empty"><div>Nessun evento con movimenti. In Conto di Loggia, il pulsante «Eventi» li raggruppa.</div></div>'}</div>
-      </div>
+      ${(() => {
+        const riquadri = [
+          { vuoto: !mov.length, nome: 'Movimenti del ' + anno, html: `<div class="card"><h2>Entrate e uscite per mese</h2>${grafico}</div>` },
+          { vuoto: !sc.length, nome: 'Quote del ' + anno, html: `<div class="card"><h2>Quote dei Fratelli ${anno}</h2>
+            <div class="stat drillable" data-drill="eco" data-a="quote" role="button" tabindex="0" title="Clicca per l’elenco delle quote" style="box-shadow:none;padding:0 0 8px"><div class="n" style="font-size:1.5rem">${eur(versato)} <span class="muted" style="font-size:.9rem;font-weight:400">su ${eur(dovuto)} (${dovuto ? Math.round(versato / dovuto * 100) : 0}%)</span></div></div>${barra(versato, dovuto, 'var(--ok)')}
+            <div class="actions drillable riga-d" data-drill="eco" data-a="aperte" role="button" tabindex="0" title="Clicca per vedere chi deve versare" style="justify-content:space-between;margin:10px 0;padding:4px 8px"><span>Residuo da incassare</span><b>${eur(residuo)}</b></div>
+            <div class="actions drillable riga-d" data-drill="eco" data-a="scadute" role="button" tabindex="0" title="Clicca per vedere le quote scadute" style="justify-content:space-between;padding:4px 8px"><span>Di cui già scaduto</span><b style="color:${scaduto ? 'var(--bad)' : 'inherit'}">${eur(scaduto)}</b></div>
+            ${voci.length ? `<div style="margin-top:12px">${voci.map(([k, x]) => `<div class="drillable riga-d" data-drill="eco" data-a="voce" data-k="${esc(k)}" role="button" tabindex="0" title="Clicca per l’elenco di questa voce" style="margin:4px 0;padding:6px 8px"><div style="display:flex;justify-content:space-between;font-size:.9rem"><span>${esc(k)}</span><span>${eur(x.ver)} / ${eur(x.dov)}</span></div>${barra(x.ver, x.dov, 'var(--gold)')}</div>`).join('')}</div>` : ''}
+            <div style="margin-top:12px"><a href="#/pagamenti/scadenze">Vai a Tesoreria</a></div></div>` },
+          { vuoto: !perCategoria(mov, 1).length, nome: 'Entrate', html: `<div class="card"><h2>Da dove arrivano i soldi</h2>${elencoCat(perCategoria(mov, 1), 'var(--ok)', 1)}</div>` },
+          { vuoto: !perCategoria(mov, -1).length, nome: 'Uscite', html: `<div class="card"><h2>Dove vanno i soldi</h2>${elencoCat(perCategoria(mov, -1), 'var(--bad)', -1)}</div>` },
+          { vuoto: !morosi.length, nome: 'Quote scadute', html: `<div class="card"><h2>Quote scadute <small>${morosi.length}</small></h2>
+            <div class="table-wrap"><table><tbody>${morosi.slice(0, 8).map((m) => `<tr class="click" data-drill="eco" data-a="fr" data-id="${esc(m.id)}" tabindex="0" title="Clicca per il dettaglio"><td><b>${esc(m.nome)}</b><div class="hint">dal ${fmtData(m.da)}</div></td><td class="num" style="color:var(--bad)"><b>${eur(m.res)}</b></td></tr>`).join('')}</tbody></table></div>${morosi.length > 8 ? `<div class="muted" style="margin-top:6px">… e altri ${morosi.length - 8}</div>` : ''}</div>` },
+          { vuoto: !eventi.length, nome: 'Eventi ' + anno, html: `<div class="card"><h2>Eventi ${anno}</h2>
+            <div class="table-wrap"><table><thead><tr><th>Evento</th><th class="num">Entrate</th><th class="num">Uscite</th><th class="num">Risultato</th></tr></thead><tbody>${eventi.map((e) => `<tr class="click" data-drill="eco" data-a="ev" data-id="${esc(e.id)}" tabindex="0" title="Clicca per i movimenti"><td><b>${esc(e.nome)}</b></td><td class="num">${eur(e.en)}</td><td class="num">${eur(e.us)}</td><td class="num" style="color:${e.ris >= 0 ? 'var(--ok)' : 'var(--bad)'}"><b>${eur(e.ris)}</b></td></tr>`).join('')}</tbody></table></div></div>` },
+        ];
+        const pieni = riquadri.filter((r) => !r.vuoto), vuoti = riquadri.filter((r) => r.vuoto);
+        // i riquadri senza dati non occupano spazio: diventano una riga di etichette "nessun dato"
+        return `<div class="grid cols-2">${pieni.map((r) => r.html).join('')}</div>`
+          + (vuoti.length ? `<div class="eco-vuoti" aria-label="Sezioni senza dati">${vuoti.map((r) => `<span class="chip" title="Nessun dato registrato">${esc(r.nome)}: nessun dato</span>`).join('')}</div>` : '');
+      })()}
       ${(daRic || senzaCat) ? `<div class="notice" style="margin-bottom:14px"><b>Da sistemare nel Conto di Loggia:</b> ${daRic ? daRic + (daRic === 1 ? ' movimento da riconciliare' : ' movimenti da riconciliare') : ''}${daRic && senzaCat ? ', ' : ''}${senzaCat ? senzaCat + (senzaCat === 1 ? ' uscita senza categoria' : ' uscite senza categoria') : ''}. <a href="#/pagamenti/conto">Apri il Conto di Loggia</a></div>` : ''}`;
   }
 

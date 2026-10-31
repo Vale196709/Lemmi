@@ -287,6 +287,20 @@
     }).join('');
   }
 
+  /* ---------- tema: automatico (segue il dispositivo), chiaro o scuro ---------- */
+  const TEMI = [['auto', 'Automatico', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/></svg>'], ['chiaro', 'Chiaro', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'], ['scuro', 'Scuro', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>']];
+  const temaAttuale = () => { try { return localStorage.getItem('lemmi.tema') || 'auto'; } catch (e) { return 'auto'; } };
+  function applicaTema(t) {
+    try { if (t === 'auto') localStorage.removeItem('lemmi.tema'); else localStorage.setItem('lemmi.tema', t); } catch (e) { /* solo per questa sessione */ }
+    if (t === 'auto') delete document.documentElement.dataset.tema; else document.documentElement.dataset.tema = t;
+    $$('.tema-sw button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tema === t ? 'true' : 'false'));
+  }
+  function temaHtml() {
+    const t = temaAttuale();
+    return `<div class="tema-sw" role="group" aria-label="Tema dei colori">${TEMI.map(([k, n, ic]) =>
+      `<button type="button" data-tema="${k}" aria-pressed="${k === t}" title="Tema: ${n}"><span class="t-ic" aria-hidden="true">${ic}</span><span class="t-txt">${n}</span></button>`).join('')}</div>`;
+  }
+
   // Versione dell'app (da js/versione.js), in fondo al menu laterale
   function versioneHtml() {
     const v = window.LEMMI_VERSIONE;
@@ -302,10 +316,16 @@
         <div class="brand"><div class="logo-mark">${logoSvg()}</div><div><b>Lemmi</b><small>${esc(nomeLoggia('Gestione di Loggia'))}</small></div></div>
         <nav class="nav">${menuHtml(p)}</nav>
         <div class="who"><b>${esc(p.nome_visualizzato || state.user.email)}</b><span>${esc(ETICHETTA_RUOLO[p.ruolo] || p.ruolo)}</span>
-          <button class="btn ghost small" id="b-logout">Esci</button>${versioneHtml()}</div>
+          <button class="btn ghost small" id="b-logout">Esci</button>${temaHtml()}${versioneHtml()}</div>
       </aside>
       <main id="view"></main></div>`;
     $('#b-logout').onclick = () => state.sb.auth.signOut();
+    // un clic sul tema già attivo passa al successivo (sul telefono si vede solo quello attivo)
+    $$('.tema-sw button').forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.tema;
+      const i = TEMI.findIndex((x) => x[0] === k);
+      applicaTema(b.getAttribute('aria-pressed') === 'true' ? TEMI[(i + 1) % TEMI.length][0] : k);
+    }));
     $$('.nav-head, .nav-tog').forEach((b) => b.addEventListener('click', () => {
       const g = b.closest('.nav-group');
       const aperto = g.classList.toggle('open');

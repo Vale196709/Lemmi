@@ -202,7 +202,7 @@
 
     const verificaPdf = () => {
       const v = an.verifica, b = an.banca;
-      if (v.ok) return `<div class="notice" style="margin-top:10px;background:var(--ok-bg);color:#145c40"><b>Quadra con l’estratto della banca</b> (${v.verificati.join(', ')}): entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}${b.saldoFinale !== null ? ', saldo finale ' + P.eur(b.saldoFinale) : ''}.</div>`;
+      if (v.ok) return `<div class="notice" style="margin-top:10px;background:var(--ok-bg);color:var(--ok)"><b>Quadra con l’estratto della banca</b> (${v.verificati.join(', ')}): entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}${b.saldoFinale !== null ? ', saldo finale ' + P.eur(b.saldoFinale) : ''}.</div>`;
       return `<div class="notice bad" style="margin-top:10px"><b>Attenzione: i movimenti letti non quadrano con i totali dell’estratto.</b> ${v.falliti.length ? 'Non tornano: ' + v.falliti.join(', ') + '. ' : ''}${v.senzaTotali ? 'Nel PDF non ho trovato i totali per il controllo. ' : ''}Letto: entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}.
         <label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-top:8px"><input type="checkbox" id="i-forza"> Importa comunque (dopo aver controllato i movimenti)</label></div>`;
     };
@@ -212,7 +212,7 @@
       const mp = an.mappa;
       esito.innerHTML = `
         ${an.movimenti.length
-          ? `<div class="notice" style="background:var(--ok-bg);color:#145c40"><b>${r.righe} movimenti</b> dal ${fmtData(r.dal)} al ${fmtData(r.al)} · entrate ${P.eur(r.entrate)} · uscite ${P.eur(r.uscite)}${an.scartate ? ` · ${an.scartate} righe non valide ignorate (totali, intestazioni…)` : ''}</div>`
+          ? `<div class="notice" style="background:var(--ok-bg);color:var(--ok)"><b>${r.righe} movimenti</b> dal ${fmtData(r.dal)} al ${fmtData(r.al)} · entrate ${P.eur(r.entrate)} · uscite ${P.eur(r.uscite)}${an.scartate ? ` · ${an.scartate} righe non valide ignorate (totali, intestazioni…)` : ''}</div>`
           : '<div class="notice bad">Non sono riuscito a riconoscere i movimenti: indica qui sotto quali colonne contengono data e importo.</div>'}
         ${an.pdf ? '' : `<details ${an.movimenti.length ? '' : 'open'} style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Controlla il riconoscimento delle colonne</summary>
           <div class="form-grid" style="margin-top:12px">

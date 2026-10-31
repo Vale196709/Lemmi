@@ -64,7 +64,7 @@
           <div class="meter-leg">
             <span><span class="dot" style="background:var(--navy-3)"></span>Dati dell’app <b>${esc(fmtByte(dati))}</b></span>
             <span><span class="dot" style="background:var(--gold)"></span>Backup interni <b>${esc(fmtByte(bk))}</b></span>
-            <span><span class="dot" style="background:#b9c3dc"></span>Sistema e altro <b>${esc(fmtByte(altro))}</b></span></div>
+            <span><span class="dot" style="background:var(--line-strong)"></span>Sistema e altro <b>${esc(fmtByte(altro))}</b></span></div>
           ${avviso(pDb, 'Database')}
           <table style="margin-top:14px"><thead><tr><th>Tabella</th><th style="text-align:right">Righe</th><th style="text-align:right">Spazio</th></tr></thead>
             <tbody>${(sp.tabelle || []).map((t) => `<tr><td>${esc(t.nome)}</td><td style="text-align:right">${Number(t.righe).toLocaleString('it-IT')}</td><td style="text-align:right">${esc(fmtByte(t.byte))}</td></tr>`).join('')}</tbody></table>

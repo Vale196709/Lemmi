@@ -13,6 +13,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Lemmi">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script>
+    // tema scelto dall'utente (automatico, chiaro o scuro): applicato subito, prima di disegnare la pagina
+    try { var t = localStorage.getItem('lemmi.tema'); if (t === 'scuro' || t === 'chiaro') document.documentElement.dataset.tema = t; } catch (e) {}
+  </script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>

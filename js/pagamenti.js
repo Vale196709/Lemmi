@@ -362,7 +362,7 @@
     const totale = pag.vers.reduce((a, x) => a + num(x.importo), 0);
     const nonColl = pag.vers.filter((x) => x.non_collegato);
     c.innerHTML = `
-      ${pag.coll.map((x) => `<div class="notice" style="background:var(--gold-soft);color:#5d4608"><b>${esc(x.voce)}</b> · ${num(x.n_versamenti)} versament${num(x.n_versamenti) === 1 ? 'o' : 'i'} nel ${pag.anno}: <b>${eur(x.totale)}</b></div>`).join('')}
+      ${pag.coll.map((x) => `<div class="notice" style="background:var(--gold-soft);color:var(--gold-ink)"><b>${esc(x.voce)}</b> · ${num(x.n_versamenti)} versament${num(x.n_versamenti) === 1 ? 'o' : 'i'} nel ${pag.anno}: <b>${eur(x.totale)}</b></div>`).join('')}
       ${nonColl.length ? `<div class="notice">${nonColl.length} versament${nonColl.length === 1 ? 'o non è collegato' : 'i non sono collegati'} a una scadenza (${eur(nonColl.reduce((a, x) => a + num(x.importo), 0))}).</div>` : ''}
       <div class="table-wrap"><table><thead><tr><th>Data</th><th>Fratello</th><th>Voce</th><th class="num">Importo</th><th>Modalità</th><th>Riferimento</th><th></th><th></th></tr></thead><tbody>
       ${pag.vers.length ? pag.vers.map((x) => `<tr><td>${fmtData(x.data_versamento)}</td><td>${x.fratello ? '<b>' + esc(x.fratello) + '</b>' : '<span class="muted">Collettivo</span>'}</td><td>${esc(x.voce)}</td>
