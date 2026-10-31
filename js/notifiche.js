@@ -43,10 +43,17 @@
     return reg ? reg.pushManager.getSubscription() : null;
   }
 
-  async function attiva() {
+  // attesa con limite di tempo: se il servizio in background non risponde si segnala invece di restare bloccati
+  const conLimite = (p, ms, msg) => Promise.race([p, new Promise((_, ko) => setTimeout(() => ko(new Error(msg)), ms))]);
+
+  async function attiva(avviso) {
+    avviso('Rispondi alla richiesta del browser (di solito in alto a sinistra, accanto all’indirizzo): scegli «Consenti».');
     const permesso = await Notification.requestPermission();
-    if (permesso !== 'granted') throw new Error('Permesso negato: abilita le notifiche per Lemmi nelle impostazioni del browser o del telefono.');
-    const reg = await navigator.serviceWorker.ready;
+    if (permesso !== 'granted') throw new Error('Permesso non concesso: abilita le notifiche per questo sito nelle impostazioni del browser (icona accanto all’indirizzo) e riprova.');
+    avviso('Collego questo dispositivo…');
+    let reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) reg = await navigator.serviceWorker.register('sw.js');
+    reg = await conLimite(navigator.serviceWorker.ready, 15000, 'Il servizio in background dell’app non è pronto: ricarica la pagina con Ctrl+F5 e riprova.');
     const { chiave } = await funzione('chiave');
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chiaveBin(chiave) });
     const j = sub.toJSON();
@@ -82,17 +89,18 @@
           : '<button class="btn gold" id="nt-on" type="button">Attiva le notifiche</button>';
       }
       const ruolo = state.profilo && state.profilo.ruolo;
-      const cosa = ruolo === 'fratello' ? 'la tornata del giorno dopo, le tue quote in scadenza e la consegna delle tue tavole'
-        : ruolo === 'tesoriere' ? 'la tornata del giorno dopo e le quote in scadenza'
-          : ruolo === 'amministratore' ? 'la tornata del giorno dopo, le votazioni dei bussanti e le quote in scadenza'
-            : 'la tornata del giorno dopo e le votazioni dei bussanti';
+      const cosa = ruolo === 'fratello' ? 'della tornata del giorno dopo, delle tue quote in scadenza e della consegna delle tue tavole'
+        : ruolo === 'tesoriere' ? 'della tornata del giorno dopo e delle quote in scadenza'
+          : ruolo === 'amministratore' ? 'della tornata del giorno dopo, delle votazioni dei bussanti e delle quote in scadenza'
+            : 'della tornata del giorno dopo e delle votazioni dei bussanti';
       box.innerHTML = `<h2>Notifiche sul telefono</h2>
         <p class="muted" style="margin:0 0 10px">Ogni mattina Lemmi ti avvisa di ${cosa}. Vale per questo dispositivo: attivale su ognuno che usi.</p>
         <div class="actions">${stato}${azioni}</div><div class="err" id="nt-err" style="margin-top:8px"></div>`;
       const conErrore = (id, fn, ok) => { const b = $(id, box); if (b) b.addEventListener('click', async () => {
-        b.disabled = true; $('#nt-err', box).textContent = '';
-        try { await fn(); if (ok) toast(ok, 'ok'); } catch (e) { $('#nt-err', box).textContent = messaggioErrore(e); }
-        b.disabled = false; disegna();
+        const msg = $('#nt-err', box);
+        b.disabled = true; msg.className = 'hint'; msg.textContent = '';
+        try { await fn((t) => { msg.className = 'hint'; msg.textContent = t; }); if (ok) toast(ok, 'ok'); await disegna(); }
+        catch (e) { b.disabled = false; msg.className = 'err'; msg.textContent = messaggioErrore(e); }
       }); };
       conErrore('#nt-on', attiva, 'Notifiche attivate su questo dispositivo');
       conErrore('#nt-off', disattiva, 'Notifiche disattivate su questo dispositivo');
