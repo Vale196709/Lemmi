@@ -1,0 +1,8 @@
+AGGIORNAMENTO 36 - Il Segretario legge il Conto di Loggia
+
+Un solo passo: Supabase > SQL Editor > New query, incolla sql/lemmi_aggiornamento_36.sql e premi Run.
+Si può rieseguire senza danni. Nessun cambiamento al sito.
+
+Cosa cambia: la Relazione annuale e il conto gestione dell'insediamento, quando li prepara il Segretario,
+contengono ora entrate, uscite e saldi del Conto di Loggia. Il Segretario può solo leggere: inserire, modificare
+o eliminare movimenti resta riservato a Tesoriere e amministratore. Il menu Tesoreria per il Segretario non cambia.
