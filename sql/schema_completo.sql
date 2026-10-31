@@ -1,7 +1,28 @@
 -- Lemmi - STRUTTURA COMPLETA DEL DATABASE (esportata da Supabase il 31/10/2026 con sql/esporta_schema.sql)
 -- Solo struttura, nessun dato. Serve come documentazione e per ricostruire il database in caso di emergenza.
--- Ordine: tabelle, indici, viste, funzioni, trigger, regole di sicurezza (RLS), archivi file, pianificazioni.
--- NB: per una ricostruzione, eseguire prima le tabelle senza le chiavi esterne o in ordine di dipendenza.
+-- Ordine: tipi, sequenze, tabelle, indici, viste, funzioni, trigger, regole di sicurezza (RLS), archivi file, pianificazioni.
+-- Per una ricostruzione: eseguire in un progetto Supabase nuovo; se una tabella dipende da un'altra non ancora creata,
+-- rieseguire lo script (le istruzioni sono ripetibili) finché non restano errori.
+
+do $t$ begin create type public.categoria_messaggio as enum ('convocazione', 'comunicazione', 'sollecito'); exception when duplicate_object then null; end $t$;
+
+do $t$ begin create type public.grado_massonico as enum ('apprendista', 'compagno', 'maestro'); exception when duplicate_object then null; end $t$;
+
+do $t$ begin create type public.ruolo_app as enum ('amministratore', 'venerabile', 'segretario', 'tesoriere', 'fratello'); exception when duplicate_object then null; end $t$;
+
+do $t$ begin create type public.stato_fratello as enum ('attivo', 'in_sonno', 'oriente_eterno', 'trasferito'); exception when duplicate_object then null; end $t$;
+
+do $t$ begin create type public.stato_messaggio as enum ('bozza', 'in_approvazione', 'approvato', 'inviato'); exception when duplicate_object then null; end $t$;
+
+do $t$ begin create type public.tipo_documento as enum ('modulo_a1', 'modulo_c1', 'certificato_penale', 'carichi_pendenti', 'carichi_pendenti_oriente', 'curriculum', 'foto', 'altro'); exception when duplicate_object then null; end $t$;
+
+do $t$ begin create type public.tipo_domanda as enum ('iniziazione', 'riammissione', 'cancellazione_pena', 'regolarizzazione', 'affiliazione_estero'); exception when duplicate_object then null; end $t$;
+
+create sequence if not exists public.backup_esecuzioni_id_seq;
+
+create sequence if not exists public.backup_righe_id_seq;
+
+create sequence if not exists public.registro_attivita_id_seq;
 
 create table if not exists public.backup_esecuzioni (
   id bigint not null default nextval('backup_esecuzioni_id_seq'::regclass),
@@ -147,7 +168,7 @@ create table if not exists public.conto_saldi (
 alter table public.conto_saldi enable row level security;
 
 create table if not exists public.cronologia_modifiche (
-  id bigint not null,
+  id bigint not null generated always as identity,
   quando timestamp with time zone not null default now(),
   utente uuid,
   tabella text not null,
@@ -245,6 +266,9 @@ create table if not exists public.fratelli (
   note_riservate text,
   creato_il timestamp with time zone not null default now(),
   aggiornato_il timestamp with time zone not null default now(),
+  luogo_nascita text,
+  provincia_nascita character(2),
+  codice_fiscale text,
   constraint fratelli_pkey PRIMARY KEY (id),
   constraint fratelli_matricola_key UNIQUE (matricola)
 );
@@ -451,7 +475,7 @@ create table if not exists public.pratiche_passi (
 alter table public.pratiche_passi enable row level security;
 
 create table if not exists public.presenze_verbale (
-  id bigint not null,
+  id bigint not null generated always as identity,
   verbale_id uuid not null,
   fratello_id text not null,
   esito text not null,
@@ -472,6 +496,34 @@ create table if not exists public.profili (
   constraint profili_pkey PRIMARY KEY (user_id)
 );
 alter table public.profili enable row level security;
+
+create table if not exists public.push_chiavi (
+  id integer not null default 1,
+  pubblica text not null,
+  privata text not null,
+  creato_il timestamp with time zone not null default now(),
+  constraint push_chiavi_id_check CHECK ((id = 1)),
+  constraint push_chiavi_pkey PRIMARY KEY (id)
+);
+alter table public.push_chiavi enable row level security;
+
+create table if not exists public.push_inviati (
+  chiave text not null,
+  inviato_il timestamp with time zone not null default now(),
+  constraint push_inviati_pkey PRIMARY KEY (chiave)
+);
+alter table public.push_inviati enable row level security;
+
+create table if not exists public.push_iscrizioni (
+  endpoint text not null,
+  user_id uuid not null default auth.uid(),
+  chiavi jsonb not null,
+  dispositivo text,
+  creato_il timestamp with time zone not null default now(),
+  constraint push_iscrizioni_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  constraint push_iscrizioni_pkey PRIMARY KEY (endpoint)
+);
+alter table public.push_iscrizioni enable row level security;
 
 create table if not exists public.registro_attivita (
   id bigint not null default nextval('registro_attivita_id_seq'::regclass),
@@ -498,7 +550,7 @@ create table if not exists public.scadenze (
   eta_calcolata integer,
   importo_base numeric(10,2) not null,
   sconto numeric(10,2) not null default 0,
-  importo_dovuto numeric(10,2) default GREATEST((importo_base - sconto), (0)::numeric),
+  importo_dovuto numeric(10,2) generated always as (GREATEST((importo_base - sconto), (0)::numeric)) stored,
   data_scadenza date,
   motivo_eccezione text,
   note text,
@@ -680,7 +732,7 @@ create or replace view public.v_conto_movimenti as
    FROM conto_movimenti m
      LEFT JOIN categorie_movimento c ON c.id = m.categoria_id
      LEFT JOIN fratelli f ON f.id = m.fratello_id
-  WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'tesoriere'::ruolo_app]);
+  WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]);
 
 create or replace view public.v_fratelli_completi as
  SELECT id,
@@ -1225,6 +1277,20 @@ end;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.fratello_mio()
+ RETURNS uuid
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- collegamento salvato nel profilo oppure, se manca, il Fratello con la stessa e-mail dell'utente (solo se è uno)
+  select coalesce(p.fratello_id,
+           (select min(f.id::text)::uuid from public.fratelli f join auth.users u on lower(u.email) = lower(f.email)
+             where u.id = auth.uid() having count(*) = 1))
+  from public.profili p where p.user_id = auth.uid() and p.ruolo::text = 'fratello'
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.genera_calendario(p_anno integer, p_ora_ordinaria time without time zone DEFAULT NULL::time without time zone, p_ora_informale time without time zone DEFAULT NULL::time without time zone, p_estate_dal date DEFAULT NULL::date, p_estate_al date DEFAULT NULL::date, p_inverno_dal date DEFAULT NULL::date, p_inverno_al_gen date DEFAULT NULL::date)
  RETURNS integer
  LANGUAGE plpgsql
@@ -1380,20 +1446,18 @@ begin
   if not public.lemmi_e_admin() then
     raise exception 'Solo l''amministratore può cambiare i profili';
   end if;
-  if p_ruolo not in ('amministratore', 'venerabile', 'segretario', 'tesoriere') then
+  if p_ruolo not in ('amministratore', 'venerabile', 'segretario', 'tesoriere', 'fratello') then
     raise exception 'Profilo non valido: %', p_ruolo;
   end if;
   if p_user = auth.uid() then
     raise exception 'Il tuo profilo non si cambia da qui (per non restare senza amministratore)';
   end if;
-  -- il valore è passato come letterale, così funziona sia con colonna testo sia con enum
   execute format('update public.profili set ruolo = %L where user_id = $1', p_ruolo) using p_user;
   get diagnostics v_righe = row_count;
   if v_righe = 0 then
     raise exception 'Utente non trovato tra i profili';
   end if;
-end;
-$function$
+end $function$
 ;
 
 CREATE OR REPLACE FUNCTION public.info_spazio()
@@ -1525,6 +1589,29 @@ CREATE OR REPLACE FUNCTION public.lemmi_ruolo_in(VARIADIC r text[])
  SET search_path TO 'public'
 AS $function$
   select exists (select 1 from public.profili p where p.user_id = auth.uid() and p.ruolo::text = any (r));
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.mie_quote()
+ RETURNS TABLE(id uuid, anno integer, voce text, rata_n integer, rate_totali integer, importo_dovuto numeric, data_scadenza date, versato numeric, residuo numeric, stato text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select s.id, s.anno, q.nome, s.rata_n, s.rate_totali, s.importo_dovuto, s.data_scadenza,
+         coalesce(p.versato, 0)::numeric(10,2),
+         (s.importo_dovuto - coalesce(p.versato, 0))::numeric(10,2),
+         case when s.importo_dovuto = 0 then 'Esente'
+              when s.importo_dovuto - coalesce(p.versato, 0) <= 0 then 'Pagato'
+              when s.data_scadenza is not null and s.data_scadenza < current_date then 'Scaduto'
+              when coalesce(p.versato, 0) > 0 then 'Parziale'
+              else 'Da pagare' end
+  from public.scadenze s
+  join public.voci_quota q on q.id = s.voce_id
+  left join (select v.scadenza_id, sum(v.importo) as versato from public.versamenti v where v.scadenza_id is not null group by v.scadenza_id) p
+    on p.scadenza_id = s.id
+  where public.fratello_mio() is not null and s.fratello_id = public.fratello_mio()
+  order by s.anno desc, s.data_scadenza nulls last
 $function$
 ;
 
@@ -1911,6 +1998,9 @@ create policy cariche_storico_modifica on public.cariche_storico as PERMISSIVE f
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+create policy fratello_proprie_cariche on public.cariche_storico as PERMISSIVE for SELECT to authenticated
+  using ((fratello_id = fratello_mio()));
+
 create policy categorie_movimento_cancellazione on public.categorie_movimento as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
@@ -1938,7 +2028,7 @@ create policy conto_movimenti_modifica on public.conto_movimenti as PERMISSIVE f
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
 create policy conto_saldi_lettura on public.conto_saldi as PERMISSIVE for SELECT to public
-  using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'tesoriere'::ruolo_app])));
+  using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])));
 
 create policy conto_saldi_scrittura on public.conto_saldi as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])))
@@ -2011,6 +2101,9 @@ create policy fratelli_modifica_ammin_segretario on public.fratelli as PERMISSIV
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+create policy fratello_propria_scheda on public.fratelli as PERMISSIVE for SELECT to authenticated
+  using ((id = fratello_mio()));
+
 create policy import_estratti_cancellazione on public.import_estratti as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
@@ -2023,6 +2116,9 @@ create policy import_estratti_lettura on public.import_estratti as PERMISSIVE fo
 create policy import_estratti_modifica on public.import_estratti as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
+
+create policy fratello_propri_lavori on public.lavori as PERMISSIVE for SELECT to authenticated
+  using ((fratello_id = fratello_mio()));
 
 create policy lavori_cancellazione on public.lavori as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
@@ -2096,6 +2192,9 @@ create policy parametri_quote_admin on public.parametri_quote as PERMISSIVE for 
 
 create policy parametri_quote_lettura on public.parametri_quote as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])));
+
+create policy fratello_propri_passaggi on public.passaggi_grado as PERMISSIVE for SELECT to authenticated
+  using ((fratello_id = fratello_mio()));
 
 create policy passaggi_cancellazione on public.passaggi_grado as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
@@ -2175,6 +2274,15 @@ create policy profili_admin on public.profili as PERMISSIVE for ALL to public
 
 create policy profili_lettura on public.profili as PERMISSIVE for SELECT to public
   using (((user_id = auth.uid()) OR (ruolo_corrente() = 'amministratore'::ruolo_app)));
+
+create policy push_proprie_cancellazione on public.push_iscrizioni as PERMISSIVE for DELETE to authenticated
+  using ((user_id = auth.uid()));
+
+create policy push_proprie_inserimento on public.push_iscrizioni as PERMISSIVE for INSERT to authenticated
+  with check ((user_id = auth.uid()));
+
+create policy push_proprie_lettura on public.push_iscrizioni as PERMISSIVE for SELECT to authenticated
+  using ((user_id = auth.uid()));
 
 create policy registro_attivita_admin on public.registro_attivita as PERMISSIVE for SELECT to authenticated
   using (lemmi_e_admin());
@@ -2276,3 +2384,5 @@ create policy tavole_modifica on storage.objects as PERMISSIVE for UPDATE to aut
 -- archivio file: tavole (privato: t, limite: 10485760 byte)
 
 -- pianificazione lemmi-backup-giornaliero: 30 1 * * * (attiva: t)
+
+-- pianificazione lemmi-notifiche: 0 7 * * * (attiva: t)
