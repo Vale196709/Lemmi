@@ -71,8 +71,9 @@ select definizione from (
   select 7, b.id, format('-- archivio file: %s (privato: %s, limite: %s byte)', b.id, not b.public, coalesce(b.file_size_limit::text, 'nessuno'))
   from storage.buckets b
   union all
-  -- 8. attività pianificate (backup automatici)
-  select 8, j.jobname, format('-- pianificazione %s: %s  →  %s', j.jobname, j.schedule, j.command)
-  from cron.job j
+  -- 8. backup automatici: la pianificazione richiede l'estensione pg_cron (qui si controlla solo se è attiva)
+  select 8, 'pg_cron', case when to_regclass('cron.job') is null
+    then '-- ATTENZIONE: estensione pg_cron NON attiva: i backup automatici non sono pianificati'
+    else '-- estensione pg_cron attiva' end
 ) x
 order by ord, chiave;
