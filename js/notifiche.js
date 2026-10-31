@@ -25,7 +25,10 @@
   };
 
   async function funzione(azione) {
-    const { data, error } = await state.sb.functions.invoke('notifiche', { body: { azione } });
+    // si passa esplicitamente il "biglietto" dell'utente collegato, così la funzione sa chi chiama
+    const { data: ses } = await state.sb.auth.getSession();
+    const headers = ses && ses.session ? { Authorization: 'Bearer ' + ses.session.access_token } : {};
+    const { data, error } = await state.sb.functions.invoke('notifiche', { body: { azione }, headers });
     if (error) {
       let msg = error.message || 'Errore';
       try { const j = await error.context.json(); if (j && j.errore) msg = j.errore; } catch (_) { /* nessun dettaglio */ }

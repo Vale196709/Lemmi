@@ -90,7 +90,9 @@
       if (!window.confirm('Creare l’utente ' + body.email + ' con il profilo «' + PROFILI[body.ruolo] + '»?')) return;
       const ok = $('#nu-ok', v); ok.disabled = true; esito.innerHTML = '';
       try {
-        const { data, error } = await state.sb.functions.invoke('crea-utente', { body });
+        const { data: ses } = await state.sb.auth.getSession();
+        const headers = ses && ses.session ? { Authorization: 'Bearer ' + ses.session.access_token } : {};
+        const { data, error } = await state.sb.functions.invoke('crea-utente', { body, headers });
         if (error) {
           let msg = error.message || 'Errore';
           const st = error.context && error.context.status;
