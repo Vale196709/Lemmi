@@ -40,7 +40,11 @@
   }
 
   const visibili = () => st.righe.filter((r) => st.filtro === 'tutti' || (st.filtro === 'attivi' ? r.f.stato === 'attivo' : r.f.stato !== 'attivo'));
-  const notizia = (f) => ({ assonnato: 'Collocato in sonno', depennato: 'Depennato', dimissionario: 'Dimissionario', trasferito: 'Trasferito ad altra Loggia', oriente_eterno: 'Passato all’Oriente Eterno' }[f.stato] || '');
+  const notizia = (f) => {
+    const base = ({ assonnato: 'Collocato in sonno', depennato: 'Depennato', dimissionario: 'Dimissionario', trasferito: 'Trasferito ad altra Loggia', oriente_eterno: 'Passato all’Oriente Eterno' }[f.stato] || '');
+    if (!base) return '';
+    return base + (f.data_uscita ? ' il ' + fmtData(f.data_uscita) : '') + (f.stato === 'trasferito' && f.loggia_destinazione ? ' (' + f.loggia_destinazione + ')' : '') + (f.stato === 'trasferito' && f.exeat_rif ? ', Exeat ' + f.exeat_rif : '');
+  };
 
   /* ---------- PDF sul modello del Libro Matricola (due schede per pagina) ---------- */
   async function pdf() {

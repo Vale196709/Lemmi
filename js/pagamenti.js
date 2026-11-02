@@ -193,7 +193,7 @@
       <div class="f"><span class="lbl">Fratelli a cui assegnare la quota</span>
         ${stati.length ? stati.map((s, i) => `<label class="check"><input type="checkbox" name="stato" value="${esc(s)}" ${/attiv/i.test(s) ? 'checked' : ''}> ${esc(s)} <span class="muted">(${frat.filter((x) => x.stato === s).length})</span></label>`).join('')
           : '<span class="muted">Nessuno stato trovato nell\'anagrafica.</span>'}</div>
-      <div class="f hint">L\'importo dipende dall\'età di ciascun Fratello (fasce nel database). Le scadenze già esistenti non vengono duplicate.</div></div>`;
+      <div class="f hint">L\'importo dipende dall\'età di ciascun Fratello (fasce nel database). Le scadenze già esistenti non vengono duplicate. I Fratelli usciti nell\'anno (Oriente Eterno o trasferiti, con la data in scheda) ricevono comunque la quota dell\'anno secondo le regole d\'uscita.</div></div>`;
     modal('Genera la capitazione', corpo, {
       conferma: 'Genera scadenze',
       onSubmit: async (f, chiudi, errore) => {

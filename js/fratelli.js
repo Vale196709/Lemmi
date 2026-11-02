@@ -40,7 +40,7 @@
       .select('id,cognome,nome,matricola,stato,grado_attuale,carica_attuale,citta,email,cellulare').order('cognome').order('nome'));
     const stati = Array.from(new Set(lista.righe.map((x) => x.stato).filter(Boolean))).sort();
     v.innerHTML = `
-      <div class="page-head"><div><h1>Fratelli</h1><p>Anagrafica della Loggia · clicca su un nome per aprire la scheda</p></div></div>
+      <div class="page-head"><div><h1>Fratelli</h1><p>Anagrafica della Loggia · clicca su un nome per aprire la scheda</p></div>${canEdit() ? `<div class="right actions"><button class="btn gold" id="f-nuovo">${IC.plus} Nuovo Fratello</button></div>` : ''}</div>
       <div class="actions" style="margin-bottom:14px"><div class="searchbar">${IC.search}<input id="q" type="search" placeholder="Cerca per cognome, nome, matricola o città…" value="${esc(lista.q)}"></div>
         <select id="f-stato" style="width:auto"><option value="">Tutti gli stati</option>${P.opzioni(stati.map((s) => ({ v: s, t: cap(s) })), lista.stato)}</select>
         <select id="f-grado" style="width:auto"><option value="">Tutti i gradi</option>${P.opzioni(GRADI.map((g) => ({ v: g, t: cap(g) })), lista.grado)}</select>
@@ -68,6 +68,7 @@
       th.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ordinaPer(th.dataset.col); } });
     });
     $('#q').addEventListener('input', (e) => { lista.q = e.target.value; disegna(); });
+    if ($('#f-nuovo')) $('#f-nuovo').onclick = () => apriNuovo();
     $('#f-stato').addEventListener('change', (e) => { lista.stato = e.target.value; disegna(); });
     $('#f-grado').addEventListener('change', (e) => { lista.grado = e.target.value; disegna(); });
     disegna();
@@ -91,7 +92,10 @@
     passaggi.forEach((p) => ev.push({ tipo: 1, anno: p.anno, chiave: p.data || '', etichetta: String(p.anno), titolo: rango(p.grado) <= 1 ? 'Grado di ' + cap(p.grado) : 'Passaggio a ' + cap(p.grado), dettaglio: p.data ? fmtData(p.data) : '', modifica: 'grado', id: p.id }));
     cariche.forEach((c) => ev.push({ tipo: 2, anno: c.anno_dal, chiave: '', etichetta: c.anno_al && c.anno_al !== c.anno_dal ? c.anno_dal + '–' + c.anno_al : String(c.anno_dal), titolo: c.carica, dettaglio: c.note || '', modifica: 'carica', id: c.id }));
     (extra || []).forEach((e) => ev.push(e));
-    const ORD = [0, 1, 2, -1, 3];   // a pari anno: Bussante, Iniziazione, Grado, Carica, Tavola
+    if (f.data_uscita) ev.push({ tipo: 5, anno: Number(String(f.data_uscita).slice(0, 4)), chiave: f.data_uscita, etichetta: String(f.data_uscita).slice(0, 4),
+      titolo: f.stato === 'oriente_eterno' ? 'Passato all’Oriente Eterno' : 'Trasferito ad altra Loggia',
+      dettaglio: [fmtData(f.data_uscita), f.loggia_destinazione, f.exeat_rif && 'Exeat ' + f.exeat_rif].filter(Boolean).join(' · ') });
+    const ORD = [0, 1, 2, -1, 3, 9];   // a pari anno: Bussante, Iniziazione, Grado, Carica, Tavola, Uscita
     return ev.sort((a, b) => a.anno - b.anno || ORD[a.tipo] - ORD[b.tipo] || String(a.chiave).localeCompare(String(b.chiave)));
   }
 
@@ -129,7 +133,7 @@
   async function scheda(v, id) {
     const sb = state.sb;
     const [fr, vc, pg, cs] = await Promise.all([
-      sb.from('fratelli').select('id,cognome,nome,data_nascita,matricola,indirizzo,cap,citta,provincia,professione,cellulare,email,stato,anno_iniziazione,data_iniziazione').eq('id', id).maybeSingle(),
+      sb.from('fratelli').select('*').eq('id', id).maybeSingle(),
       sb.from('v_fratelli_completi').select('grado_attuale,carica_attuale').eq('id', id).maybeSingle(),
       sb.from('passaggi_grado').select('id,grado,anno,data').eq('fratello_id', id).order('anno'),
       sb.from('cariche_storico').select('id,fratello_id,carica,anno_dal,anno_al,note').eq('fratello_id', id),
@@ -144,23 +148,26 @@
       <div class="crumb"><a href="#/fratelli">Fratelli</a> › ${esc(f.cognome)} ${esc(f.nome)}</div>
       <div class="page-head"><div><h1>${esc(f.cognome)} ${esc(f.nome)}</h1>
         <p>${f.stato ? `<span class="badge ${f.stato === 'attivo' ? 'ok' : 'gray'}">${esc(cap(f.stato))}</span> ` : ''}${att.grado_attuale ? `<span class="badge gold">${esc(cap(att.grado_attuale))}</span> ` : ''}${att.carica_attuale ? `<span class="badge info">${esc(att.carica_attuale)}</span>` : ''}</p></div>
-        ${canEdit() ? `<div class="right actions"><button class="btn gold" id="s-car">${IC.plus} Aggiungi carica</button><button class="btn ghost" id="s-gra">Passaggio di grado</button><button class="btn ghost" id="s-ana">Modifica anagrafica</button>${L.wa && f.cellulare ? L.wa.fratello(f.id) + L.wa.sollecito(f.id) : ''}</div>` : ''}</div>
+        ${canEdit() ? `<div class="right actions"><button class="btn gold" id="s-car">${IC.plus} Aggiungi carica</button><button class="btn ghost" id="s-gra">Passaggio di grado</button><button class="btn ghost" id="s-ana">Modifica anagrafica</button><button class="btn ghost" id="s-usc">${f.data_uscita ? 'Modifica uscita' : 'Uscita (O.E. / trasferimento)'}</button>${L.wa && f.cellulare ? L.wa.fratello(f.id) + L.wa.sollecito(f.id) : ''}</div>` : ''}</div>
 
       <div class="card"><h2>Dati</h2><div class="kv">
         ${kv('Matricola', f.matricola)}${kv('Data di nascita', f.data_nascita ? fmtData(f.data_nascita) + (e !== null ? ' · ' + e + ' anni' : '') : '')}
         ${kv('Iniziazione', f.data_iniziazione ? fmtData(f.data_iniziazione) : f.anno_iniziazione ? String(f.anno_iniziazione) : '')}
-        ${kv('Residenza', residenza)}${kv('Professione', f.professione)}${kv('Cellulare', f.cellulare)}${kv('E-mail', f.email)}</div></div>
+        ${kv('Residenza', residenza)}${kv('Professione', f.professione)}${kv('Cellulare', f.cellulare)}${kv('E-mail', f.email)}
+        ${f.data_uscita ? kv(f.stato === 'oriente_eterno' ? 'Passato all’Oriente Eterno' : 'Trasferito ad altra Loggia', fmtData(f.data_uscita)) : ''}
+        ${f.loggia_destinazione ? kv('Loggia di destinazione', f.loggia_destinazione) : ''}${f.exeat_rif ? kv('Exeat', f.exeat_rif) : ''}${f.note_uscita ? kv('Note sull’uscita', f.note_uscita) : ''}</div></div>
 
       <div class="card"><h2>Storia <small>${storia.length} ${storia.length === 1 ? 'evento' : 'eventi'}</small></h2>
         ${storia.length ? `<div class="timeline">${storia.map((x) => `<div class="tl-item"><div class="tl-anno">${esc(x.etichetta)}</div>
-          <div class="tl-body"><span class="tl-tag">${['Iniziazione', 'Grado', 'Carica', 'Bussante', 'Tavola'][x.tipo]}</span><b>${esc(x.titolo)}</b>${x.dettaglio ? `<div class="hint">${esc(x.dettaglio)}</div>` : ''}</div>
-          <div class="act">${x.tipo === 3 ? `<a class="btn ghost small" href="#/bussanti/${esc(x.bussante)}">Apri</a>` : x.tipo === 4 ? (x.lav && x.lav.file_path ? `<button class="btn ghost small" data-tav="${esc(x.id)}">Scarica</button>` : '') : canEdit() ? `<button class="btn ghost small" data-ev="${x.modifica}" data-id="${esc(x.id || '')}">Modifica</button>` : ''}</div></div>`).join('')}</div>`
+          <div class="tl-body"><span class="tl-tag">${['Iniziazione', 'Grado', 'Carica', 'Bussante', 'Tavola', 'Uscita'][x.tipo]}</span><b>${esc(x.titolo)}</b>${x.dettaglio ? `<div class="hint">${esc(x.dettaglio)}</div>` : ''}</div>
+          <div class="act">${x.tipo === 3 ? `<a class="btn ghost small" href="#/bussanti/${esc(x.bussante)}">Apri</a>` : x.tipo === 5 ? '' : x.tipo === 4 ? (x.lav && x.lav.file_path ? `<button class="btn ghost small" data-tav="${esc(x.id)}">Scarica</button>` : '') : canEdit() ? `<button class="btn ghost small" data-ev="${x.modifica}" data-id="${esc(x.id || '')}">Modifica</button>` : ''}</div></div>`).join('')}</div>`
           : `<div class="empty">${IC.storia}<div>Nessun evento registrato.${canEdit() ? ' Usa i pulsanti in alto per aggiungere cariche, passaggi di grado e date.' : ''}</div></div>`}</div>`;
 
     if (canEdit()) {
       $('#s-car').onclick = () => L.storia.apriCarica(null, { fratello_id: id }).catch((x) => toast(messaggioErrore(x), 'bad'));
       $('#s-gra').onclick = () => apriPassaggio(null, id);
       $('#s-ana').onclick = () => apriAnagrafica(f).catch((e) => toast(messaggioErrore(e), 'bad'));
+      $('#s-usc').onclick = () => apriUscita(f);
       $$('[data-ev]', v).forEach((b) => b.addEventListener('click', () => {
         if (b.dataset.ev === 'date') apriDate(f);
         else if (b.dataset.ev === 'grado') apriPassaggio(passaggi.find((x) => x.id === b.dataset.id), id);
@@ -255,6 +262,89 @@
       },
     });
     const st = m.f.elements.stato; if (st) st.setAttribute('list', 'dl-stati');
+  }
+
+  /* ---------- uscita: Oriente Eterno o trasferimento ad altra Officina (script lemmi_aggiornamento_40.sql) ----------
+   * Quote: Oriente Eterno = dovute solo le rate scadute fino alla data; trasferito = dovuto tutto l'anno dell'uscita.
+   * In entrambi i casi si annullano le quote degli anni successivi. */
+  const campiUscita = (u) => `
+      <div class="f s6"><label for="u-tipo">Uscita</label><select id="u-tipo" name="u_tipo">
+        <option value="">— nessuna (Fratello in Loggia) —</option>
+        <option value="oriente_eterno" ${u.stato === 'oriente_eterno' ? 'selected' : ''}>Passato all’Oriente Eterno</option>
+        <option value="trasferito" ${u.stato === 'trasferito' ? 'selected' : ''}>Trasferito ad altra Officina</option></select></div>
+      ${campo('u_data', 'Data', u.data_uscita || '', { type: 'date', cls: 's6' })}
+      <div class="f s12 u-tr"><label for="x-u_loggia">Loggia di destinazione</label><input id="x-u_loggia" name="u_loggia" value="${esc(u.loggia_destinazione || '')}" placeholder="es. R.L. Nome n. 000 all’Oriente di Roma"></div>
+      <div class="f s12 u-tr"><label for="x-u_exeat">Exeat (data e numero)</label><input id="x-u_exeat" name="u_exeat" value="${esc(u.exeat_rif || '')}" placeholder="es. n. 123 del 15/03/2026"></div>
+      <div class="f s12 u-si"><label for="x-u_note">Note</label><input id="x-u_note" name="u_note" value="${esc(u.note_uscita || '')}"></div>
+      <div class="f hint u-si" id="u-regola"></div>`;
+  const legaUscita = (fm) => {
+    const agg = () => {
+      const t = fm.elements.u_tipo.value;
+      $$('.u-tr', fm).forEach((x) => x.classList.toggle('hidden', t !== 'trasferito'));
+      $$('.u-si', fm).forEach((x) => x.classList.toggle('hidden', !t));
+      $('#u-regola', fm).textContent = t === 'oriente_eterno' ? 'Quote: restano dovute le rate con scadenza fino alla data; quelle successive e degli anni seguenti vengono annullate.'
+        : t === 'trasferito' ? 'Quote: l’anno del trasferimento resta dovuto per intero; vengono annullate solo le quote degli anni seguenti.' : '';
+    };
+    fm.elements.u_tipo.addEventListener('change', agg); agg();
+  };
+  const leggiUscita = (fm) => {
+    const tipo = fm.elements.u_tipo.value;
+    if (!tipo) return { tipo: '' };
+    const d = itToIso(String(fm.elements.u_data.value).trim());
+    if (!d || d === 'ERR') return { err: 'Indica la data dell’uscita (gg/mm/aaaa).' };
+    if (d > window.Lemmi.oggi()) return { err: 'La data dell’uscita non può essere nel futuro.' };
+    return { tipo, data: d, loggia: fm.elements.u_loggia.value.trim(), exeat: fm.elements.u_exeat.value.trim(), note: fm.elements.u_note.value.trim() };
+  };
+  async function salvaUscita(id, u) {
+    const r = await state.sb.rpc('registra_uscita_fratello', { p_fratello: id, p_stato: u.tipo || 'attivo', p_data: u.data || null, p_loggia: u.loggia || null, p_exeat: u.exeat || null, p_note: u.note || null });
+    if (r.error && /registra_uscita_fratello|schema cache|does not exist/i.test(r.error.message || '')) throw new Error('Prima esegui lo script sql/lemmi_aggiornamento_40.sql nell’editor SQL di Supabase, poi riprova.');
+    return chk(r);
+  }
+  const esitoQuote = (r) => (r && (Number(r.quote_annullate) || Number(r.quote_ripristinate)) ? ` Quote annullate: ${Number(r.quote_annullate)}${Number(r.quote_ripristinate) ? ', ripristinate: ' + Number(r.quote_ripristinate) : ''}.` : '');
+
+  function apriUscita(f) {
+    const corpo = `<div class="form-grid">${campiUscita(f)}
+      <div class="f hint">Scegli «nessuna» per annullare un’uscita registrata per errore: il Fratello torna attivo e le quote annullate vengono ripristinate.</div></div>`;
+    const m = P.modal('Uscita di ' + f.cognome + ' ' + f.nome, corpo, {
+      onSubmit: async (fm, chiudi, errore) => {
+        const u = leggiUscita(fm);
+        if (u.err) return errore(u.err);
+        if (!u.tipo && !f.data_uscita && f.stato === 'attivo') return errore('Scegli il tipo di uscita.');
+        const r = await salvaUscita(f.id, u);
+        if (P.pag) P.pag.fratelli = null;
+        chiudi(); toast((u.tipo ? 'Uscita registrata.' : 'Uscita annullata: Fratello di nuovo attivo.') + esitoQuote(r), 'ok'); L.route();
+      },
+    });
+    legaUscita(m.f);
+  }
+
+  function apriNuovo() {
+    const corpo = `<div class="form-grid">
+      ${campo('cognome', 'Cognome', '', { req: 1, cls: 's6' })}${campo('nome', 'Nome', '', { req: 1, cls: 's6' })}
+      ${campo('data_nascita', 'Data di nascita', '', { type: 'date', cls: 's4' })}${campo('matricola', 'Matricola', '', { cls: 's4' })}
+      ${campo('data_iniziazione', 'Data di iniziazione', '', { type: 'date', cls: 's4' })}
+      ${campiUscita({})}
+      <div class="f hint">Per i Fratelli usciti nel corso dell’anno (Oriente Eterno o trasferimento) indica qui l’uscita: restano in anagrafica e in Tesoreria per le quote dell’anno, ma non nel piè di lista. La data di nascita serve alla capitazione. Gli altri dati si completano poi da «Modifica anagrafica».</div></div>`;
+    const m = P.modal('Nuovo Fratello', corpo, {
+      conferma: 'Crea il Fratello',
+      onSubmit: async (fm, chiudi, errore) => {
+        const cognome = fm.elements.cognome.value.trim(), nome = fm.elements.nome.value.trim();
+        if (!cognome || !nome) return errore('Cognome e nome sono obbligatori.');
+        const dn = itToIso(fm.elements.data_nascita.value.trim()), di = itToIso(fm.elements.data_iniziazione.value.trim());
+        if (dn === 'ERR' || di === 'ERR') return errore('Date non valide: usa gg/mm/aaaa.');
+        const u = leggiUscita(fm);
+        if (u.err) return errore(u.err);
+        const dati = { cognome, nome, data_nascita: dn || null, matricola: fm.elements.matricola.value.trim() || null, data_iniziazione: di || null, anno_iniziazione: di ? Number(di.slice(0, 4)) : null };
+        const nuovo = chk(await state.sb.from('fratelli').insert(dati).select('id'));
+        const id = nuovo && nuovo[0] && nuovo[0].id;
+        if (!id) return errore('Inserimento non consentito dal database (serve il profilo amministratore o Segretario).');
+        let r = null;
+        if (u.tipo) { try { r = await salvaUscita(id, u); } catch (e) { chiudi(); toast('Fratello creato, ma l’uscita non è stata registrata: ' + messaggioErrore(e), 'bad'); location.hash = '#/fratelli/' + id; return; } }
+        if (P.pag) P.pag.fratelli = null;   // la Tesoreria rilegge l'elenco
+        chiudi(); toast('Fratello creato.' + esitoQuote(r), 'ok'); location.hash = '#/fratelli/' + id;
+      },
+    });
+    legaUscita(m.f);
   }
 
   function apriDate(f) {

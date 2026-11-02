@@ -1,0 +1,14 @@
+AGGIORNAMENTO 40 - Fratelli passati all'Oriente Eterno e trasferiti ad altra Officina
+
+PRIMA: Supabase > SQL Editor > New query, incolla sql/lemmi_aggiornamento_40.sql e premi Run. Poi Ctrl+F5 (versione 0.40.0).
+
+ - Scheda del Fratello > «Uscita (O.E. / trasferimento)»: tipo, data; per i trasferiti Loggia di destinazione ed Exeat; note.
+   Compare nei Dati, nella Storia e nel Libro Matricola. Scegliendo «nessuna» si annulla un'uscita registrata per errore.
+ - Fratelli > «Nuovo Fratello»: per inserire chi non è in anagrafica (anche già uscito, indicando subito l'uscita).
+ - Quote:
+     Oriente Eterno: restano dovute le rate con scadenza fino alla data; le successive e gli anni seguenti si annullano.
+     Trasferito: l'anno del trasferimento resta dovuto per intero; si annullano solo gli anni seguenti.
+   Le rate annullate restano visibili come «Esente» con il motivo.
+ - Genera capitazione: comprende anche chi è uscito nel corso dell'anno. Dopo aver inserito i Fratelli mancanti,
+   rilancia «Genera capitazione» 2026 (le scadenze esistenti non si duplicano) e poi «Collega in automatico».
+ - Piè di lista: chi è uscito non è attivo e quindi non compare.
