@@ -154,17 +154,10 @@
     const { eur, canPay } = P;
     const conti = contiNoti();
     const piuConti = new Set(cs.mov.map(contoDi)).size > 1;
-    const veri = cs.mov.filter(reale);
-    const pos = veri.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0);
-    const neg = veri.filter((x) => Number(x.importo) < 0).reduce((a, x) => a + Math.abs(Number(x.importo)), 0);
     const daRic = cs.mov.filter((x) => x.stato_riconciliazione === 'da_riconciliare').length;
     c.innerHTML = `
-      <div class="grid stats">
-        <div class="stat"><div class="n" id="k-ent">${eur(pos)}</div><div class="l">Entrate ${P.pag.anno} <span class="k-conto"></span></div></div>
-        <div class="stat"><div class="n" id="k-usc">${eur(neg)}</div><div class="l">Uscite ${P.pag.anno} <span class="k-conto"></span></div></div>
-        <div class="stat"><div class="n" id="k-ris" style="color:${pos - neg < 0 ? 'var(--bad)' : 'inherit'}">${eur(pos - neg)}</div><div class="l">Entrate − uscite <span class="k-conto"></span><br><span style="font-size:.75rem">giroconti tra conti esclusi</span></div></div>
-        <div class="stat${daRic ? ' drillable' : ''}" id="c-daric" ${daRic ? 'role="button" tabindex="0" title="Mostra i movimenti da riconciliare"' : ''}><div class="n">${daRic}</div><div class="l">Movimenti da riconciliare${daRic ? '<br><span style="font-size:.75rem;text-decoration:underline">mostrali</span>' : ''}</div></div></div>
       <div id="c-saldi"></div>
+      ${daRic ? `<div class="notice drillable" id="c-daric" role="button" tabindex="0" title="Mostra i movimenti da riconciliare" style="margin:0 0 14px">⚠ <b>${daRic} ${daRic === 1 ? 'movimento da riconciliare' : 'movimenti da riconciliare'}</b> · <u>mostrali</u></div>` : ''}
       <div class="actions" style="margin-bottom:14px">
         <div class="searchbar">${IC.search}<input id="c-q" type="search" placeholder="Cerca nella descrizione…" value="${esc(cs.filtri.q)}"></div>
         <select id="c-conto" style="width:auto"><option value="">Tutti i conti</option>${conti.map((k) => `<option ${cs.filtri.conto === k ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>
@@ -193,22 +186,14 @@
         <div class="actions" style="justify-content:space-between;align-items:baseline"><b>${titolo} ${P.pag.anno}</b><span>Disponibile ${alFine}: <b style="font-size:1.3rem;color:${fin < 0 ? 'var(--bad)' : 'inherit'}">${manca && righe.length === 1 ? 'n.d.' : eur(fin) + (manca ? '*' : '')}</b></span></div>
         <div class="table-wrap" style="margin-top:8px"><table><thead><tr><th>Conto</th><th class="num">Saldo al ${fmtData(d.inizio)}</th><th class="num">Entrate</th><th class="num">Uscite</th>${conGiro ? '<th class="num">Giroconti</th>' : ''}<th class="num">Saldo ${alFine}</th>${canPay() ? '<th></th>' : ''}</tr></thead><tbody>
         ${righe.map((r) => `<tr><td><b>${esc(r.conto)}</b></td><td class="num">${nd(r, 'iniziale') ? '<span class="muted">n.d.*</span>' : eur(r.iniziale)}</td><td class="num" style="color:var(--ok)">${eur(r.entrate)}</td><td class="num" style="color:var(--bad)">${eur(r.uscite)}</td>${conGiro ? `<td class="num">${r.giro ? eur(r.giro) : '—'}</td>` : ''}<td class="num"><b>${nd(r, 'finale') ? '<span class="muted">n.d.*</span>' : eur(r.finale)}</b></td>${canPay() ? `<td class="act"><button class="btn ghost small" type="button" data-sal="${esc(r.conto)}">Inserisci saldo</button></td>` : ''}</tr>`).join('')}
-        ${righe.length > 1 ? `<tr><td><b>Totale</b></td><td class="num"><b>${eur(somma('iniziale'))}</b>${righe.some((r) => nd(r, 'iniziale')) ? '*' : ''}</td><td class="num">${eur(somma('entrate'))}</td><td class="num">${eur(somma('uscite'))}</td>${conGiro ? `<td class="num">${eur(somma('giro'))}</td>` : ''}<td class="num"><b>${eur(fin)}</b>${manca ? '*' : ''}</td>${canPay() ? '<td></td>' : ''}</tr>` : ''}</tbody></table></div>
+        ${righe.length > 1 ? `<tr><td><b>Totale</b></td><td class="num"><b>${eur(somma('iniziale'))}</b>${righe.some((r) => nd(r, 'iniziale')) ? '*' : ''}</td><td class="num">${eur(somma('entrate'))}</td><td class="num">${eur(somma('uscite'))}</td>${conGiro ? `<td class="num">${eur(somma('giro'))}</td>` : ''}<td class="num"><b>${eur(fin)}</b>${manca ? '*' : ''}</td>${canPay() ? '<td></td>' : ''}</tr>` : ''}
+        <tr><td><b>Risultato ${P.pag.anno}</b><div class="hint">entrate − uscite, giroconti esclusi</div></td><td></td><td class="num" colspan="2" style="text-align:center"><b style="color:${somma('entrate') - somma('uscite') < 0 ? 'var(--bad)' : 'var(--ok)'}">${eur(somma('entrate') - somma('uscite'))}</b></td>${conGiro ? '<td></td>' : ''}<td></td>${canPay() ? '<td></td>' : ''}</tr></tbody></table></div>
         <div class="hint" style="margin-top:6px">Saldo finale = saldo iniziale + entrate − uscite ± giroconti tra i conti della Loggia (che si annullano nel totale). Entrate e uscite sono le stesse dei riquadri in alto. Il saldo parte dall’ultimo estratto importato: i movimenti non ancora importati non sono considerati.
         ${righe.map((r) => r.senzaSaldi ? `<br>* ${esc(r.conto)}: nessun saldo di banca registrato. Reimporta l’estratto (es. il PDF BancoPosta: i movimenti già presenti non si duplicano e vengono salvati i saldi) oppure usa «Inserisci saldo» con un saldo letto dall’estratto.`
           : nd(r, 'iniziale') ? `<br>* ${esc(r.conto)}: saldo iniziale non disponibile, il primo estratto importato parte dal ${fmtData(r.primo)}.` : '').join('')}</div></div>`;
       $$('[data-sal]', box).forEach((b) => b.addEventListener('click', () => apriSaldo(b.dataset.sal, P)));
     };
-    const disegnaKpi = () => {
-      const v = veri.filter((x) => !cs.filtri.conto || contoDi(x) === cs.filtri.conto);
-      const e = v.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0);
-      const u = v.filter((x) => Number(x.importo) < 0).reduce((a, x) => a - Number(x.importo), 0);
-      $('#k-ent').textContent = eur(e); $('#k-usc').textContent = eur(u);
-      $('#k-ris').textContent = eur(e - u); $('#k-ris').style.color = e - u < 0 ? 'var(--bad)' : 'inherit';
-      $$('.k-conto', c).forEach((x) => { x.textContent = cs.filtri.conto ? '· ' + cs.filtri.conto : ''; });
-    };
     const disegna = () => {
-      disegnaKpi();
       disegnaSaldi();
       const q = cs.filtri.q.trim().toLowerCase();
       const f = cs.mov.filter((x) => (!q || String(x.descrizione || '').toLowerCase().includes(q) || String(x.fratello || '').toLowerCase().includes(q))

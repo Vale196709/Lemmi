@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.40.2',
+  numero: '0.40.3',
   data: '2026-11-02',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.40.3', data: '2026-11-02', t: 'Conto di Loggia più snello: via i riquadri ripetuti, saldi dei conti in cima con riga Risultato, avviso cliccabile dei movimenti da riconciliare' },
     { n: '0.40.2', data: '2026-11-02', t: 'Conto di Loggia: riquadri in alto e saldi dei conti coerenti (giroconti in colonna separata), riquadri filtrati per conto, «Inserisci saldo» a mano' },
     { n: '0.40.1', data: '2026-11-02', t: 'Conto di Loggia: il riquadro dei saldi segue il filtro del conto e mostra anche i conti senza saldi di banca' },
     { n: '0.40.0', data: '2026-11-02', t: 'Fratelli passati all’Oriente Eterno e trasferiti ad altra Officina: data, Loggia di destinazione, Exeat; regole sulle quote dell’anno; «Nuovo Fratello» nell’elenco' },
