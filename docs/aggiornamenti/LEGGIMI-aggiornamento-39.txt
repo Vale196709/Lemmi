@@ -1,0 +1,10 @@
+AGGIORNAMENTO 39 - Collegamento automatico dei bonifici dei Fratelli
+
+PRIMA: Supabase > SQL Editor > New query, incolla sql/lemmi_aggiornamento_39.sql e premi Run. Poi Ctrl+F5 (versione 0.39.0).
+
+Tesoreria > Conto di Loggia > «Collega in automatico»: per ogni entrata da riconciliare l'app riconosce il Fratello
+dal nome nel bonifico e propone la voce e le scadenze aperte dell'anno, riempite in ordine di data
+(es. 600 € = rata 1/2 + rata 2/2 della capitazione; l'eventuale eccedenza resta come acconto).
+Si controlla l'elenco, si toglie la spunta a quelli da non collegare e si conferma.
+I bonifici senza Fratello riconosciuto o senza scadenze aperte sono elencati a parte: si collegano a mano
+con «Collega versamento». Serve che le scadenze dell'anno siano già generate (Tesoreria > Scadenze).

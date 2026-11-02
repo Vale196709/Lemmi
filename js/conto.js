@@ -131,7 +131,7 @@
         <select id="c-stato" style="width:auto"><option value="">Tutti gli stati</option>${Object.entries(STATO).map(([k, v]) => `<option value="${k}" ${cs.filtri.stato === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
         <select id="c-cat" style="width:auto"><option value="">Tutte le categorie</option><option value="-" ${cs.filtri.cat === '-' ? 'selected' : ''}>Senza categoria</option>${cs.cat.map((k) => `<option value="${esc(k.id)}" ${cs.filtri.cat === k.id ? 'selected' : ''}>${esc(k.nome)}</option>`).join('')}</select>
         <span class="muted" id="c-conta"></span>
-        ${canPay() ? `<span class="right actions"><button class="btn gold" id="c-imp">${IC.up} Importa estratto conto</button><button class="btn ghost" id="c-man">Nuovo movimento</button><button class="btn ghost" id="c-cat-g">Categorie</button>${cs.tesoreria2 ? '<button class="btn ghost" id="c-evt-g">Eventi</button>' : ''}</span>` : ''}
+        ${canPay() ? `<span class="right actions"><button class="btn gold" id="c-imp">${IC.up} Importa estratto conto</button><button class="btn ghost" id="c-auto">Collega in automatico</button><button class="btn ghost" id="c-man">Nuovo movimento</button><button class="btn ghost" id="c-cat-g">Categorie</button>${cs.tesoreria2 ? '<button class="btn ghost" id="c-evt-g">Eventi</button>' : ''}</span>` : ''}
       </div>
       <div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria</th><th class="num">Importo</th><th>Stato</th><th></th></tr></thead><tbody id="c-righe"></tbody><tfoot id="c-totali"></tfoot></table></div>
       <details id="c-percat" style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Totali per categoria</summary><div id="c-percat-corpo" style="margin-top:10px"></div></details>`;
@@ -178,6 +178,7 @@
     $('#c-cat').addEventListener('change', (e) => { cs.filtri.cat = e.target.value; disegna(); });
     if (canPay()) {
       $('#c-imp').onclick = () => apriImporta(P);
+      $('#c-auto').onclick = () => apriCollegaAuto(P).catch((e) => toast(messaggioErrore(e), 'bad'));
       $('#c-man').onclick = () => apriManuale(P).catch((e) => toast(messaggioErrore(e), 'bad'));
       $('#c-cat-g').onclick = () => apriCategorie(P);
       if ($('#c-evt-g')) $('#c-evt-g').onclick = () => apriEventi(P);
@@ -539,6 +540,69 @@
     f.elements.fratello.addEventListener('input', aggiorna);
     f.elements.anno.addEventListener('input', aggiorna);
     aggiorna();
+  }
+
+  /* ---------- collegamento automatico dei bonifici dei Fratelli (script lemmi_aggiornamento_39.sql) ----------
+   * Per ogni entrata da riconciliare: Fratello riconosciuto dal nome nella descrizione, scadenze aperte dell'anno
+   * riempite in ordine di data (es. 600 € = rata 1 + rata 2). Si controlla l'elenco e si conferma. */
+  async function apriCollegaAuto(P) {
+    const frat = await P.fratelliPag();
+    const voci = P.pag.voci;
+    const residui = {};
+    P.pag.righe.forEach((r) => { residui[r.id] = Number(r.residuo); });
+    const entrate = cs.mov.filter((x) => Number(x.importo) > 0 && x.stato_riconciliazione === 'da_riconciliare' && !x.giroconto)
+      .sort((a, b) => String(a.data_operazione).localeCompare(String(b.data_operazione)));
+    const proposte = [], aMano = [];
+    entrate.forEach((mov) => {
+      const fr = suggerisciFratello(frat, mov.descrizione);
+      if (!fr) { aMano.push({ mov, motivo: 'Fratello non riconosciuto dal testo' }); return; }
+      const anno = Number(String(mov.data_operazione).slice(0, 4));
+      const imp = Number(mov.importo);
+      const aperte = P.pag.righe.filter((r) => r.fratello_id === fr.id && r.anno === anno && residui[r.id] > 0.004)
+        .sort((a, b) => String(a.data_scadenza || '').localeCompare(String(b.data_scadenza || '')) || (a.rata_n - b.rata_n));
+      if (!aperte.length) { aMano.push({ mov, motivo: fr.cognome + ' ' + fr.nome + ': nessuna scadenza aperta nel ' + anno }); return; }
+      const codici = [...new Set(aperte.map((r) => r.voce_codice))];
+      const tot = (c) => aperte.filter((r) => r.voce_codice === c).reduce((a, r) => a + residui[r.id], 0);
+      const codice = codici.find((c) => aperte.some((r) => r.voce_codice === c && Math.abs(residui[r.id] - imp) < 0.005))
+        || codici.find((c) => tot(c) >= imp - 0.004) || codici[0];
+      const voce = voci.find((v) => v.codice === codice);
+      if (!voce) { aMano.push({ mov, motivo: 'Voce non trovata' }); return; }
+      let resto = imp; const parti = [];
+      aperte.filter((r) => r.voce_codice === codice).forEach((r) => {
+        if (resto <= 0.004) return;
+        const q = Math.min(resto, residui[r.id]);
+        residui[r.id] -= q; resto -= q;
+        parti.push({ id: r.id, t: (r.rate_totali > 1 ? 'rata ' + r.rata_n + '/' + r.rate_totali : 'scad. ' + fmtData(r.data_scadenza)) + ' ' + P.eur(q) });
+      });
+      if (resto > 0.004) parti.push({ id: null, t: 'acconto ' + P.eur(resto) });
+      proposte.push({ mov, fr, voce, anno, parti });
+    });
+    const breve = (t) => { t = String(t || ''); return t.length > 70 ? t.slice(0, 67) + '…' : t; };
+    const corpo = `${proposte.length ? `<div class="hint" style="margin-bottom:8px">${proposte.length} bonifici con Fratello e scadenza riconosciuti: togli la spunta a quelli da non collegare, poi conferma.</div>
+      <div class="table-wrap"><table><thead><tr><th></th><th>Data</th><th class="num">Importo</th><th>Fratello</th><th>Voce e ripartizione</th></tr></thead><tbody>
+      ${proposte.map((p, i) => `<tr><td><input type="checkbox" data-pr="${i}" checked aria-label="Collega"></td><td>${fmtData(p.mov.data_operazione)}</td><td class="num">${P.eur(p.mov.importo)}</td>
+        <td><b>${esc(p.fr.cognome + ' ' + p.fr.nome)}</b><div class="hint">${esc(breve(p.mov.descrizione))}</div></td><td>${esc(p.voce.nome)}<div class="hint">${esc(p.parti.map((x) => x.t).join(' + '))}</div></td></tr>`).join('')}
+      </tbody></table></div>` : '<div class="notice">Nessun bonifico da collegare in automatico.</div>'}
+      ${aMano.length ? `<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">${aMano.length} da collegare a mano con «Collega versamento»</summary><div class="table-wrap" style="margin-top:8px"><table><tbody>
+        ${aMano.map((x) => `<tr><td>${fmtData(x.mov.data_operazione)}</td><td class="num">${P.eur(x.mov.importo)}</td><td>${esc(breve(x.mov.descrizione))}<div class="hint">${esc(x.motivo)}</div></td></tr>`).join('')}</tbody></table></div></details>` : ''}`;
+    const m = P.modal('Collega in automatico i bonifici dei Fratelli', corpo, {
+      conferma: 'Collega i bonifici spuntati',
+      onSubmit: async (f, chiudi, errore) => {
+        const scelte = $$('[data-pr]', m.ov).filter((c) => c.checked).map((c) => proposte[Number(c.dataset.pr)]);
+        if (!scelte.length) return errore('Nessun bonifico spuntato.');
+        let fatti = 0; const errori = [];
+        for (const p of scelte) {
+          const r = await state.sb.rpc('riconcilia_ripartito', { p_movimento: p.mov.id, p_voce: p.voce.id, p_fratello: p.fr.id, p_anno: p.anno, p_scadenze: p.parti.filter((x) => x.id).map((x) => x.id), p_note: null });
+          if (r.error) {
+            if (/riconcilia_ripartito|schema cache|does not exist/i.test(r.error.message || '')) return errore('Prima esegui lo script sql/lemmi_aggiornamento_39.sql nell’editor SQL di Supabase, poi riprova.');
+            errori.push(fmtData(p.mov.data_operazione) + ' ' + p.fr.cognome + ': ' + messaggioErrore(r.error));
+          } else fatti++;
+        }
+        chiudi();
+        P.avviso('Bonifici collegati', `<div class="kv"><div><span>Collegati</span><b>${fatti}</b></div><div><span>Da collegare a mano</span><b>${aMano.length + errori.length}</b></div></div>${errori.length ? `<div class="notice bad" style="margin-top:12px">${errori.map(esc).join('<br>')}</div>` : ''}`);
+        L.route();
+      },
+    });
   }
 
   /* ---------- movimento inserito a mano ---------- */
