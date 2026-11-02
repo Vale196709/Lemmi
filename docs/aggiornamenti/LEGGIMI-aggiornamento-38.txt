@@ -1,0 +1,21 @@
+AGGIORNAMENTO 38 - Conto di Loggia su più conti (BancoPosta e BNL)
+
+PRIMA DI TUTTO: Supabase > SQL Editor > New query, incolla sql/lemmi_aggiornamento_38.sql e premi Run
+(si può rieseguire senza danni). Poi ricarica l'app con Ctrl+F5 (versione 0.38.0).
+
+Cosa cambia
+ - Ogni movimento e ogni saldo appartiene a un conto: BancoPosta (attuale; i movimenti già importati restano qui) o BNL.
+ - Importa estratto conto: nuovo campo «Conto», riconosciuto da solo dal file (PDF BancoPosta, «Lista movimenti» BNL).
+ - File Excel BNL: l'app legge anche il saldo iniziale e finale scritti in testa al file e controlla che
+   saldo iniziale + movimenti = saldo finale; se quadra registra i saldi del conto BNL.
+ - Nuova categoria «Giroconto tra conti» (tipo giroconto): i trasferimenti tra i conti della Loggia (es. 11.700 € del
+   24/03/2026 «Apertura nuovo conto») restano visibili ma non contano né come entrate né come uscite
+   (Conto di Loggia, Cruscotto, conto gestione dell'insediamento, relazione annuale).
+ - Liquidità nel Cruscotto = somma dell'ultimo saldo di ogni conto + movimenti successivi di quel conto.
+ - Conto di Loggia: filtro «Tutti i conti», etichetta del conto e del giroconto su ogni riga.
+ - Categorie automatiche per i testi BNL: spese e commissioni (66-Spese, e-banking, bollo, bonifici), interessi,
+   rimborsi dal GOI, quote GOI passaggi di grado, capitazioni, consulenze fiscali (EAS), PEC/servizi internet.
+
+Restano da collegare a mano con «Collega versamento» i bonifici dei Fratelli (l'app suggerisce il Fratello dal nome).
+Quando sarà disponibile, importare l'estratto BancoPosta di gennaio-marzo 2026: l'accredito dei 11.700 € verrà
+riconosciuto come giroconto.

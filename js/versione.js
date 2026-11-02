@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.37.0',
-  data: '2026-10-31',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
+  numero: '0.38.0',
+  data: '2026-11-02',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.38.0', data: '2026-11-02', t: 'Conto di Loggia su più conti (BancoPosta e BNL): import della «Lista movimenti» BNL con verifica dei saldi, giroconti esclusi da entrate e uscite, liquidità come somma dei conti, nuove categorie automatiche' },
     { n: '0.37.0', data: '2026-10-31', t: 'WhatsApp con un tocco: convocazioni dal Calendario, messaggi e solleciti ai Fratelli, promemoria delle tavole, aggiornamenti al presentatore' },
     { n: '0.36.0', data: '2026-10-31', t: 'Il Segretario legge il Conto di Loggia (relazione annuale e conto gestione)' },
     { n: '0.35.0', data: '2026-10-31', t: 'Libro Matricola, area personale dei Fratelli (profilo Fratello), notifiche sul telefono, foglio presenze dei verbali anche senza rete' },

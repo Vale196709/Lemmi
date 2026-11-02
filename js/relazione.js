@@ -24,7 +24,7 @@
       sicuro(sb.from('passaggi_grado').select('fratello_id,grado,anno,data'), []),
       sicuro(sb.from('bussanti').select('id'), []),
       sicuro(sb.from('lavori').select('titolo,fratello_id,autore_esterno,stato,data_presentazione').in('stato', ['presentato', 'archiviato']).gte('data_presentazione', dal).lte('data_presentazione', al), []),
-      sicuro(sb.from('v_conto_movimenti').select('importo,data_operazione').gte('data_operazione', dal).lte('data_operazione', al), null),
+      sicuro(sb.from('v_conto_movimenti').select('*').gte('data_operazione', dal).lte('data_operazione', al), null).then((r) => r && r.filter((x) => !x.giroconto)),
     ]);
     return { anno, tornate, verbali, fratelli, completi, passaggi, bussanti, lavori, movimenti };
   }

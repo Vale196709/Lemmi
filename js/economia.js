@@ -15,19 +15,26 @@
 
   async function dati(anno) {
     const sb = state.sb;
-    const saldoRiga = await ok(sb.from('conto_saldi').select('data,saldo').lte('data', oggi()).order('data', { ascending: false }).limit(1));
-    const saldo = saldoRiga && saldoRiga[0] ? saldoRiga[0] : null;
-    let dopoQ = sb.from('v_conto_movimenti').select('importo');
-    if (saldo) dopoQ = dopoQ.gt('data_operazione', saldo.data);
+    // ultimo saldo di banca di ogni conto (BancoPosta, BNL…): la liquidità è la somma dei conti
+    const saldiRighe = await ok(sb.from('conto_saldi').select('*').lte('data', oggi()).order('data', { ascending: false }));
+    const ultimi = {};
+    (saldiRighe || []).forEach((x) => { const k = x.conto || 'BancoPosta'; if (!ultimi[k]) ultimi[k] = x; });
+    const conti = Object.keys(ultimi);
+    const saldo = conti.length ? { data: conti.map((k) => ultimi[k].data).sort().pop(), saldo: conti.reduce((a, k) => a + num(ultimi[k].saldo), 0), conti } : null;
+    let dopoQ = sb.from('v_conto_movimenti').select('*');
+    if (saldo) dopoQ = dopoQ.gt('data_operazione', conti.map((k) => ultimi[k].data).sort()[0]);
     const [scad, mov, dopo, eventi, extra] = await Promise.all([
       ok(sb.from('v_scadenze_stato').select('*').eq('anno', anno)),
-      ok(sb.from('v_conto_movimenti').select('id,data_operazione,descrizione,importo,categoria,categoria_id,stato_riconciliazione').gte('data_operazione', anno + '-01-01').lte('data_operazione', anno + '-12-31')),
+      ok(sb.from('v_conto_movimenti').select('*').gte('data_operazione', anno + '-01-01').lte('data_operazione', anno + '-12-31')),
       ok(dopoQ),
       ok(sb.from('eventi_conto').select('id,nome,data_evento').order('nome')),
       ok(sb.from('conto_movimenti').select('id,evento_id').gte('data_operazione', anno + '-01-01').lte('data_operazione', anno + '-12-31')),
     ]);
-    const liquidita = dopo ? dopo.reduce((a, x) => a + num(x.importo), 0) + (saldo ? num(saldo.saldo) : 0) : null;
-    return { scad, mov, saldo, liquidita, eventi, extra };
+    // dopo il saldo di ogni conto si sommano solo i movimenti successivi di quel conto (giroconti compresi)
+    const conta = (x) => { const k = x.conto || 'BancoPosta'; return !saldo || !ultimi[k] || x.data_operazione > ultimi[k].data; };
+    const liquidita = dopo ? dopo.filter(conta).reduce((a, x) => a + num(x.importo), 0) + (saldo ? saldo.saldo : 0) : null;
+    // i giroconti tra i conti della Loggia non sono né entrate né uscite
+    return { scad, mov: mov ? mov.filter((x) => !x.giroconto) : mov, saldo, liquidita, eventi, extra };
   }
 
   const barra = (valore, max, colore) => `<div style="background:var(--line);border-radius:6px;height:10px;overflow:hidden"><div style="width:${max > 0 ? Math.max(2, Math.min(100, valore / max * 100)) : 0}%;height:100%;background:${colore}"></div></div>`;
@@ -82,7 +89,7 @@
       <div class="actions" style="justify-content:space-between;margin:6px 0 12px"><h2 style="margin:0">Vista economica</h2>
         <span><label class="lbl" for="eco-anno">Anno</label> <select id="eco-anno" style="width:auto">${anni.map((a) => `<option ${a === anno ? 'selected' : ''}>${a}</option>`).join('')}</select></span></div>
       <div class="grid stats">
-        <div class="stat drillable" data-drill="eco" data-a="kpi" data-k="liq" role="button" tabindex="0" title="Clicca per il dettaglio"><div class="n" style="font-size:1.8rem">${d.liquidita === null ? '—' : eur(d.liquidita)}</div><div class="l">Liquidità stimata<br><span style="font-size:.75rem">${d.liquidita === null ? 'dati del conto non disponibili' : d.saldo ? 'saldo banca al ' + fmtData(d.saldo.data) + ' + movimenti successivi' : 'somma dei movimenti importati: importa un estratto PDF per avere il saldo di banca'}</span></div></div>
+        <div class="stat drillable" data-drill="eco" data-a="kpi" data-k="liq" role="button" tabindex="0" title="Clicca per il dettaglio"><div class="n" style="font-size:1.8rem">${d.liquidita === null ? '—' : eur(d.liquidita)}</div><div class="l">Liquidità stimata<br><span style="font-size:.75rem">${d.liquidita === null ? 'dati del conto non disponibili' : d.saldo ? (d.saldo.conti.length > 1 ? 'saldi di banca (' + d.saldo.conti.join(', ') + ')' : 'saldo banca al ' + fmtData(d.saldo.data)) + ' + movimenti successivi' : 'somma dei movimenti importati: importa un estratto PDF per avere il saldo di banca'}</span></div></div>
         <div class="stat drillable" data-drill="eco" data-a="kpi" data-k="ent" role="button" tabindex="0" title="Clicca per il dettaglio"><div class="n" style="font-size:1.8rem;color:var(--ok)">${eur(entrate)}</div><div class="l">Entrate ${anno}</div></div>
         <div class="stat drillable" data-drill="eco" data-a="kpi" data-k="usc" role="button" tabindex="0" title="Clicca per il dettaglio"><div class="n" style="font-size:1.8rem;color:var(--bad)">${eur(uscite)}</div><div class="l">Uscite ${anno}</div></div>
         <div class="stat drillable" data-drill="eco" data-a="kpi" data-k="ris" role="button" tabindex="0" title="Clicca per il dettaglio"><div class="n" style="font-size:1.8rem;color:${entrate - uscite >= 0 ? 'var(--ok)' : 'var(--bad)'}">${eur(entrate - uscite)}</div><div class="l">Risultato ${anno}</div></div>

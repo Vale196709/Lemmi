@@ -167,15 +167,52 @@
     };
   }
 
+  /* ---------- banca e saldi scritti nell'intestazione del file (es. «Lista movimenti» BNL) ---------- */
+  function riconosciBanca(testo) {
+    const t = norm(testo);
+    if (/banca nazionale del lavoro|\bbnl\b/.test(t)) return 'BNL';
+    if (/bancoposta|poste italiane|posteitaliane/.test(t)) return 'BancoPosta';
+    return null;
+  }
+  const giornoPrima = (iso) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
+  function intestazione(griglia, rigaIntestazione) {
+    const sopra = griglia.slice(0, Math.max(0, rigaIntestazione));
+    const testo = griglia.slice(0, Math.max(rigaIntestazione + 3, 12)).map((r) => r.join(' ')).join(' ');
+    const banca = { conto: riconosciBanca(testo), saldoIniziale: null, dataSaldoIniziale: null, saldoFinale: null, dataSaldoFinale: null };
+    sopra.forEach((r) => r.forEach((cella, i) => {
+      const t = norm(cella);
+      const tipo = /saldo/.test(t) && !/disponibil/.test(t) ? (/iniziale/.test(t) ? 'Iniziale' : /finale/.test(t) ? 'Finale' : null) : null;
+      if (!tipo || banca['saldo' + tipo] !== null) return;
+      const md = /(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/.exec(String(cella));
+      let v = null;
+      for (let j = i + 1; j < r.length && v === null; j++) if (String(r[j]).trim() !== '') v = parseImporto(r[j]);
+      if (v === null) return;
+      banca['saldo' + tipo] = v;
+      const data = md ? parseData(md[1]) : null;
+      // «saldo iniziale al 01/01» = saldo a fine giornata del giorno prima
+      banca['dataSaldo' + tipo] = data ? (tipo === 'Iniziale' ? giornoPrima(data) : data) : null;
+    }));
+    return banca;
+  }
+  /* Controllo: saldo iniziale + movimenti = saldo finale */
+  function verificaSaldi(movimenti, banca) {
+    if (!banca || banca.saldoIniziale === null || banca.saldoFinale === null) return null;
+    const r = riepilogo(movimenti);
+    const atteso = Math.round((banca.saldoIniziale + r.entrate - r.uscite) * 100) / 100;
+    const ok = Math.abs(atteso - banca.saldoFinale) < 0.005;
+    return { ok, entrate: r.entrate, uscite: r.uscite, verificati: ok ? ['saldo iniziale + movimenti = saldo finale'] : [], falliti: ok ? [] : ['saldo finale (calcolato ' + atteso.toFixed(2).replace('.', ',') + ')'], senzaTotali: false };
+  }
+
   /* Analisi completa: trova da sola intestazione e colonne */
   function analizza(griglia) {
     const riga = cercaIntestazione(griglia);
-    if (riga < 0) return { riconosciuto: false, griglia, rigaIntestazione: 0, mappa: mappaAutomatica([]), etichette: (griglia[0] || []).map((c, i) => String(c || 'Colonna ' + lettera(i))), movimenti: [], scartate: 0 };
+    if (riga < 0) return { riconosciuto: false, griglia, rigaIntestazione: 0, mappa: mappaAutomatica([]), etichette: (griglia[0] || []).map((c, i) => String(c || 'Colonna ' + lettera(i))), movimenti: [], scartate: 0, banca: null, verifica: null };
     const mappa = mappaAutomatica(griglia[riga]);
     const etichette = griglia[riga].map((c, i) => (String(c).trim() ? String(c).trim() : 'Colonna ' + lettera(i)));
     const { movimenti, scartate } = estrai(griglia, riga, mappa);
-    return { riconosciuto: true, griglia, rigaIntestazione: riga, mappa, etichette, movimenti, scartate };
+    const banca = intestazione(griglia, riga);
+    return { riconosciuto: true, griglia, rigaIntestazione: riga, mappa, etichette, movimenti, scartate, banca, verifica: verificaSaldi(movimenti, banca) };
   }
 
-  return { leggiFile, analizza, estrai, riepilogo, parseData, parseImporto, lettera, norm };
+  return { leggiFile, analizza, estrai, riepilogo, parseData, parseImporto, lettera, norm, intestazione, verificaSaldi, riconosciBanca };
 });

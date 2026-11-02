@@ -7,9 +7,15 @@
   const { state, $, $$, esc, chk, toast, messaggioErrore, fmtData, isoToIt, itToIso, oggi, isAdmin, IC, campo } = L;
   const E = window.LemmiEstratto;
 
-  const cs = { cat: [], mov: [], eventi: [], bussanti: [], tesoreria2: false, filtri: { q: '', stato: '', cat: '', tipo: '' } };
+  const cs = { cat: [], mov: [], eventi: [], bussanti: [], tesoreria2: false, filtri: { q: '', stato: '', cat: '', tipo: '', conto: '' } };
   const STATO = { da_riconciliare: ['Da riconciliare', 'warn'], riconciliato: ['Riconciliato', 'ok'], ignorato: ['Ignorato', 'gray'] };
   const CAT_FRATELLI = 'Versamenti dei Fratelli';
+  /* Conti bancari della Loggia: BancoPosta (attuale) e BNL (precedente). I movimenti dei giroconti tra i conti
+   * (categoria di tipo «giroconto») restano nell'elenco ma non contano né come entrate né come uscite. */
+  const CONTI_BASE = ['BancoPosta', 'BNL'];
+  const contoDi = (x) => (x && x.conto) || 'BancoPosta';
+  const contiNoti = () => Array.from(new Set(CONTI_BASE.concat(cs.mov.map(contoDi))));
+  const reale = (x) => !x.giroconto;
   const uuid = () => (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2));
 
   async function carica(P) {
@@ -37,18 +43,28 @@
     }
   }
 
-  const catPerTipo = (tipo, conFratelli) => cs.cat.filter((c) => c.attiva && c.tipo === tipo && (conFratelli || c.nome !== CAT_FRATELLI));
+  const catPerTipo = (tipo, conFratelli) => cs.cat.filter((c) => c.attiva && (c.tipo === tipo || c.tipo === 'giroconto') && (conFratelli || c.nome !== CAT_FRATELLI));
   const catPerNome = (nome) => cs.cat.find((c) => c.nome === nome && c.attiva);
 
   /* Categorie suggerite in fase di import: regole sul testo del movimento (modificabili a mano dopo l'import).
    * Le categorie che non esistono ancora vengono create al momento dell'importazione. */
   const REGOLE = [
+    // BNL: causale ABI «66-Spese», canone e-banking, bollo, commissioni sui bonifici
+    { tipo: 'uscita', re: /^66-spese|comm\.?\s?servizio e-banking|imposta (di )?bollo|spese (per )?(distinta|bonifico)|commissioni? (su |per )?bonific/, cat: 'Spese di tenuta conto' },
+    // giroconti tra i conti della Loggia (in uscita da un conto, in entrata sull'altro)
+    { tipo: 'giroconto', re: /apertura nuovo conto|giroconto|girofondi|(?<!des\/)ben:\s*associazione adriano lemmi|\bda associazione adriano lemmi/, cat: 'Giroconto tra conti' },
+    { tipo: 'entrata', re: /interessi creditori|^18-interessi/, cat: 'Interessi bancari' },
+    { tipo: 'entrata', re: /grande oriente/, cat: 'Rimborsi dal GOI' },
+    { tipo: 'uscita', re: /(seconda|terza) rata (\(?\s*)?(compagno|maestro)|ammissione\/(seconda|terza) rata/, cat: 'Quote GOI passaggi di grado' },
+    { tipo: 'uscita', re: /capitazioni consiglio/, cat: 'Versamento capitazioni al GOI' },
+    { tipo: 'uscita', re: /modello eas|commercialist|studio associato/, cat: 'Consulenze e adempimenti fiscali' },
+    { tipo: 'uscita', re: /\bpec\b|aruba|dominio|hosting/, cat: 'Servizi internet e PEC' },
     { tipo: 'uscita', re: /tenuta conto|canone (del )?conto|canone carta|commissioni utenze|imposta di bollo|spese.*conto|spese di gestione/, cat: 'Spese di tenuta conto' },
     { tipo: 'uscita', re: /(?=.*rimborso)(?=.*gran loggia)/, cat: 'Rimborso partecipazione Gran Loggia' },
     { tipo: 'uscita', re: /(?=.*grande oriente)(?=.*ammissione)/, cat: 'Quota di ammissione GOI (bussanti)' },
     { tipo: 'uscita', re: /(?=.*grande oriente)(?=.*(saldo estratto|capitazion))/, cat: 'Versamento capitazioni al GOI' },
     { tipo: 'uscita', re: /collegio dei mm/, cat: 'Quote Collegio dei MM.VV.' },
-    { tipo: 'uscita', re: /rimborso/, cat: 'Rimborsi spese ai Fratelli' },
+    { tipo: 'uscita', re: /r[io]mborso/, cat: 'Rimborsi spese ai Fratelli' },
     { tipo: 'uscita', re: /\bcena\b|agape|ristorante|villa grant|catering/, cat: 'Agapi e cene' },
     { tipo: 'entrata', re: /quota (di )?(ingresso|iscrizione)/, cat: 'Quote di ingresso bussanti' },
     { tipo: 'entrata', re: /agape|festa della luce|\bcena\b/, cat: 'Quote agapi ed eventi' },
@@ -56,7 +72,7 @@
   function regolaPer(m) {
     const d = E.norm(m.descrizione);
     const tipo = Number(m.importo) < 0 ? 'uscita' : 'entrata';
-    return REGOLE.find((r) => r.tipo === tipo && r.re.test(d)) || null;
+    return REGOLE.find((r) => (r.tipo === tipo || r.tipo === 'giroconto') && r.re.test(d)) || null;
   }
   function suggerisciCategoria(m) { const r = regolaPer(m); return r ? (catPerNome(r.cat) || null) : null; }
   function categorieMancanti(movs) {
@@ -96,8 +112,11 @@
   async function render(c, P) {
     await carica(P);
     const { eur, canPay } = P;
-    const pos = cs.mov.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0);
-    const neg = cs.mov.filter((x) => Number(x.importo) < 0).reduce((a, x) => a + Math.abs(Number(x.importo)), 0);
+    const conti = contiNoti();
+    const piuConti = new Set(cs.mov.map(contoDi)).size > 1;
+    const veri = cs.mov.filter(reale);
+    const pos = veri.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0);
+    const neg = veri.filter((x) => Number(x.importo) < 0).reduce((a, x) => a + Math.abs(Number(x.importo)), 0);
     const daRic = cs.mov.filter((x) => x.stato_riconciliazione === 'da_riconciliare').length;
     c.innerHTML = `
       <div class="grid stats">
@@ -107,6 +126,7 @@
         <div class="stat"><div class="n">${daRic}</div><div class="l">Movimenti da riconciliare</div></div></div>
       <div class="actions" style="margin-bottom:14px">
         <div class="searchbar">${IC.search}<input id="c-q" type="search" placeholder="Cerca nella descrizione…" value="${esc(cs.filtri.q)}"></div>
+        <select id="c-conto" style="width:auto"><option value="">Tutti i conti</option>${conti.map((k) => `<option ${cs.filtri.conto === k ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>
         <select id="c-tipo" style="width:auto"><option value="">Entrate e uscite</option><option value="e" ${cs.filtri.tipo === 'e' ? 'selected' : ''}>Solo entrate</option><option value="u" ${cs.filtri.tipo === 'u' ? 'selected' : ''}>Solo uscite</option></select>
         <select id="c-stato" style="width:auto"><option value="">Tutti gli stati</option>${Object.entries(STATO).map(([k, v]) => `<option value="${k}" ${cs.filtri.stato === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
         <select id="c-cat" style="width:auto"><option value="">Tutte le categorie</option><option value="-" ${cs.filtri.cat === '-' ? 'selected' : ''}>Senza categoria</option>${cs.cat.map((k) => `<option value="${esc(k.id)}" ${cs.filtri.cat === k.id ? 'selected' : ''}>${esc(k.nome)}</option>`).join('')}</select>
@@ -119,23 +139,25 @@
     const disegna = () => {
       const q = cs.filtri.q.trim().toLowerCase();
       const f = cs.mov.filter((x) => (!q || String(x.descrizione || '').toLowerCase().includes(q) || String(x.fratello || '').toLowerCase().includes(q))
+        && (!cs.filtri.conto || contoDi(x) === cs.filtri.conto)
         && (!cs.filtri.tipo || (cs.filtri.tipo === 'e' ? Number(x.importo) > 0 : Number(x.importo) < 0))
         && (!cs.filtri.stato || x.stato_riconciliazione === cs.filtri.stato)
         && (!cs.filtri.cat || (cs.filtri.cat === '-' ? !x.categoria_id : x.categoria_id === cs.filtri.cat)));
       $('#c-conta').textContent = f.length + (f.length === 1 ? ' movimento' : ' movimenti');
       // totali calcolati sui movimenti mostrati (cambiano con i filtri)
-      const tEnt = f.filter((x) => Number(x.importo) > 0).reduce((q, x) => q + Number(x.importo), 0);
-      const tUsc = f.filter((x) => Number(x.importo) < 0).reduce((q, x) => q + Math.abs(Number(x.importo)), 0);
+      const fv = f.filter(reale), nGiro = f.length - fv.length;
+      const tEnt = fv.filter((x) => Number(x.importo) > 0).reduce((q, x) => q + Number(x.importo), 0);
+      const tUsc = fv.filter((x) => Number(x.importo) < 0).reduce((q, x) => q + Math.abs(Number(x.importo)), 0);
       $('#c-totali').innerHTML = f.length ? `<tr><td colspan="3"><b>Totale entrate</b></td><td class="num" style="color:var(--ok)"><b>${eur(tEnt)}</b></td><td colspan="2"></td></tr>
         <tr><td colspan="3"><b>Totale uscite</b></td><td class="num" style="color:var(--bad)"><b>${eur(tUsc)}</b></td><td colspan="2"></td></tr>
-        <tr><td colspan="3"><b>Saldo (${f.length} ${f.length === 1 ? 'movimento' : 'movimenti'})</b></td><td class="num" style="color:${tEnt - tUsc < 0 ? 'var(--bad)' : 'inherit'}"><b>${eur(tEnt - tUsc)}</b></td><td colspan="2"></td></tr>` : '';
+        <tr><td colspan="3"><b>Saldo (${f.length} ${f.length === 1 ? 'movimento' : 'movimenti'})</b></td><td class="num" style="color:${tEnt - tUsc < 0 ? 'var(--bad)' : 'inherit'}"><b>${eur(tEnt - tUsc)}</b></td><td colspan="2"></td></tr>${nGiro ? `<tr><td colspan="6" class="hint">${nGiro === 1 ? '1 giroconto tra i conti della Loggia è escluso' : nGiro + ' giroconti tra i conti della Loggia sono esclusi'} dai totali.</td></tr>` : ''}` : '';
       const perCat = {};
-      f.forEach((x) => { const k = x.categoria || 'Senza categoria'; const o = perCat[k] || (perCat[k] = { e: 0, u: 0 }); if (Number(x.importo) > 0) o.e += Number(x.importo); else o.u += Math.abs(Number(x.importo)); });
+      fv.forEach((x) => { const k = x.categoria || 'Senza categoria'; const o = perCat[k] || (perCat[k] = { e: 0, u: 0 }); if (Number(x.importo) > 0) o.e += Number(x.importo); else o.u += Math.abs(Number(x.importo)); });
       $('#c-percat-corpo').innerHTML = f.length ? `<div class="table-wrap"><table><thead><tr><th>Categoria</th><th class="num">Entrate</th><th class="num">Uscite</th><th class="num">Saldo</th></tr></thead><tbody>${Object.entries(perCat).sort((p, q) => (q[1].e + q[1].u) - (p[1].e + p[1].u)).map(([k, o]) => `<tr><td>${esc(k)}</td><td class="num">${eur(o.e)}</td><td class="num">${eur(o.u)}</td><td class="num"><b>${eur(o.e - o.u)}</b></td></tr>`).join('')}</tbody></table></div>` : '<div class="muted">Nessun movimento.</div>';
       $('#c-righe').innerHTML = f.length ? f.map((x) => {
         const entrata = Number(x.importo) > 0; const st = STATO[x.stato_riconciliazione] || ['—', 'gray'];
         return `<tr><td>${fmtData(x.data_operazione)}</td>
-          <td>${esc(x.descrizione)}${x.fratello ? ` <span class="badge info">${esc(x.fratello)}</span>` : ''}${x.evento_id && nomeEvento(x.evento_id) ? ` <span class="badge gold">${esc(nomeEvento(x.evento_id))}</span>` : ''}${x.bussante_id && nomeBussante(x.bussante_id) ? ` <span class="badge gray">Bussante: ${esc(nomeBussante(x.bussante_id))}</span>` : ''}${x.origine === 'manuale' ? ' <span class="badge gray">manuale</span>' : ''}${x.note ? `<div class="hint">${esc(x.note)}</div>` : ''}</td>
+          <td>${esc(x.descrizione)}${x.fratello ? ` <span class="badge info">${esc(x.fratello)}</span>` : ''}${x.evento_id && nomeEvento(x.evento_id) ? ` <span class="badge gold">${esc(nomeEvento(x.evento_id))}</span>` : ''}${x.bussante_id && nomeBussante(x.bussante_id) ? ` <span class="badge gray">Bussante: ${esc(nomeBussante(x.bussante_id))}</span>` : ''}${x.origine === 'manuale' ? ' <span class="badge gray">manuale</span>' : ''}${piuConti ? ` <span class="badge gray">${esc(contoDi(x))}</span>` : ''}${x.giroconto ? ' <span class="badge info">giroconto</span>' : ''}${x.note ? `<div class="hint">${esc(x.note)}</div>` : ''}</td>
           <td>${x.categoria ? esc(x.categoria) : '<span class="muted">—</span>'}</td>
           <td class="num" style="color:${entrata ? 'var(--ok)' : 'var(--bad)'}"><b>${eur(x.importo)}</b></td>
           <td><span class="badge ${st[1]}">${st[0]}</span></td>
@@ -150,6 +172,7 @@
       $$('[data-delm]', c).forEach((b) => b.addEventListener('click', () => eliminaManuale(b.dataset.delm)));
     };
     $('#c-q').addEventListener('input', (e) => { cs.filtri.q = e.target.value; disegna(); });
+    $('#c-conto').addEventListener('change', (e) => { cs.filtri.conto = e.target.value; disegna(); });
     $('#c-tipo').addEventListener('change', (e) => { cs.filtri.tipo = e.target.value; disegna(); });
     $('#c-stato').addEventListener('change', (e) => { cs.filtri.stato = e.target.value; disegna(); });
     $('#c-cat').addEventListener('change', (e) => { cs.filtri.cat = e.target.value; disegna(); });
@@ -179,19 +202,26 @@
     let an = null; let nomeFile = '';
     const corpo = `<div class="form-grid">
       <div class="f"><label for="i-file">File dell’estratto conto (PDF di BancoPosta, oppure .xls, .xlsx o .csv)</label><input id="i-file" class="vis" type="file" accept=".pdf,.xls,.xlsx,.csv,.txt"></div>
+      <div class="f s6"><label for="i-conto">Conto a cui appartiene l’estratto</label><select id="i-conto">${contiNoti().map((k) => `<option>${esc(k)}</option>`).join('')}</select></div>
+      <div class="f s6 hint" id="i-conto-h" style="align-self:end">Viene riconosciuto dal file quando possibile; controllalo prima di importare.</div>
       <div class="f hint">Il file viene letto sul tuo computer. I movimenti già importati in precedenza vengono riconosciuti e non si duplicano.</div>
       <div class="f" id="i-esito"></div></div>`;
     const m = P.modal('Importa estratto conto', corpo, {
       conferma: 'Importa i movimenti',
       onSubmit: async (f, chiudi, errore) => {
         if (!an || !an.movimenti.length) return errore('Scegli un file e controlla che i movimenti siano stati riconosciuti.');
-        if (an.pdf && !an.verifica.ok && !($('#i-forza', m.ov) && $('#i-forza', m.ov).checked)) return errore('I movimenti non quadrano con i totali dell’estratto: controlla il file oppure spunta «Importa comunque».');
+        // senza lo script dell'aggiornamento 38 i movimenti non saprebbero a quale conto appartengono
+        const prova = await state.sb.from('v_conto_movimenti').select('conto,giroconto').limit(1);
+        if (prova.error) return errore('Prima esegui lo script sql/lemmi_aggiornamento_38.sql nell’editor SQL di Supabase (conti BancoPosta e BNL), poi riprova.');
+        if (an.verifica && !an.verifica.ok && !($('#i-forza', m.ov) && $('#i-forza', m.ov).checked)) return errore('I movimenti non quadrano con i totali dell’estratto: controlla il file oppure spunta «Importa comunque».');
         const nuove = categorieMancanti(an.movimenti);
         if (nuove.length) { const cr = chk(await state.sb.from('categorie_movimento').insert(nuove).select('*')); cs.cat = cs.cat.concat(cr); }
-        const righe = an.movimenti.map((x) => { const k = suggerisciCategoria(x); return Object.assign({}, x, { categoria_id: k ? k.id : null }); });
+        const conto = $('#i-conto', m.ov).value || 'BancoPosta';
+        // l'impronta dei movimenti BancoPosta resta quella di prima (così i reimport non creano doppioni)
+        const righe = an.movimenti.map((x) => { const k = suggerisciCategoria(x); return Object.assign({}, x, { conto, impronta: conto === 'BancoPosta' ? x.impronta : conto + '|' + x.impronta, categoria_id: k ? k.id : null }); });
         const auto = righe.filter((x) => x.categoria_id).length;
         const r = chk(await state.sb.rpc('importa_movimenti', { p_nome_file: nomeFile, p_righe: righe }));
-        const extra = await collegaAutomatico(righe, an);
+        const extra = await collegaAutomatico(righe, an, conto);
         chiudi();
         P.avviso('Estratto conto importato', `<div class="kv"><div><span>Movimenti nuovi</span><b>${Number(r.righe_nuove)}</b></div><div><span>Già presenti (ignorati)</span><b>${Number(r.righe_gia_presenti)}</b></div><div><span>Categorizzati in automatico</span><b>${auto}</b></div></div>
           <div class="notice" style="margin-top:14px">Ora assegna una categoria alle uscite rimaste e collega i bonifici dei Fratelli ai versamenti con «Collega versamento».</div>${extra}`);
@@ -200,10 +230,10 @@
     });
     const esito = $('#i-esito', m.ov);
 
-    const verificaPdf = () => {
+    const verificaBanca = () => {
       const v = an.verifica, b = an.banca;
       if (v.ok) return `<div class="notice" style="margin-top:10px;background:var(--ok-bg);color:var(--ok)"><b>Quadra con l’estratto della banca</b> (${v.verificati.join(', ')}): entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}${b.saldoFinale !== null ? ', saldo finale ' + P.eur(b.saldoFinale) : ''}.</div>`;
-      return `<div class="notice bad" style="margin-top:10px"><b>Attenzione: i movimenti letti non quadrano con i totali dell’estratto.</b> ${v.falliti.length ? 'Non tornano: ' + v.falliti.join(', ') + '. ' : ''}${v.senzaTotali ? 'Nel PDF non ho trovato i totali per il controllo. ' : ''}Letto: entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}.
+      return `<div class="notice bad" style="margin-top:10px"><b>Attenzione: i movimenti letti non quadrano con i totali dell’estratto.</b> ${v.falliti.length ? 'Non tornano: ' + v.falliti.join(', ') + '. ' : ''}${v.senzaTotali ? 'Nel file non ho trovato i totali per il controllo. ' : ''}Letto: entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}.
         <label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-top:8px"><input type="checkbox" id="i-forza"> Importa comunque (dopo aver controllato i movimenti)</label></div>`;
     };
     const disegna = () => {
@@ -226,7 +256,7 @@
             <div class="f s4"><label for="k-dare">Dare / uscite</label><select id="k-dare">${opt(mp.dare)}</select></div>
             <div class="f s4"><label for="k-avere">Avere / entrate</label><select id="k-avere">${opt(mp.avere)}</select></div>
             <div class="f hint">Usa «Importo» se la banca ha una sola colonna con il segno, oppure «Dare» e «Avere» se sono separate.</div></div></details>`}
-        ${an.pdf ? verificaPdf() : ''}
+        ${an.verifica ? verificaBanca() : ''}
         ${an.movimenti.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria suggerita</th><th class="num">Importo</th></tr></thead><tbody>
           ${an.movimenti.slice(0, 6).map((x) => { const cn = nomeCategoriaSuggerita(x); return `<tr><td>${fmtData(x.data_operazione)}</td><td>${esc(x.descrizione.length > 110 ? x.descrizione.slice(0, 107) + '…' : x.descrizione)}</td><td>${cn ? esc(cn) + (catPerNome(cn) ? '' : ' <span class="badge info">nuova</span>') : '<span class="muted">—</span>'}</td><td class="num">${P.eur(x.importo)}</td></tr>`; }).join('')}
           ${an.movimenti.length > 6 ? `<tr><td colspan="4" class="muted">… e altri ${an.movimenti.length - 6} movimenti</td></tr>` : ''}</tbody></table></div>` : ''}`;
@@ -239,7 +269,7 @@
       const mappa = { data: g('k-data'), valuta: g('k-valuta'), descrizione: [g('k-d1'), g('k-d2')].filter((x) => x !== null), importo: g('k-imp'), dare: g('k-dare'), avere: g('k-avere'), saldo: g('k-saldo'), riferimento: null };
       const etichette = (an.griglia[riga] || []).map((c, i) => (String(c).trim() ? String(c).trim() : 'Colonna ' + E.lettera(i)));
       const { movimenti, scartate } = E.estrai(an.griglia, riga, mappa);
-      an = Object.assign({}, an, { rigaIntestazione: riga, mappa, etichette: etichette.length ? etichette : an.etichette, movimenti, scartate });
+      an = Object.assign({}, an, { rigaIntestazione: riga, mappa, etichette: etichette.length ? etichette : an.etichette, movimenti, scartate, verifica: E.verificaSaldi(movimenti, an.banca) });
       disegna();
     };
 
@@ -253,10 +283,17 @@
           if (!window.LemmiEstrattoPdf) throw new Error('Modulo di lettura PDF non caricato: ricarica la pagina.');
           const r = await window.LemmiEstrattoPdf.leggi(await file.arrayBuffer(), await caricaPdfJs());
           if (!r.movimenti.length) throw new Error('Non ho trovato movimenti nel PDF: è l’estratto conto BancoPosta originale? In alternativa usa il file Excel o CSV.');
-          an = { pdf: true, movimenti: r.movimenti, scartate: 0, verifica: r.verifica, banca: r.banca, griglia: [], etichette: [], mappa: { descrizione: [] }, rigaIntestazione: 0 };
+          an = { pdf: true, movimenti: r.movimenti, scartate: 0, verifica: r.verifica, banca: Object.assign({ conto: 'BancoPosta' }, r.banca), griglia: [], etichette: [], mappa: { descrizione: [] }, rigaIntestazione: 0 };
         } else {
           const griglia = E.leggiFile(await file.arrayBuffer(), file.name);
           an = E.analizza(griglia);
+        }
+        const riconosciuto = an.banca && an.banca.conto;
+        if (riconosciuto) {
+          const sel = $('#i-conto', m.ov);
+          if (![...sel.options].some((o) => o.value === riconosciuto)) sel.insertAdjacentHTML('beforeend', `<option>${esc(riconosciuto)}</option>`);
+          sel.value = riconosciuto;
+          $('#i-conto-h', m.ov).textContent = 'Riconosciuto dal file: ' + riconosciuto + '.';
         }
         disegna();
       } catch (e) {
@@ -283,7 +320,7 @@
     for (let i = 0; i < impronte.length; i += 80) chk(await state.sb.from('conto_movimenti').update({ [campo]: valore }).in('impronta', impronte.slice(i, i + 80)));
   }
   /* Dopo l'importazione: assegna gli eventi (parole chiave), collega i versamenti dei bussanti e registra i saldi della banca */
-  async function collegaAutomatico(righe, an) {
+  async function collegaAutomatico(righe, an, conto) {
     let html = '';
     try {
       if (cs.tesoreria2) {
@@ -300,11 +337,13 @@
       }
     } catch (e) { html += `<div class="notice" style="margin-top:12px">Collegamenti automatici non riusciti: ${esc(messaggioErrore(e))}</div>`; }
     try {
-      if (an.pdf && an.banca) {
+      if (an.banca && (an.pdf || (an.verifica && an.verifica.ok))) {
+        const fonte = an.pdf ? 'estratto PDF' : 'estratto ' + conto;
         const sal = [];
-        if (an.banca.saldoIniziale !== null && an.banca.dataSaldoIniziale) sal.push({ data: an.banca.dataSaldoIniziale, saldo: an.banca.saldoIniziale, fonte: 'estratto PDF' });
-        if (an.banca.saldoFinale !== null && an.banca.dataSaldoFinale) sal.push({ data: an.banca.dataSaldoFinale, saldo: an.banca.saldoFinale, fonte: 'estratto PDF' });
-        if (sal.length) chk(await state.sb.from('conto_saldi').upsert(sal, { onConflict: 'data' }));
+        if (an.banca.saldoIniziale !== null && an.banca.dataSaldoIniziale) sal.push({ conto, data: an.banca.dataSaldoIniziale, saldo: an.banca.saldoIniziale, fonte });
+        if (an.banca.saldoFinale !== null && an.banca.dataSaldoFinale) sal.push({ conto, data: an.banca.dataSaldoFinale, saldo: an.banca.saldoFinale, fonte });
+        if (sal.length) chk(await state.sb.from('conto_saldi').upsert(sal, { onConflict: 'conto,data' }));
+        if (sal.length) html += `<div class="kv" style="margin-top:12px">${sal.map((x) => `<div><span>Saldo ${esc(conto)} al ${fmtData(x.data)}</span><b>${L.eur ? L.eur(x.saldo) : x.saldo}</b></div>`).join('')}</div>`;
       }
     } catch (e) { /* senza la tabella dei saldi il Cruscotto userà solo i movimenti */ }
     return html;
@@ -545,14 +584,14 @@
     const corpo = `<div id="cg-lista"></div>
       <div class="form-grid" style="margin-top:16px;border-top:1px dashed var(--line);padding-top:14px">
         <div class="f s6"><label for="cg-nome">Nuova categoria</label><input id="cg-nome" placeholder="es. Spese di cancelleria"></div>
-        <div class="f s3"><label for="cg-tipo">Tipo</label><select id="cg-tipo"><option value="uscita">Uscita (costo)</option><option value="entrata">Entrata</option></select></div>
+        <div class="f s3"><label for="cg-tipo">Tipo</label><select id="cg-tipo"><option value="uscita">Uscita (costo)</option><option value="entrata">Entrata</option><option value="giroconto">Giroconto tra conti (escluso dai totali)</option></select></div>
         <div class="f s3"><label>&nbsp;</label><button class="btn gold" type="button" id="cg-add">Aggiungi</button></div></div>`;
     const m = P.modal('Categorie di entrate e costi', corpo, { senzaConferma: true });
     const lista = $('#cg-lista', m.ov);
     const err = $('[data-err]', m.ov);
     const disegna = () => {
       lista.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Categoria</th><th>Tipo</th><th></th></tr></thead><tbody>${cs.cat.map((k) => `<tr>
-        <td><b>${esc(k.nome)}</b>${k.attiva ? '' : ' <span class="badge gray">disattivata</span>'}</td><td><span class="badge ${k.tipo === 'entrata' ? 'ok' : 'warn'}">${k.tipo === 'entrata' ? 'Entrata' : 'Uscita'}</span></td>
+        <td><b>${esc(k.nome)}</b>${k.attiva ? '' : ' <span class="badge gray">disattivata</span>'}</td><td><span class="badge ${k.tipo === 'entrata' ? 'ok' : k.tipo === 'giroconto' ? 'info' : 'warn'}">${k.tipo === 'entrata' ? 'Entrata' : k.tipo === 'giroconto' ? 'Giroconto' : 'Uscita'}</span></td>
         <td class="act"><button class="btn ghost small" type="button" data-ren="${esc(k.id)}">Rinomina</button> <button class="btn ghost small" type="button" data-tog="${esc(k.id)}">${k.attiva ? 'Disattiva' : 'Riattiva'}</button></td></tr>`).join('') || '<tr><td colspan="3"><div class="empty">Nessuna categoria.</div></td></tr>'}</tbody></table></div>`;
       $$('[data-ren]', lista).forEach((b) => b.addEventListener('click', async () => {
         const k = cs.cat.find((x) => x.id === b.dataset.ren);

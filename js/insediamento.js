@@ -35,7 +35,7 @@
       ok(sb.from('fratelli').select('anno_iniziazione,data_iniziazione')),
       ok(sb.from('lavori').select('titolo,fratello_id,autore_esterno,stato,data_presentazione,tornata_id').in('stato', ['presentato', 'archiviato'])),
       ok(sb.from('v_versamenti_elenco').select('voce,importo,data_versamento').gte('data_versamento', dal).lte('data_versamento', al)),
-      ok(sb.from('v_conto_movimenti').select('importo,categoria').gte('data_operazione', dal).lte('data_operazione', al)),
+      ok(sb.from('v_conto_movimenti').select('*').gte('data_operazione', dal).lte('data_operazione', al)).then((r) => r && r.filter((x) => !x.giroconto)),
     ]);
     const n = (tipo) => (tor || []).filter((t) => t.tipo === tipo).length;
     const rit = (tor || []).filter((t) => t.tipo === 'ordinaria' || t.tipo === 'straordinaria');
@@ -68,9 +68,9 @@
   async function calcolaConto(Y) {
     const sb = state.sb, dal = Y + '-01-01', al = Y + '-12-31';
     const [mov, vers, sal] = await Promise.all([
-      ok(sb.from('v_conto_movimenti').select('importo,categoria').gte('data_operazione', dal).lte('data_operazione', al)),
+      ok(sb.from('v_conto_movimenti').select('*').gte('data_operazione', dal).lte('data_operazione', al)).then((r) => r && r.filter((x) => !x.giroconto)),
       ok(sb.from('v_versamenti_elenco').select('voce,importo,data_versamento').gte('data_versamento', dal).lte('data_versamento', al)),
-      ok(sb.from('conto_saldi').select('data,saldo').lte('data', (Y - 1) + '-12-31').order('data', { ascending: false }).limit(1)),
+      ok(sb.from('conto_saldi').select('*').lte('data', (Y - 1) + '-12-31').order('data', { ascending: false })),
     ]);
     if (!mov) throw new Error('Non riesco a leggere il Conto di Loggia con i tuoi permessi.');
     const cat = (x) => L.elezioni.norm(x.categoria || '');
@@ -83,11 +83,13 @@
     const quoteIngresso = mov.filter((x) => Number(x.importo) > 0 && /quote di ingresso/.test(cat(x))).reduce((a, x) => a + Number(x.importo), 0);
     const quoteIniz = quoteIngresso + perVoce(/aumento|promoz|iniziazion/);
     const oblazioni = Math.max(0, totE - capitazioni - quoteIniz - tronco);
-    const capGoi = sommaUsc(/versamento capitazioni al goi/), quoteNo = sommaUsc(/ammissione goi/), capCollegio = sommaUsc(/collegio dei mm/);
+    const capGoi = sommaUsc(/versamento capitazioni al goi/), quoteNo = sommaUsc(/ammissione goi|passaggi di grado/), capCollegio = sommaUsc(/collegio dei mm/);
     const speseLocali = sommaUsc(/\b(local|affitt|sede|tempio)/);
     const beneficenza = sommaUsc(/benefic/);
     const speseGestione = Math.max(0, totU - capGoi - quoteNo - capCollegio - speseLocali - beneficenza);
-    const residuoPrec = sal && sal[0] ? Number(sal[0].saldo) : 0;
+    // residuo dell'anno precedente: ultimo saldo di ogni conto al 31/12, sommati
+    const ultimiSal = {}; (sal || []).forEach((x) => { const k = x.conto || 'BancoPosta'; if (!ultimiSal[k]) ultimiSal[k] = x; });
+    const residuoPrec = Object.values(ultimiSal).reduce((a, x) => a + Number(x.saldo), 0);
     return { capitazioni, quoteIniz, oblazioni, residuoPrec, capGoi, quoteNo, capCollegio, speseLocali, speseGestione, troncoEntrate: tronco, beneficenza, residuoNoto: !!(sal && sal[0]) };
   }
 
