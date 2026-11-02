@@ -18,6 +18,25 @@
   const reale = (x) => !x.giroconto;
   const uuid = () => (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2));
 
+  /* Disponibilità di ogni conto: ultimo saldo di banca + movimenti successivi di quel conto */
+  async function disponibilita() {
+    try {
+      const sal = chk(await state.sb.from('conto_saldi').select('*').lte('data', oggi()).order('data', { ascending: false }));
+      const ultimi = {};
+      sal.forEach((x) => { const k = contoDi(x); if (!ultimi[k]) ultimi[k] = x; });
+      const conti = Object.keys(ultimi);
+      if (!conti.length) return null;
+      const da = conti.map((k) => ultimi[k].data).sort()[0];
+      const mov = chk(await state.sb.from('v_conto_movimenti').select('*').gt('data_operazione', da));
+      const righe = conti.map((k) => {
+        const dopo = mov.filter((x) => contoDi(x) === k && x.data_operazione > ultimi[k].data);
+        const totale = Number(ultimi[k].saldo) + dopo.reduce((a, x) => a + Number(x.importo), 0);
+        return { conto: k, data: ultimi[k].data, saldo: Number(ultimi[k].saldo), nDopo: dopo.length, totale: Math.round(totale * 100) / 100 };
+      }).sort((a, b) => b.totale - a.totale);
+      return { righe, totale: righe.reduce((a, r) => a + r.totale, 0) };
+    } catch (e) { return null; }
+  }
+
   async function carica(P) {
     const anno = P.pag.anno;
     try {
@@ -26,6 +45,7 @@
         state.sb.from('categorie_movimento').select('*').order('nome'),
       ]);
       cs.mov = chk(m); cs.cat = chk(k);
+      cs.disp = await disponibilita();
       cs.eventi = []; cs.bussanti = []; cs.tesoreria2 = false;
       try {   // eventi e collegamenti ai bussanti (script lemmi_tesoreria_2.sql)
         const [ex, ev] = await Promise.all([
@@ -123,7 +143,12 @@
         <div class="stat"><div class="n">${eur(pos)}</div><div class="l">Entrate ${P.pag.anno}</div></div>
         <div class="stat"><div class="n">${eur(neg)}</div><div class="l">Uscite ${P.pag.anno}</div></div>
         <div class="stat"><div class="n" style="color:${pos - neg < 0 ? 'var(--bad)' : 'inherit'}">${eur(pos - neg)}</div><div class="l">Saldo del periodo</div></div>
-        <div class="stat"><div class="n">${daRic}</div><div class="l">Movimenti da riconciliare</div></div></div>
+        <div class="stat${daRic ? ' drillable' : ''}" id="c-daric" ${daRic ? 'role="button" tabindex="0" title="Mostra i movimenti da riconciliare"' : ''}><div class="n">${daRic}</div><div class="l">Movimenti da riconciliare${daRic ? '<br><span style="font-size:.75rem;text-decoration:underline">mostrali</span>' : ''}</div></div></div>
+      ${cs.disp ? `<div class="card" style="margin:0 0 14px;padding:12px 16px">
+        <div class="actions" style="justify-content:space-between;align-items:baseline"><b>Disponibile in banca</b><span style="font-size:1.4rem;font-weight:700;color:${cs.disp.totale < 0 ? 'var(--bad)' : 'inherit'}">${eur(cs.disp.totale)}</span></div>
+        <div class="kv" style="margin-top:6px">${cs.disp.righe.map((r) => `<div><span>${esc(r.conto)}</span><b>${eur(r.totale)}</b><div class="hint">saldo al ${fmtData(r.data)}: ${eur(r.saldo)}${r.nDopo ? ' + ' + r.nDopo + (r.nDopo === 1 ? ' movimento successivo' : ' movimenti successivi') : ''}</div></div>`).join('')}</div>
+        <div class="hint" style="margin-top:6px">Calcolato dall’ultimo saldo importato di ogni conto: per averlo aggiornato a oggi importa l’ultimo estratto di ciascun conto.</div></div>`
+      : '<div class="notice" style="margin:0 0 14px">Disponibile in banca: non ci sono ancora saldi di banca. Importa un estratto (PDF BancoPosta o Lista movimenti BNL) per vederlo.</div>'}
       <div class="actions" style="margin-bottom:14px">
         <div class="searchbar">${IC.search}<input id="c-q" type="search" placeholder="Cerca nella descrizione…" value="${esc(cs.filtri.q)}"></div>
         <select id="c-conto" style="width:auto"><option value="">Tutti i conti</option>${conti.map((k) => `<option ${cs.filtri.conto === k ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>
@@ -172,6 +197,16 @@
       $$('[data-delm]', c).forEach((b) => b.addEventListener('click', () => eliminaManuale(b.dataset.delm)));
     };
     $('#c-q').addEventListener('input', (e) => { cs.filtri.q = e.target.value; disegna(); });
+    const vaiDaRic = () => {
+      cs.filtri = { q: '', stato: 'da_riconciliare', cat: '', tipo: '', conto: '' };
+      $('#c-q').value = ''; $('#c-tipo').value = ''; $('#c-cat').value = ''; $('#c-conto').value = ''; $('#c-stato').value = 'da_riconciliare';
+      disegna();
+      const t = $('#c-righe'); if (t && t.scrollIntoView) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    if (daRic) {
+      $('#c-daric').addEventListener('click', vaiDaRic);
+      $('#c-daric').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vaiDaRic(); } });
+    }
     $('#c-conto').addEventListener('change', (e) => { cs.filtri.conto = e.target.value; disegna(); });
     $('#c-tipo').addEventListener('change', (e) => { cs.filtri.tipo = e.target.value; disegna(); });
     $('#c-stato').addEventListener('change', (e) => { cs.filtri.stato = e.target.value; disegna(); });
