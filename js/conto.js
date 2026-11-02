@@ -24,7 +24,7 @@
     try {
       const [sal, mov] = await Promise.all([
         state.sb.from('conto_saldi').select('*').order('data'),
-        state.sb.from('v_conto_movimenti').select('conto,importo,data_operazione'),
+        state.sb.from('v_conto_movimenti').select('*'),
       ]);
       const S = chk(sal), M = chk(mov);
       // tutti i conti con saldi o movimenti: per quelli senza saldi di banca il saldo resta «non disponibile»
@@ -48,8 +48,10 @@
       const righe = conti.map((k) => {
         const mk = M.filter((x) => contoDi(x) === k && x.data_operazione > inizio && x.data_operazione <= anno + '-12-31');
         const i = saldoAl(k, inizio), f = saldoAl(k, fine);
-        return { conto: k, iniziale: i.v, primo: i.da, senzaSaldi: !!i.nessuno, entrate: mk.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0),
-          uscite: mk.filter((x) => Number(x.importo) < 0).reduce((a, x) => a - Number(x.importo), 0), finale: f.v, base: f.da };
+        const mv = mk.filter((x) => !x.giroconto);   // entrate e uscite come nei riquadri in alto; i giroconti a parte
+        return { conto: k, iniziale: i.v, primo: i.da, senzaSaldi: !!i.nessuno, entrate: mv.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0),
+          uscite: mv.filter((x) => Number(x.importo) < 0).reduce((a, x) => a - Number(x.importo), 0),
+          giro: mk.filter((x) => x.giroconto).reduce((a, x) => a + Number(x.importo), 0), finale: f.v, base: f.da };
       }).sort((x, y) => x.conto.localeCompare(y.conto));
       return { righe, inizio, fine };
     } catch (e) { return null; }
@@ -158,9 +160,9 @@
     const daRic = cs.mov.filter((x) => x.stato_riconciliazione === 'da_riconciliare').length;
     c.innerHTML = `
       <div class="grid stats">
-        <div class="stat"><div class="n">${eur(pos)}</div><div class="l">Entrate ${P.pag.anno}</div></div>
-        <div class="stat"><div class="n">${eur(neg)}</div><div class="l">Uscite ${P.pag.anno}</div></div>
-        <div class="stat"><div class="n" style="color:${pos - neg < 0 ? 'var(--bad)' : 'inherit'}">${eur(pos - neg)}</div><div class="l">Saldo del periodo</div></div>
+        <div class="stat"><div class="n" id="k-ent">${eur(pos)}</div><div class="l">Entrate ${P.pag.anno} <span class="k-conto"></span></div></div>
+        <div class="stat"><div class="n" id="k-usc">${eur(neg)}</div><div class="l">Uscite ${P.pag.anno} <span class="k-conto"></span></div></div>
+        <div class="stat"><div class="n" id="k-ris" style="color:${pos - neg < 0 ? 'var(--bad)' : 'inherit'}">${eur(pos - neg)}</div><div class="l">Entrate − uscite <span class="k-conto"></span><br><span style="font-size:.75rem">giroconti tra conti esclusi</span></div></div>
         <div class="stat${daRic ? ' drillable' : ''}" id="c-daric" ${daRic ? 'role="button" tabindex="0" title="Mostra i movimenti da riconciliare"' : ''}><div class="n">${daRic}</div><div class="l">Movimenti da riconciliare${daRic ? '<br><span style="font-size:.75rem;text-decoration:underline">mostrali</span>' : ''}</div></div></div>
       <div id="c-saldi"></div>
       <div class="actions" style="margin-bottom:14px">
@@ -185,17 +187,28 @@
       const nd = (r, c) => r[c] === null;
       const manca = righe.some((r) => nd(r, 'finale'));
       const fin = somma('finale');
+      const conGiro = righe.some((r) => Math.abs(r.giro) > 0.004);
       const titolo = cs.filtri.conto ? 'Saldo ' + esc(cs.filtri.conto) : 'Saldi dei conti';
       box.innerHTML = `<div class="card" style="margin:0 0 14px;padding:12px 16px">
         <div class="actions" style="justify-content:space-between;align-items:baseline"><b>${titolo} ${P.pag.anno}</b><span>Disponibile ${alFine}: <b style="font-size:1.3rem;color:${fin < 0 ? 'var(--bad)' : 'inherit'}">${manca && righe.length === 1 ? 'n.d.' : eur(fin) + (manca ? '*' : '')}</b></span></div>
-        <div class="table-wrap" style="margin-top:8px"><table><thead><tr><th>Conto</th><th class="num">Saldo al ${fmtData(d.inizio)}</th><th class="num">Entrate</th><th class="num">Uscite</th><th class="num">Saldo ${alFine}</th></tr></thead><tbody>
-        ${righe.map((r) => `<tr><td><b>${esc(r.conto)}</b></td><td class="num">${nd(r, 'iniziale') ? '<span class="muted">n.d.*</span>' : eur(r.iniziale)}</td><td class="num" style="color:var(--ok)">${eur(r.entrate)}</td><td class="num" style="color:var(--bad)">${eur(r.uscite)}</td><td class="num"><b>${nd(r, 'finale') ? '<span class="muted">n.d.*</span>' : eur(r.finale)}</b></td></tr>`).join('')}
-        ${righe.length > 1 ? `<tr><td><b>Totale</b></td><td class="num"><b>${eur(somma('iniziale'))}</b>${righe.some((r) => nd(r, 'iniziale')) ? '*' : ''}</td><td class="num">${eur(somma('entrate'))}</td><td class="num">${eur(somma('uscite'))}</td><td class="num"><b>${eur(fin)}</b>${manca ? '*' : ''}</td></tr>` : ''}</tbody></table></div>
-        <div class="hint" style="margin-top:6px">Saldi ricostruiti dai saldi degli estratti importati e dai movimenti di ogni conto (giroconti compresi, per questo entrate e uscite qui includono i trasferimenti tra conti). Movimenti non ancora importati non sono considerati.
-        ${righe.map((r) => r.senzaSaldi ? `<br>* ${esc(r.conto)}: nessun saldo di banca registrato. Reimporta l’estratto (es. il PDF BancoPosta): i movimenti già presenti non si duplicano e vengono salvati i saldi iniziale e finale.`
+        <div class="table-wrap" style="margin-top:8px"><table><thead><tr><th>Conto</th><th class="num">Saldo al ${fmtData(d.inizio)}</th><th class="num">Entrate</th><th class="num">Uscite</th>${conGiro ? '<th class="num">Giroconti</th>' : ''}<th class="num">Saldo ${alFine}</th>${canPay() ? '<th></th>' : ''}</tr></thead><tbody>
+        ${righe.map((r) => `<tr><td><b>${esc(r.conto)}</b></td><td class="num">${nd(r, 'iniziale') ? '<span class="muted">n.d.*</span>' : eur(r.iniziale)}</td><td class="num" style="color:var(--ok)">${eur(r.entrate)}</td><td class="num" style="color:var(--bad)">${eur(r.uscite)}</td>${conGiro ? `<td class="num">${r.giro ? eur(r.giro) : '—'}</td>` : ''}<td class="num"><b>${nd(r, 'finale') ? '<span class="muted">n.d.*</span>' : eur(r.finale)}</b></td>${canPay() ? `<td class="act"><button class="btn ghost small" type="button" data-sal="${esc(r.conto)}">Inserisci saldo</button></td>` : ''}</tr>`).join('')}
+        ${righe.length > 1 ? `<tr><td><b>Totale</b></td><td class="num"><b>${eur(somma('iniziale'))}</b>${righe.some((r) => nd(r, 'iniziale')) ? '*' : ''}</td><td class="num">${eur(somma('entrate'))}</td><td class="num">${eur(somma('uscite'))}</td>${conGiro ? `<td class="num">${eur(somma('giro'))}</td>` : ''}<td class="num"><b>${eur(fin)}</b>${manca ? '*' : ''}</td>${canPay() ? '<td></td>' : ''}</tr>` : ''}</tbody></table></div>
+        <div class="hint" style="margin-top:6px">Saldo finale = saldo iniziale + entrate − uscite ± giroconti tra i conti della Loggia (che si annullano nel totale). Entrate e uscite sono le stesse dei riquadri in alto. Il saldo parte dall’ultimo estratto importato: i movimenti non ancora importati non sono considerati.
+        ${righe.map((r) => r.senzaSaldi ? `<br>* ${esc(r.conto)}: nessun saldo di banca registrato. Reimporta l’estratto (es. il PDF BancoPosta: i movimenti già presenti non si duplicano e vengono salvati i saldi) oppure usa «Inserisci saldo» con un saldo letto dall’estratto.`
           : nd(r, 'iniziale') ? `<br>* ${esc(r.conto)}: saldo iniziale non disponibile, il primo estratto importato parte dal ${fmtData(r.primo)}.` : '').join('')}</div></div>`;
+      $$('[data-sal]', box).forEach((b) => b.addEventListener('click', () => apriSaldo(b.dataset.sal, P)));
+    };
+    const disegnaKpi = () => {
+      const v = veri.filter((x) => !cs.filtri.conto || contoDi(x) === cs.filtri.conto);
+      const e = v.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0);
+      const u = v.filter((x) => Number(x.importo) < 0).reduce((a, x) => a - Number(x.importo), 0);
+      $('#k-ent').textContent = eur(e); $('#k-usc').textContent = eur(u);
+      $('#k-ris').textContent = eur(e - u); $('#k-ris').style.color = e - u < 0 ? 'var(--bad)' : 'inherit';
+      $$('.k-conto', c).forEach((x) => { x.textContent = cs.filtri.conto ? '· ' + cs.filtri.conto : ''; });
     };
     const disegna = () => {
+      disegnaKpi();
       disegnaSaldi();
       const q = cs.filtri.q.trim().toLowerCase();
       const f = cs.mov.filter((x) => (!q || String(x.descrizione || '').toLowerCase().includes(q) || String(x.fratello || '').toLowerCase().includes(q))
@@ -254,6 +267,25 @@
       if ($('#c-evt-g')) $('#c-evt-g').onclick = () => apriEventi(P);
     }
     disegna();
+  }
+
+  /* Saldo di banca inserito a mano (letto dall'estratto): ancora per calcolare i saldi del conto */
+  function apriSaldo(conto, P) {
+    const corpo = `<div class="form-grid">
+      ${campo('data', 'Data del saldo', oggi(), { type: 'date', cls: 's6', req: 1 })}
+      ${campo('saldo', 'Saldo contabile (€)', '', { cls: 's6', req: 1, ph: 'es. 10.995,55' })}
+      <div class="f hint">Copia il saldo contabile a fine giornata scritto sull’estratto di ${esc(conto)} (es. «saldo finale» al 30/06). Il saldo del conto verrà ricalcolato da questo valore con i movimenti importati prima e dopo quella data.</div></div>`;
+    P.modal('Inserisci saldo · ' + conto, corpo, {
+      onSubmit: async (f, chiudi, errore) => {
+        const data = itToIso(f.elements.data.value.trim());
+        if (!data || data === 'ERR') return errore('Data non valida (gg/mm/aaaa).');
+        const t = String(f.elements.saldo.value).trim();
+        const v = E.parseImporto(t);
+        if (v === null || isNaN(v)) return errore('Saldo non valido: scrivi l’importo, es. 10.995,55 (con il meno se negativo).');
+        chk(await state.sb.from('conto_saldi').upsert({ conto, data, saldo: v, fonte: 'inserito a mano' }, { onConflict: 'conto,data' }));
+        chiudi(); toast('Saldo registrato', 'ok'); L.route();
+      },
+    });
   }
 
   async function cambiaStato(id, stato) {
