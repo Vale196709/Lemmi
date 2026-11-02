@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.39.1',
+  numero: '0.39.2',
   data: '2026-11-02',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.39.2', data: '2026-11-02', t: 'Conto di Loggia: saldi di ogni conto a inizio e fine anno (o ad oggi) con entrate, uscite e totale' },
     { n: '0.39.1', data: '2026-11-02', t: 'Conto di Loggia: riquadro «Disponibile in banca» per conto e totale; clic su «Movimenti da riconciliare» per vederli' },
     { n: '0.39.0', data: '2026-11-02', t: 'Conto di Loggia: «Collega in automatico» i bonifici dei Fratelli alle scadenze aperte, con ripartizione su più rate' },
     { n: '0.38.0', data: '2026-11-02', t: 'Conto di Loggia su più conti (BancoPosta e BNL): import della «Lista movimenti» BNL con verifica dei saldi, giroconti esclusi da entrate e uscite, liquidità come somma dei conti, nuove categorie automatiche' },

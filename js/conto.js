@@ -18,22 +18,39 @@
   const reale = (x) => !x.giroconto;
   const uuid = () => (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2));
 
-  /* Disponibilità di ogni conto: ultimo saldo di banca + movimenti successivi di quel conto */
-  async function disponibilita() {
+  /* Saldi di ogni conto a inizio e fine anno: dal saldo di banca più vicino (estratti importati)
+   * si sommano o si tolgono i movimenti del conto fino alla data voluta. */
+  async function saldiConti(anno) {
     try {
-      const sal = chk(await state.sb.from('conto_saldi').select('*').lte('data', oggi()).order('data', { ascending: false }));
-      const ultimi = {};
-      sal.forEach((x) => { const k = contoDi(x); if (!ultimi[k]) ultimi[k] = x; });
-      const conti = Object.keys(ultimi);
+      const [sal, mov] = await Promise.all([
+        state.sb.from('conto_saldi').select('*').order('data'),
+        state.sb.from('v_conto_movimenti').select('conto,importo,data_operazione'),
+      ]);
+      const S = chk(sal), M = chk(mov);
+      const conti = Array.from(new Set(S.map(contoDi)));
       if (!conti.length) return null;
-      const da = conti.map((k) => ultimi[k].data).sort()[0];
-      const mov = chk(await state.sb.from('v_conto_movimenti').select('*').gt('data_operazione', da));
+      const oggiIso = oggi();
+      const inizio = (anno - 1) + '-12-31';
+      const fine = (anno + '-12-31') < oggiIso ? anno + '-12-31' : oggiIso;
+      const saldoAl = (k, data) => {
+        const primo = S.filter((x) => contoDi(x) === k).map((x) => x.data).sort()[0];
+        if (data < primo) return { v: null, da: primo };   // prima del primo estratto importato: non si può sapere
+        const anc = S.filter((x) => contoDi(x) === k)
+          .sort((x, y) => Math.abs(new Date(x.data) - new Date(data)) - Math.abs(new Date(y.data) - new Date(data)))[0];
+        const mk = M.filter((x) => contoDi(x) === k);
+        let v = Number(anc.saldo);
+        if (data >= anc.data) mk.forEach((x) => { if (x.data_operazione > anc.data && x.data_operazione <= data) v += Number(x.importo); });
+        else mk.forEach((x) => { if (x.data_operazione > data && x.data_operazione <= anc.data) v -= Number(x.importo); });
+        return { v: Math.round(v * 100) / 100, da: anc.data };
+      };
       const righe = conti.map((k) => {
-        const dopo = mov.filter((x) => contoDi(x) === k && x.data_operazione > ultimi[k].data);
-        const totale = Number(ultimi[k].saldo) + dopo.reduce((a, x) => a + Number(x.importo), 0);
-        return { conto: k, data: ultimi[k].data, saldo: Number(ultimi[k].saldo), nDopo: dopo.length, totale: Math.round(totale * 100) / 100 };
-      }).sort((a, b) => b.totale - a.totale);
-      return { righe, totale: righe.reduce((a, r) => a + r.totale, 0) };
+        const mk = M.filter((x) => contoDi(x) === k && x.data_operazione > inizio && x.data_operazione <= anno + '-12-31');
+        const i = saldoAl(k, inizio), f = saldoAl(k, fine);
+        return { conto: k, iniziale: i.v, primo: i.da, entrate: mk.filter((x) => Number(x.importo) > 0).reduce((a, x) => a + Number(x.importo), 0),
+          uscite: mk.filter((x) => Number(x.importo) < 0).reduce((a, x) => a - Number(x.importo), 0), finale: f.v, base: f.da };
+      }).sort((x, y) => x.conto.localeCompare(y.conto));
+      const tot = (c) => righe.reduce((a, r) => a + (r[c] || 0), 0);
+      return { righe, inizio, fine, iniziale: tot('iniziale'), entrate: tot('entrate'), uscite: tot('uscite'), finale: tot('finale') };
     } catch (e) { return null; }
   }
 
@@ -45,7 +62,7 @@
         state.sb.from('categorie_movimento').select('*').order('nome'),
       ]);
       cs.mov = chk(m); cs.cat = chk(k);
-      cs.disp = await disponibilita();
+      cs.disp = await saldiConti(anno);
       cs.eventi = []; cs.bussanti = []; cs.tesoreria2 = false;
       try {   // eventi e collegamenti ai bussanti (script lemmi_tesoreria_2.sql)
         const [ex, ev] = await Promise.all([
@@ -144,11 +161,13 @@
         <div class="stat"><div class="n">${eur(neg)}</div><div class="l">Uscite ${P.pag.anno}</div></div>
         <div class="stat"><div class="n" style="color:${pos - neg < 0 ? 'var(--bad)' : 'inherit'}">${eur(pos - neg)}</div><div class="l">Saldo del periodo</div></div>
         <div class="stat${daRic ? ' drillable' : ''}" id="c-daric" ${daRic ? 'role="button" tabindex="0" title="Mostra i movimenti da riconciliare"' : ''}><div class="n">${daRic}</div><div class="l">Movimenti da riconciliare${daRic ? '<br><span style="font-size:.75rem;text-decoration:underline">mostrali</span>' : ''}</div></div></div>
-      ${cs.disp ? `<div class="card" style="margin:0 0 14px;padding:12px 16px">
-        <div class="actions" style="justify-content:space-between;align-items:baseline"><b>Disponibile in banca</b><span style="font-size:1.4rem;font-weight:700;color:${cs.disp.totale < 0 ? 'var(--bad)' : 'inherit'}">${eur(cs.disp.totale)}</span></div>
-        <div class="kv" style="margin-top:6px">${cs.disp.righe.map((r) => `<div><span>${esc(r.conto)}</span><b>${eur(r.totale)}</b><div class="hint">saldo al ${fmtData(r.data)}: ${eur(r.saldo)}${r.nDopo ? ' + ' + r.nDopo + (r.nDopo === 1 ? ' movimento successivo' : ' movimenti successivi') : ''}</div></div>`).join('')}</div>
-        <div class="hint" style="margin-top:6px">Calcolato dall’ultimo saldo importato di ogni conto: per averlo aggiornato a oggi importa l’ultimo estratto di ciascun conto.</div></div>`
-      : '<div class="notice" style="margin:0 0 14px">Disponibile in banca: non ci sono ancora saldi di banca. Importa un estratto (PDF BancoPosta o Lista movimenti BNL) per vederlo.</div>'}
+      ${cs.disp ? (() => { const d = cs.disp, alFine = d.fine === P.pag.anno + '-12-31' ? 'al ' + fmtData(d.fine) : 'ad oggi (' + fmtData(d.fine) + ')'; return `<div class="card" style="margin:0 0 14px;padding:12px 16px">
+        <div class="actions" style="justify-content:space-between;align-items:baseline"><b>Saldi dei conti ${P.pag.anno}</b><span>Disponibile ${alFine}: <b style="font-size:1.3rem;color:${d.finale < 0 ? 'var(--bad)' : 'inherit'}">${eur(d.finale)}</b></span></div>
+        <div class="table-wrap" style="margin-top:8px"><table><thead><tr><th>Conto</th><th class="num">Saldo al ${fmtData(d.inizio)}</th><th class="num">Entrate</th><th class="num">Uscite</th><th class="num">Saldo ${alFine}</th></tr></thead><tbody>
+        ${d.righe.map((r) => `<tr><td><b>${esc(r.conto)}</b></td><td class="num">${r.iniziale === null ? `<span class="muted" title="Primo estratto importato: ${fmtData(r.primo)}">n.d.*</span>` : eur(r.iniziale)}</td><td class="num" style="color:var(--ok)">${eur(r.entrate)}</td><td class="num" style="color:var(--bad)">${eur(r.uscite)}</td><td class="num"><b>${eur(r.finale)}</b></td></tr>`).join('')}
+        ${d.righe.length > 1 ? `<tr><td><b>Totale</b></td><td class="num"><b>${eur(d.iniziale)}</b>${d.righe.some((r) => r.iniziale === null) ? '*' : ''}</td><td class="num">${eur(d.entrate)}</td><td class="num">${eur(d.uscite)}</td><td class="num"><b>${eur(d.finale)}</b></td></tr>` : ''}</tbody></table></div>
+        <div class="hint" style="margin-top:6px">Saldi ricostruiti dai saldi degli estratti importati e dai movimenti di ogni conto (giroconti compresi, per questo entrate e uscite qui includono i trasferimenti tra conti). Movimenti non ancora importati non sono considerati.${d.righe.filter((r) => r.iniziale === null).map((r) => `<br>* ${esc(r.conto)}: saldo iniziale non disponibile, il primo estratto importato parte dal ${fmtData(r.primo)}.`).join('')}</div></div>`; })()
+      : '<div class="notice" style="margin:0 0 14px">Saldi dei conti: non ci sono ancora saldi di banca. Importa un estratto (PDF BancoPosta o Lista movimenti BNL) per vederli.</div>'}
       <div class="actions" style="margin-bottom:14px">
         <div class="searchbar">${IC.search}<input id="c-q" type="search" placeholder="Cerca nella descrizione…" value="${esc(cs.filtri.q)}"></div>
         <select id="c-conto" style="width:auto"><option value="">Tutti i conti</option>${conti.map((k) => `<option ${cs.filtri.conto === k ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>
