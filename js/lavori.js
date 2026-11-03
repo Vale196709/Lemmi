@@ -210,13 +210,12 @@
     if (nuovo && x.fratello_id) proponiGrado();
 
     const del = $('[data-del]', m.ov);
-    if (del) del.onclick = async () => {
-      if (!window.confirm('Eliminare definitivamente questo lavoro e il file allegato?')) return;
-      try {
+    if (del) del.onclick = () => {
+      m.chiudi();
+      L.eliminaConAnnulla({ messaggio: 'Lavoro eliminato' + (l.file_path ? ' (con il file)' : ''), esegui: async () => {
         if (l.file_path) chk(await state.sb.storage.from(BUCKET).remove([l.file_path]));
         chk(await state.sb.from('lavori').delete().eq('id', l.id));
-        m.chiudi(); toast('Lavoro eliminato', 'ok'); L.route();
-      } catch (er) { m.errore(messaggioErrore(er)); }
+      } });
     };
   }
 
@@ -263,7 +262,7 @@
             <td>${esc(autoreDi(r))}${r.grado_autore ? `<div class="hint">${esc(GRADI[r.grado_autore])}</div>` : ''}</td>
             <td>${t ? esc(etichettaTornata(t)) : '<span class="muted">da stabilire</span>'}${!t && r.grado_tornata ? `<div class="hint">${esc(GRADI[r.grado_tornata])}</div>` : ''}</td>
             <td>${r.data_consegna_prevista ? fmtData(r.data_consegna_prevista) : '—'}${ritardo ? '<div><span class="badge bad">in ritardo</span></div>' : ''}</td>
-            <td><span class="badge ${STATO_BADGE[r.stato]}">${esc(STATI[r.stato])}</span>${r.data_presentazione ? `<div class="hint">${fmtData(r.data_presentazione)}</div>` : ''}</td>
+            <td>${L.badgeStato(r.stato, STATI[r.stato])}${r.data_presentazione ? `<div class="hint">${fmtData(r.data_presentazione)}</div>` : ''}</td>
             <td>${r.file_path ? `<button class="btn ghost small" data-dl="${esc(r.id)}" title="${esc(r.file_nome || '')}">Scarica</button>` : '<span class="muted">—</span>'}</td>
             <td class="act">${L.wa && r.fratello_id && APERTI.includes(r.stato) ? L.wa.fratello(r.fratello_id, `Carissimo Fratello, ti ricordo il lavoro «${r.titolo}»${r.data_consegna_prevista ? ', da consegnare entro il ' + fmtData(r.data_consegna_prevista) : ''}${t ? ', per la tornata del ' + fmtData(t.data) : ''}. Un triplice fraterno abbraccio.`, '') : ''} ${puoGestire() ? `<button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`;
         }).join('')}</tbody></table></div>`;
@@ -292,7 +291,7 @@
       ${righe.length ? `<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Lavoro</th><th>Tornata</th><th>Stato</th><th>File</th><th></th></tr></thead><tbody>${righe.map((r) => `<tr>
         <td><b>${esc(r.titolo)}</b><div class="hint">${esc(TIPI[r.tipo] || r.tipo)}${r.tema ? ' · ' + esc(r.tema) : ''}</div></td>
         <td>${tor[r.tornata_id] ? esc(etichettaTornata(tor[r.tornata_id])) : '<span class="muted">da stabilire</span>'}</td>
-        <td><span class="badge ${STATO_BADGE[r.stato]}">${esc(STATI[r.stato])}</span>${r.data_presentazione ? `<div class="hint">${fmtData(r.data_presentazione)}</div>` : ''}</td>
+        <td>${L.badgeStato(r.stato, STATI[r.stato])}${r.data_presentazione ? `<div class="hint">${fmtData(r.data_presentazione)}</div>` : ''}</td>
         <td>${r.file_path ? `<button class="btn ghost small" data-dl="${esc(r.id)}" title="${esc(r.file_nome || '')}">Scarica</button>` : '<span class="muted">—</span>'}</td>
         <td class="act"><button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button></td></tr>`).join('')}</tbody></table></div>`
         : `<div class="empty">${IC.inbox}<div>Nessun lavoro registrato per questo Fratello.</div></div>`}

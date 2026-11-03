@@ -118,6 +118,8 @@ js/calendario_ics.js  export del calendario in .ics
 js/relazione.js     Relazione annuale del Venerabile
 js/ripristino.js    ripristino guidato da backup
 js/sicurezza.js     uscita automatica per inattività
+js/ricorrenze.js    compleanni e anniversari di iniziazione nel Cruscotto, auguri su WhatsApp
+js/agapi.js         adesioni alle agapi (Calendario e area del Fratello)
 templates/          A1.pdf e C1.pdf (modelli ufficiali ed. 2024)
 vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file Excel): nessun CDN
 ```
@@ -135,3 +137,16 @@ vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file E
 - Il file viene letto nel browser, sul computer di chi lo carica: non passa da altri servizi. Il programma riconosce da solo la riga delle intestazioni e le colonne (data, descrizione, importo oppure dare/avere, saldo); se non ci riesce, le colonne si indicano a mano nella finestra di importazione.
 - Importando lo stesso periodo più volte i movimenti già presenti vengono ignorati.
 - La libreria per i file Excel è SheetJS 0.18.5, l'ultima pubblicata sul registro npm. Usa l'importazione solo con file scaricati direttamente dalla tua banca.
+
+## Agapi (aggiornamento 42)
+
+- Richiede lo script `sql/lemmi_aggiornamento_42.sql` (Supabase › SQL Editor › Run; si può rieseguire).
+- Nel Calendario ogni tornata può avere «Segue l’agape» con quota a persona e data entro cui aderire; le tornate di tipo «Agape» lo sono sempre.
+- L’etichetta «Agape · N coperti» apre l’elenco: risposta (Sì / No / —), ospiti, note, incassato. Ogni modifica si salva da sola. «Copia elenco per il ristorante» prepara il testo con coperti e note; «Invito su WhatsApp» il messaggio per il gruppo.
+- I Fratelli con un accesso rispondono da «La mia scheda › Prossime tornate» (Partecipo / Non partecipo, ospiti) fino alla data di chiusura; non possono segnare gli incassi.
+
+## Grafica (aggiornamento 42)
+
+- Colori di stato uguali in tutta l’app: verde in regola, ambra in scadenza (quote da pagare entro 30 giorni), rosso scaduto (`Lemmi.badgeStato`).
+- Sotto i 640 px le tabelle con intestazione diventano schede: titolo dalla colonna con `data-card-title` (o dalla prima), righe vuote nascoste. Per escludere una tabella: `data-nocard`.
+- Eliminazioni con «Annulla» per 7 secondi (`Lemmi.eliminaConAnnulla`): l’eliminazione vera parte solo allo scadere.

@@ -45,7 +45,7 @@
         <select id="f-stato" style="width:auto"><option value="">Tutti gli stati</option>${P.opzioni(stati.map((s) => ({ v: s, t: cap(s) })), lista.stato)}</select>
         <select id="f-grado" style="width:auto"><option value="">Tutti i gradi</option>${P.opzioni(GRADI.map((g) => ({ v: g, t: cap(g) })), lista.grado)}</select>
         <span class="muted" id="conta"></span></div>
-      <div class="table-wrap"><table><thead><tr>${COLONNE.map((c) => `<th class="sort" data-col="${c.id}" role="button" tabindex="0" title="Clicca per ordinare">${c.t} <span class="arr"></span></th>`).join('')}</tr></thead><tbody id="righe"></tbody></table></div>`;
+      <div class="table-wrap"><table><thead><tr>${COLONNE.map((c) => `<th class="sort" data-col="${c.id}"${c.id === 'nominativo' ? ' data-card-title' : ''} role="button" tabindex="0" title="Clicca per ordinare">${c.t} <span class="arr"></span></th>`).join('')}</tr></thead><tbody id="righe"></tbody></table></div>`;
     const disegna = () => {
       const q = lista.q.trim().toLowerCase();
       const f = ordina(lista.righe.filter((x) => (!q || [x.cognome, x.nome, x.matricola, x.citta].join(' ').toLowerCase().includes(q))
@@ -58,7 +58,7 @@
       });
       $('#righe').innerHTML = f.length ? f.map((x) => `<tr><td>${esc(x.matricola) || '—'}</td>
         <td><a class="nome" href="#/fratelli/${esc(x.id)}">${esc(x.cognome)} ${esc(x.nome)}</a></td>
-        <td><span class="badge ${x.stato === 'attivo' ? 'ok' : 'gray'}">${esc(cap(x.stato)) || '—'}</span></td>
+        <td>${L.badgeStato(x.stato)}</td>
         <td>${esc(cap(x.grado_attuale)) || '—'}</td><td>${esc(x.carica_attuale) || '—'}</td><td>${esc(x.citta) || '—'}</td>
         <td>${esc(x.cellulare || x.email) || '—'}</td></tr>`).join('') : '<tr><td colspan="7"><div class="empty">Nessun risultato.</div></td></tr>';
     };
@@ -130,6 +130,17 @@
     return ev;
   }
 
+  // in testa alla storia: anni dall'iniziazione, cariche ricoperte, tavole presentate
+  function sommario(f, storia) {
+    const ini = f.data_iniziazione ? Number(String(f.data_iniziazione).slice(0, 4)) : f.anno_iniziazione;
+    const fine = f.data_uscita ? Number(String(f.data_uscita).slice(0, 4)) : new Date().getFullYear();
+    const anni = ini ? fine - ini : null;
+    const n = (t) => storia.filter((x) => x.tipo === t).length;
+    const chip = (x) => `<span class="chip">${x}</span>`;
+    return `<div class="tl-sommario">${[anni !== null && anni >= 0 ? chip((f.data_uscita ? 'In Loggia per ' : 'In Loggia da ') + '<b>' + (anni === 0 ? 'meno di un anno' : anni + (anni === 1 ? ' anno' : ' anni')) + '</b>') : '',
+      n(2) ? chip('Cariche <b>' + n(2) + '</b>') : '', n(4) ? chip('Tavole <b>' + n(4) + '</b>') : ''].join('')}</div>`;
+  }
+
   async function scheda(v, id) {
     const sb = state.sb;
     const [fr, vc, pg, cs] = await Promise.all([
@@ -147,7 +158,7 @@
     v.innerHTML = `
       <div class="crumb"><a href="#/fratelli">Fratelli</a> › ${esc(f.cognome)} ${esc(f.nome)}</div>
       <div class="page-head"><div><h1>${esc(f.cognome)} ${esc(f.nome)}</h1>
-        <p>${f.stato ? `<span class="badge ${f.stato === 'attivo' ? 'ok' : 'gray'}">${esc(cap(f.stato))}</span> ` : ''}${att.grado_attuale ? `<span class="badge gold">${esc(cap(att.grado_attuale))}</span> ` : ''}${att.carica_attuale ? `<span class="badge info">${esc(att.carica_attuale)}</span>` : ''}</p></div>
+        <p>${f.stato ? L.badgeStato(f.stato) + ' ' : ''}${att.grado_attuale ? `<span class="badge gold">${esc(cap(att.grado_attuale))}</span> ` : ''}${att.carica_attuale ? `<span class="badge info">${esc(att.carica_attuale)}</span>` : ''}</p></div>
         ${canEdit() ? `<div class="right actions"><button class="btn gold" id="s-car">${IC.plus} Aggiungi carica</button><button class="btn ghost" id="s-gra">Passaggio di grado</button><button class="btn ghost" id="s-ana">Modifica anagrafica</button><button class="btn ghost" id="s-usc">${f.data_uscita ? 'Modifica uscita' : 'Uscita (O.E. / trasferimento)'}</button>${L.wa && f.cellulare ? L.wa.fratello(f.id) + L.wa.sollecito(f.id) : ''}</div>` : ''}</div>
 
       <div class="card"><h2>Dati</h2><div class="kv">
@@ -158,9 +169,7 @@
         ${f.loggia_destinazione ? kv('Loggia di destinazione', f.loggia_destinazione) : ''}${f.exeat_rif ? kv('Exeat', f.exeat_rif) : ''}${f.note_uscita ? kv('Note sull’uscita', f.note_uscita) : ''}</div></div>
 
       <div class="card"><h2>Storia <small>${storia.length} ${storia.length === 1 ? 'evento' : 'eventi'}</small></h2>
-        ${storia.length ? `<div class="timeline">${storia.map((x) => `<div class="tl-item"><div class="tl-anno">${esc(x.etichetta)}</div>
-          <div class="tl-body"><span class="tl-tag">${['Iniziazione', 'Grado', 'Carica', 'Bussante', 'Tavola', 'Uscita'][x.tipo]}</span><b>${esc(x.titolo)}</b>${x.dettaglio ? `<div class="hint">${esc(x.dettaglio)}</div>` : ''}</div>
-          <div class="act">${x.tipo === 3 ? `<a class="btn ghost small" href="#/bussanti/${esc(x.bussante)}">Apri</a>` : x.tipo === 5 ? '' : x.tipo === 4 ? (x.lav && x.lav.file_path ? `<button class="btn ghost small" data-tav="${esc(x.id)}">Scarica</button>` : '') : canEdit() ? `<button class="btn ghost small" data-ev="${x.modifica}" data-id="${esc(x.id || '')}">Modifica</button>` : ''}</div></div>`).join('')}</div>`
+        ${storia.length ? sommario(f, storia) + `<div class="timeline tl-v">${storia.map((x) => L.vocetl(x, x.tipo === 3 ? `<a class="btn ghost small" href="#/bussanti/${esc(x.bussante)}">Apri</a>` : x.tipo === 5 ? '' : x.tipo === 4 ? (x.lav && x.lav.file_path ? `<button class="btn ghost small" data-tav="${esc(x.id)}">Scarica</button>` : '') : canEdit() ? `<button class="btn ghost small" data-ev="${x.modifica}" data-id="${esc(x.id || '')}">Modifica</button>` : '')).join('')}</div>`
           : `<div class="empty">${IC.storia}<div>Nessun evento registrato.${canEdit() ? ' Usa i pulsanti in alto per aggiungere cariche, passaggi di grado e date.' : ''}</div></div>`}</div>`;
 
     if (canEdit()) {
@@ -211,10 +220,9 @@
       },
     });
     const del = $('[data-del]', m.ov);
-    if (del) del.onclick = async () => {
-      if (!window.confirm('Eliminare questo passaggio di grado?')) return;
-      try { chk(await state.sb.from('passaggi_grado').delete().eq('id', r.id)); m.chiudi(); toast('Passaggio eliminato', 'ok'); L.route(); }
-      catch (e) { $('[data-err]', m.ov).textContent = messaggioErrore(e); }
+    if (del) del.onclick = () => {
+      m.chiudi();
+      L.eliminaConAnnulla({ messaggio: 'Passaggio di grado eliminato', esegui: async () => chk(await state.sb.from('passaggi_grado').delete().eq('id', r.id)) });
     };
   }
 

@@ -81,11 +81,10 @@
       const rec = verbali.find((x) => x.id === b.dataset.apri);
       if (rec) L.apriVerbaleSalvato(rec);
     }));
-    $$('[data-del]', v).forEach((b) => b.addEventListener('click', async () => {
+    $$('[data-del]', v).forEach((b) => b.addEventListener('click', () => {
       const rec = verbali.find((x) => x.id === b.dataset.del);
-      if (!rec || !confirm(`Eliminare dal registro il verbale del ${fmtData(rec.data)} (${GRADI[rec.grado]})? Anche le presenze collegate saranno cancellate.`)) return;
-      try { chk(await state.sb.from('verbali').delete().eq('id', rec.id)); toast('Verbale eliminato dal registro', 'ok'); L.route(); }
-      catch (e) { toast(messaggioErrore ? messaggioErrore(e) : e.message, 'bad'); }
+      if (!rec) return;
+      L.eliminaConAnnulla({ messaggio: `Verbale del ${fmtData(rec.data)} eliminato (con le presenze)`, el: b.closest('tr'), esegui: async () => chk(await state.sb.from('verbali').delete().eq('id', rec.id)) });
     }));
   }
 

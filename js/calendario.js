@@ -19,7 +19,7 @@
   const MESI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
   const GIORNI = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
 
-  const st = { righe: [], lavori: {}, anno: new Date().getFullYear(), tipo: '', nascondiAnnullate: false };
+  const st = { righe: [], lavori: {}, agape: {}, anno: new Date().getFullYear(), tipo: '', nascondiAnnullate: false };
 
   const giornoSettimana = (iso) => { const [a, m, g] = iso.split('-').map(Number); return GIORNI[new Date(Date.UTC(a, m - 1, g)).getUTCDay()]; };
   const hhmm = (t) => (t ? String(t).slice(0, 5) : '');
@@ -30,6 +30,12 @@
   async function carica() {
     const dal = st.anno + '-01-01', al = st.anno + '-12-31';
     st.righe = chk(await state.sb.from('tornate').select('*').gte('data', dal).lte('data', al).order('data').order('ora'));
+    // adesioni alle agapi (script lemmi_aggiornamento_42.sql): conteggi per tornata
+    st.agape = {};
+    if (L.agapi && L.agapi.gestisce()) {
+      const ids = st.righe.filter(L.agapi.haAgape).map((t) => t.id);
+      if (ids.length) st.agape = await L.agapi.conteggi(ids);
+    }
     // lavori e tavole collegati (solo per chi può vederli; per gli altri resta vuoto)
     st.lavori = {};
     if (puoScrivere()) {
@@ -76,7 +82,7 @@
   /* ---------- modifica / nuova tornata ---------- */
   function apriTornata(t) {
     const nuova = !t;
-    const x = t || { data: '', ora: '', tipo: 'straordinaria', grado: '', luogo: '', link_online: '', di_famiglia: false, formazione: false, solennita: '', ordine_del_giorno: '', relatore: '', stato: 'programmata', note: '' };
+    const x = t || { data: '', ora: '', tipo: 'straordinaria', grado: '', luogo: '', link_online: '', di_famiglia: false, formazione: false, solennita: '', ordine_del_giorno: '', relatore: '', stato: 'programmata', note: '', con_agape: false, quota_agape: null, adesioni_entro: null };
     const corpo = `<div class="form-grid">
       <div class="f s4"><label for="t-data">Data <span class="req">*</span></label><input id="t-data" name="data" value="${esc(isoToIt(x.data))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
       <div class="f s4"><label for="t-ora">Ora</label><input id="t-ora" name="ora" type="time" value="${esc(hhmm(x.ora))}"></div>
@@ -92,7 +98,12 @@
         <label style="display:flex;gap:6px;align-items:center;font-weight:500"><input type="checkbox" name="formazione" ${x.formazione ? 'checked' : ''}> Formazione / esoterismo</label></div></div>
       <div class="f s12"><label for="t-odg">Ordine del giorno</label><textarea id="t-odg" name="ordine_del_giorno" rows="4">${esc(x.ordine_del_giorno || '')}</textarea>
         <span class="hint">Le iniziazioni, le riammissioni e le affiliazioni hanno la precedenza (art. 54 del Regolamento).</span></div>
-      <div class="f s12"><label for="t-note">Note</label><input id="t-note" name="note" value="${esc(x.note || '')}"></div></div>`;
+      <div class="f s12"><label for="t-note">Note</label><input id="t-note" name="note" value="${esc(x.note || '')}"></div>
+      <div class="section-title" id="w-agtit">Agape</div>
+      <div class="f s4" id="w-cagape"><label>&nbsp;</label><label style="display:flex;gap:6px;align-items:center;font-weight:500;min-height:40px"><input type="checkbox" name="con_agape" ${x.con_agape ? 'checked' : ''}> Segue l’agape (raccolta adesioni)</label></div>
+      <div class="f s4 w-ag"><label for="t-qag">Quota a persona (€)</label><input id="t-qag" name="quota_agape" inputmode="decimal" value="${x.quota_agape !== null && x.quota_agape !== undefined ? esc(String(x.quota_agape).replace('.', ',')) : ''}" placeholder="es. 35,00"></div>
+      <div class="f s4 w-ag"><label for="t-entro">Adesioni entro il</label><input id="t-entro" name="adesioni_entro" value="${esc(isoToIt(x.adesioni_entro))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
+      <div class="f hint w-ag">I Fratelli con un accesso all’app confermano dalla loro area; le altre risposte le segni tu da «Agape» nel Calendario.</div></div>`;
     const extra = !nuova && puoCancellare() ? '<button class="btn danger" type="button" data-del>Elimina</button>' : '';
     const m = finestra(nuova ? 'Nuova tornata' : 'Modifica tornata', corpo, {
       extra,
@@ -113,11 +124,21 @@
           relatore: e.relatore.value.trim() || null,
           stato: e.stato.value, note: e.note.value.trim() || null,
         };
+        // agape (colonne dell'aggiornamento 42): si salvano solo se c'è qualcosa da salvare o se la tornata le ha già
+        const agape = tipo === 'agape' || e.con_agape.checked;
+        const q0 = e.quota_agape.value.trim().replace(/[€\s]/g, '');
+        const qTxt = q0.includes(',') ? q0.replace(/\./g, '').replace(',', '.') : q0;
+        const quota = agape && qTxt ? Number(qTxt) : null;
+        if (quota !== null && !(quota >= 0)) return errore('Quota dell’agape non valida: scrivi per esempio 35,00.');
+        const entro = agape ? itToIso(e.adesioni_entro.value) : null;
+        if (entro === 'ERR') return errore('Data «Adesioni entro il» non valida: usa il formato gg/mm/aaaa.');
+        if (agape || (t && 'con_agape' in t)) Object.assign(dati, { con_agape: tipo !== 'agape' && e.con_agape.checked, quota_agape: quota, adesioni_entro: entro });
         try {
           if (nuova) chk(await state.sb.from('tornate').insert(dati));
           else chk(await state.sb.from('tornate').update(dati).eq('id', t.id));
         } catch (er) {
           if (er && er.code === '23505') return errore('Esiste già una tornata dello stesso tipo in quella data.');
+          if (/con_agape|quota_agape|adesioni_entro/.test((er && er.message) || '')) return errore('Per l’agape esegui prima lo script sql/lemmi_aggiornamento_42.sql nell’editor SQL di Supabase.');
           throw er;
         }
         chiudi(); toast('Tornata salvata', 'ok');
@@ -130,13 +151,18 @@
       $('#w-grado', m.ov).classList.toggle('hidden', tipo === 'informale');
       $('#w-luogo', m.ov).classList.toggle('hidden', tipo === 'informale');
       $('#w-link', m.ov).classList.toggle('hidden', tipo !== 'informale');
+      $('#w-cagape', m.ov).classList.toggle('hidden', tipo === 'agape' || tipo === 'informale');
+      $('#w-agtit', m.ov).classList.toggle('hidden', tipo === 'informale');
+      const ag = tipo === 'agape' || (tipo !== 'informale' && m.f.elements.con_agape.checked);
+      $$('.w-ag', m.ov).forEach((w) => w.classList.toggle('hidden', !ag));
     };
+    m.f.elements.con_agape.addEventListener('change', aggiorna);
     m.f.elements.tipo.addEventListener('change', aggiorna); aggiorna();
     const del = $('[data-del]', m.ov);
-    if (del) del.onclick = async () => {
-      if (!window.confirm('Eliminare definitivamente questa tornata? Se vuoi solo annullarla, imposta lo stato “Annullata”.')) return;
-      try { chk(await state.sb.from('tornate').delete().eq('id', t.id)); m.chiudi(); toast('Tornata eliminata', 'ok'); L.route(); }
-      catch (er) { m.errore(messaggioErrore(er)); }
+    if (del) del.onclick = () => {
+      m.chiudi();
+      L.eliminaConAnnulla({ messaggio: 'Tornata del ' + fmtData(t.data) + ' eliminata', el: document.getElementById('t-' + t.id),
+        esegui: async () => chk(await state.sb.from('tornate').delete().eq('id', t.id)) });
     };
   }
 
@@ -259,7 +285,7 @@
           const dove = t.tipo === 'informale'
             ? (link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Apri collegamento</a>` : '<span class="muted">collegamento da indicare</span>')
             : esc(t.luogo || '—');
-          const segni = [t.di_famiglia ? '<span class="badge gold">di Famiglia</span>' : '', t.formazione ? '<span class="badge info">formazione</span>' : '', t.solennita ? `<span class="badge gray">${esc(t.solennita)}</span>` : ''].filter(Boolean).join(' ');
+          const segni = [L.agapi && L.agapi.haAgape(t) ? L.agapi.badge(t, st.agape[t.id]) : '', t.di_famiglia ? '<span class="badge gold">di Famiglia</span>' : '', t.formazione ? '<span class="badge info">formazione</span>' : '', t.solennita ? `<span class="badge gray">${esc(t.solennita)}</span>` : ''].filter(Boolean).join(' ');
           const extra = [t.relatore ? 'Relatore: ' + esc(t.relatore) : '', ...(st.lavori[t.id] || []).map((x) => 'Lavoro: ' + esc(x)), t.ordine_del_giorno ? esc(t.ordine_del_giorno).replace(/\n/g, '<br>') : ''].filter(Boolean).join('<br>');
           const passata = t.data < oggiIso, fe = FE[t.data];
           return `<tr id="t-${esc(t.id)}" class="${fe ? 'festa-riga' : ''}${pross && t.id === pross.id ? ' prossima-riga' : ''}" style="${t.stato === 'annullata' ? 'opacity:.55;' : ''}">
@@ -269,11 +295,12 @@
             <td>${t.tipo === 'informale' ? '—' : (t.grado ? esc(GRADI[t.grado]) : '<span class="muted">da stabilire</span>')}</td>
             <td>${dove}</td>
             <td>${segni}${segni && extra ? '<br>' : ''}${extra ? `<span class="muted" style="font-size:.85rem">${extra}</span>` : ''}</td>
-            <td><span class="badge ${STATO_BADGE[t.stato]}">${esc(STATI[t.stato])}</span>${passata && t.stato === 'programmata' ? '<br><span class="muted" style="font-size:.8rem">da aggiornare</span>' : ''}</td>
+            <td>${L.badgeStato(t.stato, STATI[t.stato])}${passata && t.stato === 'programmata' ? '<br><span class="muted" style="font-size:.8rem">da aggiornare</span>' : ''}</td>
             <td class="act">${L.wa ? (L.wa.tornate[t.id] = t, L.wa.tornata(t)) : ''} ${puoScrivere() ? `<button class="btn ghost small" data-mod="${esc(t.id)}">Modifica</button>` : ''}</td></tr>`;
         }).join('')}</tbody></table></div>`;
       $$('[data-mod]', c).forEach((b) => b.addEventListener('click', () => apriTornata(st.righe.find((x) => x.id === b.dataset.mod))));
-      const vai = () => { const r = pross && document.getElementById('t-' + pross.id); if (r && r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+      $$('[data-agape]', c).forEach((b) => b.addEventListener('click', () => L.agapi.apri(st.righe.find((x) => x.id === b.dataset.agape))));
+      const vai = () => { const r = pross && document.getElementById('t-' + pross.id); if (r && r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' }); };
       if (pross) {
         $('#c-vai').addEventListener('click', vai);
         $('#c-vai').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vai(); } });

@@ -579,3 +579,136 @@ td.act .btn + .btn, td.act .btn.wa { margin-left: 4px; }
 /* Calendario: prossima tornata evidenziata */
 tr.prossima-riga > td { background: var(--gold-soft); }
 tr.prossima-riga > td:first-child { box-shadow: inset 4px 0 0 var(--gold); }
+
+/* =====================================================================
+   Aggiornamento 42 · grafica
+   ===================================================================== */
+
+/* ---------- colori di stato: pallino davanti all'etichetta, righe con accento ---------- */
+.badge.st { display: inline-flex; align-items: center; gap: 6px; }
+.badge.st::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.badge.st.gray::before { opacity: .55; }
+tr.st-bad > td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
+tr.st-warn > td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.legenda-stati { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .78rem; color: var(--muted); margin: 0 0 10px; }
+
+/* ---------- caricamento a sagome ---------- */
+.sk-wrap { display: grid; gap: 12px; padding: 4px 0; }
+.sk { border-radius: 10px; background: linear-gradient(90deg, var(--chip) 0%, var(--hover) 40%, var(--chip) 80%); background-size: 300% 100%; animation: sk 1.3s ease-in-out infinite; }
+.sk-t { height: 30px; width: min(320px, 70%); }
+.sk-s { height: 14px; width: min(460px, 90%); margin-bottom: 8px; }
+.sk-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.sk-c { height: 84px; border-radius: var(--radius); }
+.sk-b { height: 46px; margin-top: 6px; }
+.sk-l { height: 18px; }
+.sk-l.short { width: 55%; }
+@keyframes sk { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+/* ---------- pagine e riquadri vuoti più curati ---------- */
+.card.empty { border-radius: 12px; }
+.card.empty { border: 1px dashed var(--line-strong); box-shadow: none; background: var(--surface-2); }
+.empty svg { display: block; margin: 0 auto 10px; width: 46px; height: 46px; padding: 10px; border-radius: 50%; background: var(--gold-soft); color: var(--gold-ink); opacity: 1; }
+.empty .btn { margin-top: 12px; }
+
+/* ---------- eliminazione con «Annulla» ---------- */
+.in-eliminazione { opacity: .35; pointer-events: none; transition: opacity .2s; }
+tr.in-eliminazione td { text-decoration: line-through; }
+.toast.undo { display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden; padding-bottom: 14px; border-left-color: var(--warn); }
+.toast.undo .undo-b { margin-left: auto; border: 0; background: rgba(255, 255, 255, .14); color: #fff; font: inherit; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+.toast.undo .undo-b:hover { background: rgba(255, 255, 255, .26); }
+.toast .undo-bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--gold); transform-origin: left; animation: undo-bar linear forwards; }
+@keyframes undo-bar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* ---------- linea del tempo del Fratello ---------- */
+.timeline.tl-v { position: relative; padding-left: 4px; }
+.timeline.tl-v::before { content: ''; position: absolute; left: 21px; top: 10px; bottom: 10px; width: 2px; background: linear-gradient(180deg, var(--gold), var(--line) 85%); border-radius: 2px; }
+.tl-v .tl-item { grid-template-columns: 36px 64px minmax(0, 1fr) 96px; border-bottom: 0; padding: 7px 0; align-items: center; }
+.tl-v .tl-tag { display: none; }
+.tl-v .tl-dot { position: relative; z-index: 1; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 2px solid var(--line-strong); color: var(--muted); }
+.tl-v .tl-dot svg { width: 17px; height: 17px; }
+.tl-v .tl-item.t0 .tl-dot { border-color: var(--gold); color: var(--gold-ink); background: var(--gold-soft); }
+.tl-v .tl-item.t1 .tl-dot { border-color: var(--info); color: var(--info); background: var(--info-bg); }
+.tl-v .tl-item.t2 .tl-dot { border-color: var(--ok); color: var(--ok); background: var(--ok-bg); }
+.tl-v .tl-item.t3 .tl-dot { border-style: dashed; }
+.tl-v .tl-item.t4 .tl-dot { border-color: var(--warn); color: var(--warn); background: var(--warn-bg); }
+.tl-v .tl-item.t5 .tl-dot { border-color: var(--muted); color: var(--ink); background: var(--chip); }
+.tl-v .tl-body { padding: 8px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.tl-v .tl-anno { text-align: right; padding-right: 2px; }
+.tl-v .tl-item .act { padding-left: 8px; grid-column: auto; text-align: right; }
+.tl-v .tl-item.t0 .tl-body, .tl-v .tl-item.t5 .tl-body { border-color: var(--gold-soft-2); }
+.tl-sommario { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 14px; }
+@media (max-width: 640px) {
+  .timeline.tl-v::before { left: 17px; }
+  .tl-v .tl-item { grid-template-columns: 30px minmax(0, 1fr); gap: 4px 10px; }
+  .tl-v .tl-dot { width: 30px; height: 30px; grid-row: span 2; align-self: start; }
+  .tl-v .tl-anno { text-align: left; font-size: .82rem; }
+  .tl-v .tl-body { grid-column: 2; }
+  .tl-v .tl-item .act { grid-column: 2; padding-left: 0; text-align: left; }
+}
+
+/* ---------- tabelle a schede sul telefono ---------- */
+@media (max-width: 640px) {
+  table.tcard thead { display: none; }
+  table.tcard, table.tcard tbody, table.tcard tfoot, table.tcard tr, table.tcard td { display: block; width: 100%; }
+  table.tcard tr { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; }
+  table.tcard tbody tr:last-child { border-bottom: 0; }
+  table.tcard td { border: 0; padding: 3px 0; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; text-align: right; min-height: 0; }
+  table.tcard td::before { content: attr(data-label); flex: none; max-width: 42%; text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+  table.tcard td[data-label=""]::before { display: none; }
+  table.tcard td[data-label=""] { display: block; text-align: left; }
+  table.tcard td.cc-t { order: -1; display: block; font-size: 1rem; text-align: left; padding-bottom: 5px; }
+  table.tcard td.cc-t::before { display: none; }
+  table.tcard td.num { white-space: normal; }
+  table.tcard td.act { justify-content: flex-end; flex-wrap: wrap; gap: 6px; padding-top: 6px; }
+  table.tcard td.act::before { display: none; }
+  table.tcard td:empty, table.tcard td.cc-vuota { display: none; }
+  table.tcard tfoot tr { background: var(--surface-2); }
+  table.tcard tr.st-bad > td:first-child, table.tcard tr.st-warn > td:first-child, table.tcard tr.prossima-riga > td:first-child { box-shadow: none; }
+  table.tcard tr.st-bad { box-shadow: inset 3px 0 0 var(--bad); }
+  table.tcard tr.st-warn { box-shadow: inset 3px 0 0 var(--warn); }
+  table.tcard tr.prossima-riga { box-shadow: inset 4px 0 0 var(--gold); background: var(--gold-soft); }
+  table.tcard tr.prossima-riga > td { background: transparent; box-shadow: none; }
+  table.tcard tr.festa-riga { background: var(--bad-bg); }
+  table.tcard tr.festa-riga > td { background: transparent; }
+  .table-wrap { overflow-x: visible; }
+}
+
+/* ---------- intestazione della Loggia nelle stampe ---------- */
+@media print {
+  main[data-stampa]::before { content: attr(data-stampa); display: block; padding: 0 0 8px; margin-bottom: 14px; border-bottom: 2px solid #c9a24b; color: #0f1b3d; font-weight: 700; font-size: 11pt; letter-spacing: .02em; }
+  table.tcard thead { display: table-header-group !important; }
+  .toast.undo { display: none; }
+}
+
+/* ---------- Ricorrenze nel Cruscotto ---------- */
+.ric-list { display: flex; flex-direction: column; gap: 6px; }
+.ric { display: flex; align-items: center; gap: 10px; padding: 4px 6px; border-radius: 10px; }
+.ric:hover { background: var(--hover); }
+.ric-ic { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; flex: none; font-size: 1rem; }
+.ric-ic.cmp { background: var(--gold-soft); color: var(--gold-ink); }
+.ric-ic.ini { background: var(--info-bg); color: var(--info); }
+.ric-ic svg { width: 18px; height: 18px; }
+.ric-t { flex: 1; min-width: 0; font-size: .8rem; line-height: 1.3; color: var(--muted); }
+.ric-t b { display: block; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ric-t a { color: var(--ink); }
+.ric-quando { font-weight: 700; white-space: nowrap; }
+.ric-quando.oggi { color: var(--ok); }
+
+/* ---------- Agapi ---------- */
+.ag-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.ag-kpi > div { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.ag-kpi span { display: block; font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.ag-kpi b { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.ag-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.ag-seg button { border: 0; background: var(--card); color: var(--muted); font: inherit; font-size: .8rem; padding: 6px 10px; cursor: pointer; }
+.ag-seg button + button { border-left: 1px solid var(--line); }
+.ag-seg button[aria-pressed="true"].si { background: var(--ok-bg); color: var(--ok); font-weight: 700; }
+.ag-seg button[aria-pressed="true"].no { background: var(--bad-bg); color: var(--bad); font-weight: 700; }
+.ag-seg button[aria-pressed="true"].nr { background: var(--chip); color: var(--ink); font-weight: 700; }
+.ag-osp { width: 64px; padding: 6px 8px; }
+.ag-box { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--gold-soft); color: var(--gold-ink); font-size: .84rem; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ag-box .ag-seg button { background: var(--card); }
+a.badge.gold:hover, button.badge { cursor: pointer; text-decoration: none; }
+button.badge { border: 0; font: inherit; font-size: .75rem; font-weight: 600; }
+
+.ric .btn.wa { flex: none; padding: 6px 8px; }

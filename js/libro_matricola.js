@@ -164,7 +164,7 @@
         <div class="table-wrap"><table><thead><tr><th class="num">N°</th><th>Cognome e nome</th><th>Nascita</th><th>Iniziazione</th><th>Compagno</th><th>Maestro</th><th>Stato</th><th>Incarichi</th></tr></thead>
         <tbody>${r.length ? r.map((x) => `<tr><td class="num"><b>${x.n}</b></td><td><a class="nome" href="#/fratelli/${esc(x.f.id)}">${esc(x.f.cognome)} ${esc(x.f.nome)}</a>${x.f.matricola ? `<div class="hint">matricola ${esc(x.f.matricola)}</div>` : ''}</td>
           <td>${esc(x.nascita || '—')}</td><td>${esc(x.iniz || '—')}</td><td>${esc(x.comp || '—')}</td><td>${esc(x.maes || '—')}</td>
-          <td><span class="badge ${x.f.stato === 'attivo' ? 'ok' : 'gray'}">${esc(cap(String(x.f.stato || '').replace('_', ' ')))}</span></td>
+          <td>${L.badgeStato(x.f.stato)}</td>
           <td class="hint">${esc(x.cariche.join(' · ') || '—')}</td></tr>`).join('') : '<tr><td colspan="8"><div class="empty">Nessun Fratello.</div></td></tr>'}</tbody></table></div>`;
     };
     v.innerHTML = `

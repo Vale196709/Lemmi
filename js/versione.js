@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.41.0',
+  numero: '0.42.0',
   data: '2026-11-03',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.42.0', data: '2026-11-03', t: 'Agapi con adesioni (anche dall’area del Fratello), ricorrenze nel Cruscotto con auguri su WhatsApp, abbinamento dei bonifici che impara dai collegamenti fatti; grafica: linea del tempo del Fratello, colori di stato uniformi, tabelle a schede sul telefono, caricamento a sagome, «Annulla» dopo le eliminazioni, intestazione della Loggia nelle stampe' },
     { n: '0.41.0', data: '2026-11-03', t: 'Calendario: si apre sulla prossima tornata, evidenziata, con il richiamo in alto' },
     { n: '0.40.3', data: '2026-11-02', t: 'Conto di Loggia più snello: via i riquadri ripetuti, saldi dei conti in cima con riga Risultato, avviso cliccabile dei movimenti da riconciliare' },
     { n: '0.40.2', data: '2026-11-02', t: 'Conto di Loggia: riquadri in alto e saldi dei conti coerenti (giroconti in colonna separata), riquadri filtrati per conto, «Inserisci saldo» a mano' },

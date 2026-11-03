@@ -57,6 +57,8 @@
     else if (t.luogo) righe.push('Luogo: ' + t.luogo);
     if (t.relatore) righe.push('Relatore: ' + t.relatore);
     if (t.ordine_del_giorno) righe.push('', 'Ordine del giorno:', t.ordine_del_giorno);
+    if (t.con_agape && t.tipo !== 'agape') righe.push('', 'Seguirà l’agape fraterna' + (t.quota_agape ? ' (' + eur(t.quota_agape) + ' a persona)' : '') + ': conferma la presenza' + (t.adesioni_entro ? ' entro il ' + fmtData(t.adesioni_entro) : '') + ' dall’app o rispondendo a questo messaggio.');
+    else if (t.tipo === 'agape') righe.push('', 'Conferma la presenza' + (t.adesioni_entro ? ' entro il ' + fmtData(t.adesioni_entro) : '') + ' dall’app o rispondendo a questo messaggio' + (t.quota_agape ? ' (quota ' + eur(t.quota_agape) + ' a persona)' : '') + '.');
     return righe.join('\n');
   }
 

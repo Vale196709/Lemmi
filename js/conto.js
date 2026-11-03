@@ -148,8 +148,47 @@
     return punti[0].f;
   }
 
+  /* Abbinamento che impara: dai bonifici già collegati a un Fratello (anche negli anni passati) si ricavano
+   * le parole tipiche dell'ordinante (per esempio il nome della moglie o di una ditta che paga per lui).
+   * Se un nuovo bonifico non contiene il nome del Fratello ma ha almeno due di queste parole, e una sola
+   * persona corrisponde, il Fratello viene proposto. Le parole comuni a più Fratelli non contano. */
+  const PAROLE_VUOTE = new Set(('bonifico bonifici sepa istantaneo istant favore vostro nostro quota quote capitazione capitazioni rata rate anno anni loggia lemmi adriano associazione ' +
+    'ord ordinante ben beneficiario des descrizione causale cro trn accredito addebito saldo iban bic data valuta per del della dello dei degli delle con dal dalla nel nella sul ' +
+    'gen feb mar apr mag giu lug ago set ott nov dic pagamento versamento disposizione operazione rif riferimento numero banca poste postale bancoposta bnl sig signor fratello frat ' +
+    'aumento salario iniziazione agape cena festa luce tronco vedova goi seconda prima terza unica the and srl spa snc').split(' '));
+  let memoriaOrdinanti = null;
+  const paroleDi = (descr) => Array.from(new Set(E.norm(descr).replace(/[^a-z ]/g, ' ').split(/\s+/).filter((w) => w.length >= 3 && !PAROLE_VUOTE.has(w))));
+  async function caricaMemoria() {
+    if (memoriaOrdinanti) return memoriaOrdinanti;
+    const perFratello = {}, fratelliDi = {};
+    try {
+      chk(await state.sb.from('conto_movimenti').select('descrizione,fratello_id').not('fratello_id', 'is', null).gt('importo', 0)).forEach((m) => {
+        paroleDi(m.descrizione).forEach((w) => {
+          (perFratello[m.fratello_id] = perFratello[m.fratello_id] || new Set()).add(w);
+          (fratelliDi[w] = fratelliDi[w] || new Set()).add(m.fratello_id);
+        });
+      });
+    } catch (e) { /* senza memoria si usa solo il nome */ }
+    memoriaOrdinanti = { perFratello, fratelliDi };
+    return memoriaOrdinanti;
+  }
+  // { f, come: 'nome' | 'storico' } oppure null
+  function riconosciFratello(frat, descr, mem) {
+    const f = suggerisciFratello(frat, descr);
+    if (f) return { f, come: 'nome' };
+    if (!mem) return null;
+    const parole = paroleDi(descr).filter((w) => mem.fratelliDi[w] && mem.fratelliDi[w].size === 1);
+    const punti = {};
+    parole.forEach((w) => { const id = Array.from(mem.fratelliDi[w])[0]; punti[id] = (punti[id] || 0) + 1; });
+    const ord = Object.entries(punti).sort((a, b) => b[1] - a[1]);
+    if (!ord.length || ord[0][1] < 2 || (ord[1] && ord[1][1] === ord[0][1])) return null;
+    const trovato = frat.find((x) => x.id === ord[0][0]);
+    return trovato ? { f: trovato, come: 'storico' } : null;
+  }
+
   /* ---------- scheda ---------- */
   async function render(c, P) {
+    memoriaOrdinanti = null;   // si rilegge a ogni apertura: include i collegamenti appena fatti
     await carica(P);
     const { eur, canPay } = P;
     const conti = contiNoti();
@@ -218,7 +257,7 @@
           <td>${esc(x.descrizione)}${x.fratello ? ` <span class="badge info">${esc(x.fratello)}</span>` : ''}${x.evento_id && nomeEvento(x.evento_id) ? ` <span class="badge gold">${esc(nomeEvento(x.evento_id))}</span>` : ''}${x.bussante_id && nomeBussante(x.bussante_id) ? ` <span class="badge gray">Bussante: ${esc(nomeBussante(x.bussante_id))}</span>` : ''}${x.origine === 'manuale' ? ' <span class="badge gray">manuale</span>' : ''}${piuConti ? ` <span class="badge gray">${esc(contoDi(x))}</span>` : ''}${x.giroconto ? ' <span class="badge info">giroconto</span>' : ''}${x.note ? `<div class="hint">${esc(x.note)}</div>` : ''}</td>
           <td>${x.categoria ? esc(x.categoria) : '<span class="muted">—</span>'}</td>
           <td class="num" style="color:${entrata ? 'var(--ok)' : 'var(--bad)'}"><b>${eur(x.importo)}</b></td>
-          <td><span class="badge ${st[1]}">${st[0]}</span></td>
+          <td>${L.badgeStato(x.stato_riconciliazione, st[0])}</td>
           <td class="act">${canPay() ? `${entrata && x.stato_riconciliazione === 'da_riconciliare' ? `<button class="btn ghost small" data-lega="${esc(x.id)}">Collega versamento</button> ` : ''}${x.stato_riconciliazione !== 'ignorato' && (!entrata || x.stato_riconciliazione === 'da_riconciliare') ? `<button class="btn ghost small" data-cat="${esc(x.id)}">Categoria</button> ` : ''}${cs.tesoreria2 ? `<button class="btn ghost small" data-evt="${esc(x.id)}">Evento</button> ` : ''}${x.stato_riconciliazione === 'da_riconciliare' ? `<button class="btn ghost small" data-ign="${esc(x.id)}">Ignora</button>` : ''}${x.stato_riconciliazione === 'ignorato' ? `<button class="btn ghost small" data-rip="${esc(x.id)}">Ripristina</button>` : ''}${isAdmin() && x.origine === 'manuale' ? ` <button class="btn danger small" data-delm="${esc(x.id)}">Elimina</button>` : ''}` : ''}</td></tr>`;
       }).join('') : `<tr><td colspan="6"><div class="empty">${IC.inbox}<div>${cs.mov.length ? 'Nessun risultato.' : 'Nessun movimento nel ' + P.pag.anno + '.' + (canPay() ? ' Importa l’estratto conto della banca per iniziare.' : '')}</div></div></td></tr>`;
       const trova = (id) => cs.mov.find((x) => x.id === id);
@@ -227,7 +266,7 @@
       $$('[data-evt]', c).forEach((b) => b.addEventListener('click', () => apriEvento(trova(b.dataset.evt), P)));
       $$('[data-ign]', c).forEach((b) => b.addEventListener('click', () => cambiaStato(b.dataset.ign, 'ignorato')));
       $$('[data-rip]', c).forEach((b) => b.addEventListener('click', () => cambiaStato(b.dataset.rip, 'da_riconciliare')));
-      $$('[data-delm]', c).forEach((b) => b.addEventListener('click', () => eliminaManuale(b.dataset.delm)));
+      $$('[data-delm]', c).forEach((b) => b.addEventListener('click', () => eliminaManuale(b.dataset.delm, b.closest('tr'))));
     };
     $('#c-q').addEventListener('input', (e) => { cs.filtri.q = e.target.value; disegna(); });
     const vaiDaRic = () => {
@@ -277,10 +316,8 @@
     try { chk(await state.sb.from('conto_movimenti').update({ stato_riconciliazione: stato }).eq('id', id)); L.route(); }
     catch (e) { toast(messaggioErrore(e), 'bad'); }
   }
-  async function eliminaManuale(id) {
-    if (!window.confirm('Eliminare questo movimento inserito a mano?')) return;
-    try { chk(await state.sb.from('conto_movimenti').delete().eq('id', id)); toast('Movimento eliminato', 'ok'); L.route(); }
-    catch (e) { toast(messaggioErrore(e), 'bad'); }
+  async function eliminaManuale(id, el) {
+    L.eliminaConAnnulla({ messaggio: 'Movimento eliminato', el: el || null, esegui: async () => chk(await state.sb.from('conto_movimenti').delete().eq('id', id)) });
   }
 
   /* ---------- import dell'estratto conto ---------- */
@@ -519,10 +556,9 @@
       },
     });
     const del = $('[data-ef-del]', m.ov);
-    if (del) del.onclick = async () => {
-      if (!window.confirm('Eliminare questo evento? I movimenti restano, ma non saranno più assegnati a un evento.')) return;
-      try { chk(await state.sb.from('eventi_conto').delete().eq('id', ev.id)); m.chiudi(); toast('Evento eliminato', 'ok'); L.route(); }
-      catch (e) { toast(messaggioErrore(e), 'bad'); }
+    if (del) del.onclick = () => {
+      m.chiudi();
+      L.eliminaConAnnulla({ messaggio: 'Evento eliminato (i movimenti restano)', esegui: async () => chk(await state.sb.from('eventi_conto').delete().eq('id', ev.id)) });
     };
   }
 
@@ -576,7 +612,8 @@
     const frat = await P.fratelliPag();
     const voci = P.pag.voci;
     const anno0 = Number(String(mov.data_operazione).slice(0, 4));
-    const sug = suggerisciFratello(frat, mov.descrizione);
+    const ric = riconosciFratello(frat, mov.descrizione, await caricaMemoria());
+    const sug = ric ? ric.f : null;
     const corpo = `<div class="form-grid">
       <div class="f"><div class="kv"><div><span>Data</span><b>${fmtData(mov.data_operazione)}</b></div><div><span>Importo</span><b>${P.eur(mov.importo)}</b></div></div><div class="hint" style="margin-top:6px">${esc(mov.descrizione)}</div></div>
       ${P.campoFratello(frat, { wid: 'w-frat', id: 'l-frat' })}
@@ -584,7 +621,7 @@
       <div class="f s4" id="w-anno"><label for="l-anno">Anno della quota</label><input id="l-anno" name="anno" inputmode="numeric" maxlength="4" value="${anno0}"></div>
       <div class="f s8" id="w-scad"><label for="l-scad">Scadenza da saldare</label><select id="l-scad" name="scadenza"></select></div>
       ${campo('note', 'Note', '', { cls: 's12' })}
-      ${sug ? `<div class="f hint">Fratello riconosciuto dalla descrizione del bonifico: ${esc(sug.cognome + ' ' + sug.nome)}. Verifica che sia corretto.</div>` : ''}</div>`;
+      ${sug ? `<div class="f hint">Fratello riconosciuto ${ric.come === 'storico' ? 'dai bonifici simili già collegati' : 'dalla descrizione del bonifico'}: ${esc(sug.cognome + ' ' + sug.nome)}. Verifica che sia corretto.</div>` : ''}</div>`;
     const m = P.modal('Collega il bonifico a un versamento', corpo, {
       conferma: 'Registra il versamento',
       onSubmit: async (f, chiudi, errore) => {
@@ -634,6 +671,7 @@
    * riempite in ordine di data (es. 600 € = rata 1 + rata 2). Si controlla l'elenco e si conferma. */
   async function apriCollegaAuto(P) {
     const frat = await P.fratelliPag();
+    const mem = await caricaMemoria();
     const voci = P.pag.voci;
     const residui = {};
     P.pag.righe.forEach((r) => { residui[r.id] = Number(r.residuo); });
@@ -641,8 +679,9 @@
       .sort((a, b) => String(a.data_operazione).localeCompare(String(b.data_operazione)));
     const proposte = [], aMano = [];
     entrate.forEach((mov) => {
-      const fr = suggerisciFratello(frat, mov.descrizione);
-      if (!fr) { aMano.push({ mov, motivo: 'Fratello non riconosciuto dal testo' }); return; }
+      const ric = riconosciFratello(frat, mov.descrizione, mem);
+      if (!ric) { aMano.push({ mov, motivo: 'Fratello non riconosciuto dal testo' }); return; }
+      const fr = ric.f;
       const anno = Number(String(mov.data_operazione).slice(0, 4));
       const imp = Number(mov.importo);
       const aperte = P.pag.righe.filter((r) => r.fratello_id === fr.id && r.anno === anno && residui[r.id] > 0.004)
@@ -662,13 +701,13 @@
         parti.push({ id: r.id, t: (r.rate_totali > 1 ? 'rata ' + r.rata_n + '/' + r.rate_totali : 'scad. ' + fmtData(r.data_scadenza)) + ' ' + P.eur(q) });
       });
       if (resto > 0.004) parti.push({ id: null, t: 'acconto ' + P.eur(resto) });
-      proposte.push({ mov, fr, voce, anno, parti });
+      proposte.push({ mov, fr, voce, anno, parti, storico: ric.come === 'storico' });
     });
     const breve = (t) => { t = String(t || ''); return t.length > 70 ? t.slice(0, 67) + '…' : t; };
-    const corpo = `${proposte.length ? `<div class="hint" style="margin-bottom:8px">${proposte.length} bonifici con Fratello e scadenza riconosciuti: togli la spunta a quelli da non collegare, poi conferma.</div>
+    const corpo = `${proposte.length ? `<div class="hint" style="margin-bottom:8px">${proposte.length} bonifici con Fratello e scadenza riconosciuti: togli la spunta a quelli da non collegare, poi conferma. Quelli «da verificare» (Fratello riconosciuto dai bonifici simili del passato) vanno spuntati a mano.</div>
       <div class="table-wrap"><table><thead><tr><th></th><th>Data</th><th class="num">Importo</th><th>Fratello</th><th>Voce e ripartizione</th></tr></thead><tbody>
-      ${proposte.map((p, i) => `<tr><td><input type="checkbox" data-pr="${i}" checked aria-label="Collega"></td><td>${fmtData(p.mov.data_operazione)}</td><td class="num">${P.eur(p.mov.importo)}</td>
-        <td><b>${esc(p.fr.cognome + ' ' + p.fr.nome)}</b><div class="hint">${esc(breve(p.mov.descrizione))}</div></td><td>${esc(p.voce.nome)}<div class="hint">${esc(p.parti.map((x) => x.t).join(' + '))}</div></td></tr>`).join('')}
+      ${proposte.map((p, i) => `<tr><td><input type="checkbox" data-pr="${i}" ${p.storico ? '' : 'checked'} aria-label="Collega"></td><td>${fmtData(p.mov.data_operazione)}</td><td class="num">${P.eur(p.mov.importo)}</td>
+        <td><b>${esc(p.fr.cognome + ' ' + p.fr.nome)}</b>${p.storico ? ' <span class="badge warn" title="Il nome non compare nel bonifico: riconosciuto dai bonifici simili già collegati a lui">da verificare</span>' : ''}<div class="hint">${esc(breve(p.mov.descrizione))}</div></td><td>${esc(p.voce.nome)}<div class="hint">${esc(p.parti.map((x) => x.t).join(' + '))}</div></td></tr>`).join('')}
       </tbody></table></div>` : '<div class="notice">Nessun bonifico da collegare in automatico.</div>'}
       ${aMano.length ? `<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">${aMano.length} da collegare a mano con «Collega versamento»</summary><div class="table-wrap" style="margin-top:8px"><table><tbody>
         ${aMano.map((x) => `<tr><td>${fmtData(x.mov.data_operazione)}</td><td class="num">${P.eur(x.mov.importo)}</td><td>${esc(breve(x.mov.descrizione))}<div class="hint">${esc(x.motivo)}</div></td></tr>`).join('')}</tbody></table></div></details>` : ''}`;

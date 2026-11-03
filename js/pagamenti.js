@@ -307,10 +307,10 @@
       },
     });
     const del = $('[data-del]', m.ov);
-    if (del) del.onclick = async () => {
-      if (!window.confirm('Eliminare questa scadenza? Non è possibile se ha versamenti collegati.')) return;
-      try { chk(await state.sb.from('scadenze').delete().eq('id', r.id)); m.chiudi(); toast('Scadenza eliminata', 'ok'); L.route(); }
-      catch (e) { $('[data-err]', m.ov).textContent = messaggioErrore(e); }
+    if (del) del.onclick = () => {
+      if (num(r.versato) > 0) { $('[data-err]', m.ov).textContent = 'Non si può eliminare: ci sono versamenti collegati a questa scadenza.'; return; }
+      m.chiudi();
+      L.eliminaConAnnulla({ messaggio: 'Scadenza eliminata', el: $('[data-mod="' + r.id + '"]') ? $('[data-mod="' + r.id + '"]').closest('tr') : null, esegui: async () => chk(await state.sb.from('scadenze').delete().eq('id', r.id)) });
     };
   }
 
@@ -340,13 +340,13 @@
       const q = pag.filtri.q.trim().toLowerCase();
       const f = pag.righe.filter((r) => (!q || r.fratello.toLowerCase().includes(q)) && (!pag.filtri.stato || r.stato === pag.filtri.stato) && (!pag.filtri.voce || r.voce === pag.filtri.voce));
       $('#p-conta').textContent = f.length + (f.length === 1 ? ' scadenza' : ' scadenze');
-      $('#p-righe').innerHTML = f.length ? f.map((r) => `<tr>
+      $('#p-righe').innerHTML = f.length ? f.map((r) => { const sv = L.statoQuota(r), col = L.coloreStato(sv); return `<tr class="${col === 'bad' || col === 'warn' ? 'st-' + col : ''}">
         <td><b>${esc(r.fratello)}</b></td>
         <td>${esc(r.voce)}${r.rate_totali > 1 ? ` <span class="muted">· rata ${r.rata_n}/${r.rate_totali}</span>` : ''}${r.motivo_eccezione ? `<div class="hint">Eccezione: ${esc(r.motivo_eccezione)}</div>` : ''}</td>
         <td>${r.eta_calcolata === null || r.eta_calcolata === undefined ? '—' : esc(r.eta_calcolata)}</td>
         <td class="num">${eur(r.importo_dovuto)}</td><td class="num">${eur(r.versato)}</td><td class="num"><b>${eur(r.residuo)}</b></td>
-        <td>${fmtData(r.data_scadenza)}</td><td><span class="badge ${BADGE[r.stato] || 'gray'}">${esc(r.stato)}</span></td>
-        <td class="act">${canPay() ? `${num(r.residuo) > 0 ? `<button class="btn ghost small" data-ver="${esc(r.id)}">Versamento</button> ` : ''}<button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`).join('')
+        <td>${fmtData(r.data_scadenza)}</td><td>${L.badgeStato(sv, sv)}</td>
+        <td class="act">${canPay() ? `${num(r.residuo) > 0 ? `<button class="btn ghost small" data-ver="${esc(r.id)}">Versamento</button> ` : ''}<button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`; }).join('')
         : `<tr><td colspan="9"><div class="empty">${IC.inbox}<div>${pag.righe.length ? 'Nessun risultato.' : 'Nessuna scadenza per il ' + pag.anno + '.' + (canPay() ? ' Usa «Genera capitazione» per crearle.' : '')}</div></div></td></tr>`;
       $$('[data-ver]', c).forEach((b) => b.addEventListener('click', () => apriVersamento(pag.righe.find((x) => x.id === b.dataset.ver))));
       $$('[data-mod]', c).forEach((b) => b.addEventListener('click', () => apriModifica(pag.righe.find((x) => x.id === b.dataset.mod))));
@@ -371,10 +371,8 @@
         <td class="act">${isAdmin() ? `<button class="btn danger small" data-delv="${esc(x.id)}">Elimina</button>` : ''}</td></tr>`).join('')
         : `<tr><td colspan="8"><div class="empty">${IC.inbox}<div>Nessun versamento registrato per il ${pag.anno}.</div></div></td></tr>`}
       </tbody>${pag.vers.length ? `<tfoot><tr><td colspan="3"><b>Totale</b></td><td class="num"><b>${eur(totale)}</b></td><td colspan="4"></td></tr></tfoot>` : ''}</table></div>`;
-    $$('[data-delv]', c).forEach((b) => b.addEventListener('click', async () => {
-      if (!window.confirm('Eliminare definitivamente questo versamento?')) return;
-      try { chk(await state.sb.from('versamenti').delete().eq('id', b.dataset.delv)); toast('Versamento eliminato', 'ok'); L.route(); }
-      catch (e) { toast(messaggioErrore(e), 'bad'); }
+    $$('[data-delv]', c).forEach((b) => b.addEventListener('click', () => {
+      L.eliminaConAnnulla({ messaggio: 'Versamento eliminato', el: b.closest('tr'), esegui: async () => chk(await state.sb.from('versamenti').delete().eq('id', b.dataset.delv)) });
     }));
   }
 
@@ -402,7 +400,7 @@
     const disegna = () => {
       const q = $('#r-q').value.trim().toLowerCase();
       const f = fr.filter((x) => !q || x.nome.toLowerCase().includes(q));
-      $('#r-righe').innerHTML = f.length ? f.map((x) => `<tr><td><b>${esc(x.nome)}</b></td><td class="num">${eur(x.dov)}</td><td class="num">${eur(x.res)}</td><td><span class="badge ${BADGE[sit(x)]}">${sit(x)}</span></td></tr>`).join('')
+      $('#r-righe').innerHTML = f.length ? f.map((x) => `<tr><td><b>${esc(x.nome)}</b></td><td class="num">${eur(x.dov)}</td><td class="num">${eur(x.res)}</td><td>${L.badgeStato(sit(x), sit(x))}</td></tr>`).join('')
         : '<tr><td colspan="4"><div class="empty">Nessun risultato.</div></td></tr>';
     };
     $('#r-q').addEventListener('input', disegna);

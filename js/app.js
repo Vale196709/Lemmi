@@ -113,6 +113,113 @@
     setTimeout(() => el.remove(), tipo === 'bad' ? 7000 : 3800);
   }
 
+  /* ---------- eliminazione con «Annulla» ----------
+   * Al posto della conferma: l'elemento sparisce subito, l'avviso resta qualche secondo con «Annulla»;
+   * solo allo scadere l'eliminazione viene davvero eseguita sul database. Se si chiude l'app prima, non si elimina nulla. */
+  const SECONDI_ANNULLA = 7;
+  function eliminaConAnnulla(opz) {
+    // opz: { messaggio, esegui: async () => {}, el: elemento da nascondere (facoltativo), dopo: () => {} (facoltativo) }
+    const el = opz.el || null;
+    if (el) el.classList.add('in-eliminazione');
+    const t = document.createElement('div');
+    t.className = 'toast undo';
+    t.setAttribute('role', 'status');
+    t.innerHTML = `<span>${esc(opz.messaggio || 'Elemento eliminato')}</span><button type="button" class="undo-b">Annulla</button><i class="undo-bar" style="animation-duration:${SECONDI_ANNULLA}s"></i>`;
+    $('#toasts').appendChild(t);
+    let annullato = false;
+    const timer = setTimeout(async () => {
+      t.remove();
+      if (annullato) return;
+      try {
+        await opz.esegui();
+        if (el) el.remove();
+        if (opz.dopo) opz.dopo(); else route();
+      } catch (e) {
+        if (el) el.classList.remove('in-eliminazione');
+        toast('Eliminazione non riuscita: ' + messaggioErrore(e), 'bad');
+      }
+    }, SECONDI_ANNULLA * 1000);
+    $('.undo-b', t).addEventListener('click', () => {
+      annullato = true; clearTimeout(timer); t.remove();
+      if (el) el.classList.remove('in-eliminazione');
+      toast('Eliminazione annullata', 'ok');
+    });
+  }
+
+  /* ---------- colori di stato: gli stessi in tutta l'app (verde in regola, ambra in scadenza, rosso scaduto) ---------- */
+  const COLORE_STATO = {
+    ok: ['pagato', 'in regola', 'attivo', 'svolta', 'presentato', 'riconciliato', 'conclusa', 'partecipa', 'incassato'],
+    warn: ['parziale', 'in scadenza', 'in attesa', 'in sonno', 'in_sonno', 'in preparazione', 'in_preparazione', 'da riconciliare', 'da_riconciliare', 'in ritardo', 'da incassare'],
+    bad: ['scaduto', 'con scaduti', 'annullata', 'annullato', 'non partecipa'],
+    info: ['da pagare', 'convocata', 'consegnato', 'trasferito', 'in corso', 'in_corso'],
+    gray: ['esente', 'oriente eterno', 'oriente_eterno', 'programmata', 'assegnato', 'archiviato', 'ignorato', 'senza risposta'],
+  };
+  const ETICHETTA_STATO = { attivo: 'Attivo', in_sonno: 'In sonno', oriente_eterno: 'Oriente Eterno', trasferito: 'Trasferito' };
+  function coloreStato(s) {
+    const k = String(s || '').toLowerCase().trim();
+    return Object.keys(COLORE_STATO).find((c) => COLORE_STATO[c].includes(k)) || 'gray';
+  }
+  const etichettaStato = (s) => ETICHETTA_STATO[s] || (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1).replace(/_/g, ' ') : '—');
+  const badgeStato = (s, etichetta) => (s ? `<span class="badge st ${coloreStato(s)}">${esc(etichetta || etichettaStato(s))}</span>` : '—');
+  // stato di una quota con l'avviso «In scadenza» (da pagare entro 30 giorni)
+  function statoQuota(r) {
+    if (!r || r.stato !== 'Da pagare' || !r.data_scadenza) return r ? r.stato : '';
+    const giorni = (new Date(r.data_scadenza + 'T00:00:00') - new Date(oggi() + 'T00:00:00')) / 86400000;
+    return giorni <= 30 ? 'In scadenza' : 'Da pagare';
+  }
+
+  /* ---------- tabelle a schede sul telefono ----------
+   * Ogni cella riceve il titolo della sua colonna (data-label): sotto i 640 px le righe diventano schede
+   * senza scorrimento orizzontale. Vale per le tabelle con intestazione e almeno 3 colonne. */
+  function schedeTabelle(root) {
+    $$('table:not([data-nocard])', root || document).forEach((t) => {
+      const th = $$('thead th', t);
+      if (th.length < 3) return;
+      const titoli = th.map((h) => (h.textContent || '').replace(/[▲▼]/g, '').trim());
+      // colonna che fa da titolo della scheda: quella segnata con data-card-title, altrimenti la prima
+      const iTit = Math.max(0, th.findIndex((h) => h.hasAttribute('data-card-title')));
+      t.classList.add('tcard');
+      $$('tbody tr, tfoot tr', t).forEach((tr) => {
+        let i = 0;
+        Array.from(tr.children).forEach((td) => {
+          const span = Number(td.getAttribute('colspan') || 1);
+          if (!td.hasAttribute('data-label')) td.setAttribute('data-label', span > 1 ? '' : (titoli[i] || ''));
+          td.classList.toggle('cc-t', span === 1 && i === iTit && tr.parentElement.tagName === 'TBODY');
+          td.classList.toggle('cc-vuota', span === 1 && i !== iTit && !td.querySelector('input,select,button,a') && /^[—–-]?$/.test((td.textContent || '').trim()));
+          i += span;
+        });
+      });
+    });
+  }
+  let schedeProgrammate = false;
+  const osservaTabelle = new MutationObserver(() => {
+    if (schedeProgrammate) return;
+    schedeProgrammate = true;
+    requestAnimationFrame(() => { schedeProgrammate = false; schedeTabelle(document.body); });
+  });
+
+  /* icone della linea del tempo del Fratello: 0 iniziazione, 1 grado, 2 carica, 3 bussante, 4 tavola, 5 uscita */
+  const S = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const IC_TL = [
+    S('<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/>'),
+    S('<path d="M4 20h4v-4h4v-4h4V8h4"/>'),
+    S('<path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/>'),
+    S('<path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/>'),
+    S('<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>'),
+    S('<path d="M12 21s-7-4.4-7-10a7 7 0 0114 0c0 5.6-7 10-7 10z"/><circle cx="12" cy="11" r="2.5"/>'),
+  ];
+  const ETIC_TL = ['Iniziazione', 'Grado', 'Carica', 'Bussante', 'Tavola', 'Uscita'];
+  // una voce della linea del tempo: { tipo, etichetta, titolo, dettaglio }, azione = HTML del pulsante a destra
+  const vocetl = (x, azione) => `<div class="tl-item t${x.tipo}"><div class="tl-dot" title="${ETIC_TL[x.tipo] || ''}">${IC_TL[x.tipo] || IC_TL[1]}</div><div class="tl-anno">${esc(x.etichetta)}</div>
+    <div class="tl-body"><span class="tl-tag">${ETIC_TL[x.tipo] || ''}</span><b>${esc(x.titolo)}</b>${x.dettaglio ? `<div class="hint">${esc(x.dettaglio)}</div>` : ''}</div>
+    <div class="act">${azione || ''}</div></div>`;
+
+  // sagome grigie mentre la pagina carica (al posto della sola rotellina)
+  const SAGOMA = `<div class="sk-wrap" aria-busy="true" aria-label="Caricamento in corso">
+    <div class="sk sk-t"></div><div class="sk sk-s"></div>
+    <div class="sk-row"><div class="sk sk-c"></div><div class="sk sk-c"></div><div class="sk sk-c"></div></div>
+    <div class="sk sk-b"></div><div class="sk sk-l"></div><div class="sk sk-l"></div><div class="sk sk-l short"></div></div>`;
+
   function messaggioErrore(e) {
     const m = (e && (e.message || e.error_description)) || String(e);
     if (/row-level security|permission denied/i.test(m)) return 'Non hai i permessi per questa operazione.';
@@ -334,7 +441,9 @@
         <div class="who"><b>${esc(p.nome_visualizzato || state.user.email)}</b><span>${esc(ETICHETTA_RUOLO[p.ruolo] || p.ruolo)}</span>
           <button class="btn ghost small" id="b-logout">Esci</button>${temaHtml()}${versioneHtml()}</div>
       </aside>
-      <main id="view"></main></div>`;
+      <main id="view" data-stampa="${esc(nomeLoggia('Gestione di Loggia') + (state.loggia.oriente ? ' · Oriente di ' + state.loggia.oriente : ''))}"></main></div>`;
+    osservaTabelle.disconnect();
+    osservaTabelle.observe(document.body, { childList: true, subtree: true });
     $('#b-logout').onclick = () => state.sb.auth.signOut();
     // un clic sul tema già attivo passa al successivo (sul telefono si vede solo quello attivo)
     $$('.tema-sw button').forEach((b) => b.addEventListener('click', () => {
@@ -373,7 +482,7 @@
     if (ACCESSO_SEZ[sez] && !ACCESSO_SEZ[sez].includes(state.profilo.ruolo)) {
       v.innerHTML = '<div class="notice bad">Il tuo ruolo non ha accesso a questa sezione.</div>'; return;
     }
-    v.innerHTML = '<div class="loading"><span class="spin"></span></div>';
+    v.innerHTML = SAGOMA;
     window.scrollTo(0, 0);
     try {
       if (API.viste[sez]) await API.viste[sez](v, parti);
@@ -423,7 +532,7 @@
           <div class="cr-kpi drillable" data-drill="bussanti" role="button" tabindex="0" title="Clicca per l’elenco"><b>${bussanti.length}</b><span>Bussanti</span></div>
           <div class="cr-kpi drillable" data-drill="votazioni" role="button" tabindex="0" title="Clicca per l’elenco"><b>${eventi.length}</b><span>Votazioni in programma</span></div>
         </div>
-        <div class="cr-stati" aria-label="Fratelli per stato">${Object.entries(perStato).map(([st, n]) => `<span class="chip drillable" data-drill="fratelli" data-k="${esc(st)}" role="button" tabindex="0" title="Clicca per l’elenco">${esc(st)} <b>${n}</b></span>`).join('')}</div>
+        <div class="cr-stati" aria-label="Fratelli per stato">${Object.entries(perStato).map(([st, n]) => `<span class="chip drillable" data-drill="fratelli" data-k="${esc(st)}" role="button" tabindex="0" title="Clicca per l’elenco">${esc(etichettaStato(st))} <b>${n}</b></span>`).join('')}</div>
         ${canEdit() ? `<a class="btn gold small" href="#/bussanti/nuovo">${IC.plus} Nuovo bussante</a>` : ''}
       </div>
       <div class="grid cr-seg" id="seg-cr">
@@ -874,7 +983,7 @@
   // Interfaccia messa a disposizione dei moduli aggiuntivi (es. js/pagamenti.js)
   // importi in euro nel formato 1.234,56 €
   const eur = (x) => { const n = Math.round(Number(x || 0) * 100) / 100; const [i, d] = Math.abs(n).toFixed(2).split('.'); return (n < 0 ? '-' : '') + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d + ' €'; };
-  const API = window.Lemmi = { state, $, $$, esc, chk, toast, messaggioErrore, senzaRete, fmtData, isoToIt, itToIso, oggi, isoLocale, libreria, eur, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
+  const API = window.Lemmi = { state, $, $$, esc, chk, toast, eliminaConAnnulla, coloreStato, etichettaStato, badgeStato, statoQuota, schedeTabelle, SAGOMA, vocetl, messaggioErrore, senzaRete, fmtData, isoToIt, itToIso, oggi, isoLocale, libreria, eur, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
   API.estensioniLoggia.push(schedaPassword);
 
   function schedaPassword(v) {

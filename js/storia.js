@@ -62,10 +62,9 @@
     const agg = () => $('#w-altra', f).classList.toggle('hidden', f.elements.carica.value !== ALTRA);
     f.elements.carica.addEventListener('change', agg); agg();
     const del = $('[data-del]', m.ov);
-    if (del) del.onclick = async () => {
-      if (!window.confirm('Eliminare questa carica dalla storia del Fratello?')) return;
-      try { chk(await state.sb.from('cariche_storico').delete().eq('id', c.id)); m.chiudi(); toast('Carica eliminata', 'ok'); L.route(); }
-      catch (e) { $('[data-err]', m.ov).textContent = messaggioErrore(e); }
+    if (del) del.onclick = () => {
+      m.chiudi();
+      L.eliminaConAnnulla({ messaggio: 'Carica eliminata: ' + c.carica, esegui: async () => chk(await state.sb.from('cariche_storico').delete().eq('id', c.id)) });
     };
   }
 
