@@ -230,6 +230,7 @@
         <select id="c-tipo" style="width:auto">${opzioni(TIPI, st.tipo, 'Tutti')}</select>
         <label style="display:flex;gap:6px;align-items:center;font-weight:500"><input type="checkbox" id="c-ann" ${st.nascondiAnnullate ? 'checked' : ''}> Nascondi annullate</label>
         <span class="muted" id="c-conta"></span></div>
+      <div id="c-pross"></div>
       <div id="c-corpo"></div>`;
 
     $('#c-anno').addEventListener('change', (e) => { st.anno = Number(e.target.value); L.route(); });
@@ -237,8 +238,14 @@
     $('#c-ann').addEventListener('change', (e) => { st.nascondiAnnullate = e.target.checked; disegna(); });
     if (puoScrivere()) { $('#c-new').onclick = () => apriTornata(null); $('#c-gen').onclick = apriGenera; }
 
+    let scorri = true;   // all'apertura la pagina va da sola alla prossima tornata
     function disegna() {
       const lista = st.righe.filter((t) => (!st.tipo || t.tipo === st.tipo) && !(st.nascondiAnnullate && t.stato === 'annullata'));
+      // prossima tornata: la prima da oggi in poi non annullata (tra quelle mostrate)
+      const pross = lista.filter((t) => t.data >= oggiIso && t.stato !== 'annullata').sort((a, b) => (a.data + hhmm(a.ora)).localeCompare(b.data + hhmm(b.ora)))[0] || null;
+      const box = $('#c-pross');
+      box.innerHTML = pross ? `<div class="notice drillable" id="c-vai" role="button" tabindex="0" style="margin:0 0 14px;background:var(--gold-soft);color:var(--gold-ink)">
+          <b>Prossima tornata${pross.data === oggiIso ? ' (oggi)' : ''}:</b> ${giornoSettimana(pross.data)} ${fmtData(pross.data)}${hhmm(pross.ora) ? ' ore ' + esc(hhmm(pross.ora)) : ''} · ${esc(TIPI[pross.tipo] || '')}${pross.tipo !== 'informale' && pross.grado ? ' · ' + esc(GRADI[pross.grado]) : ''} · <u>vai</u></div>` : '';
       $('#c-conta').textContent = lista.length + (lista.length === 1 ? ' tornata' : ' tornate');
       const c = $('#c-corpo');
       const FE = Object.assign({}, festivita(st.anno - 1), festivita(st.anno), festivita(st.anno + 1));
@@ -255,7 +262,7 @@
           const segni = [t.di_famiglia ? '<span class="badge gold">di Famiglia</span>' : '', t.formazione ? '<span class="badge info">formazione</span>' : '', t.solennita ? `<span class="badge gray">${esc(t.solennita)}</span>` : ''].filter(Boolean).join(' ');
           const extra = [t.relatore ? 'Relatore: ' + esc(t.relatore) : '', ...(st.lavori[t.id] || []).map((x) => 'Lavoro: ' + esc(x)), t.ordine_del_giorno ? esc(t.ordine_del_giorno).replace(/\n/g, '<br>') : ''].filter(Boolean).join('<br>');
           const passata = t.data < oggiIso, fe = FE[t.data];
-          return `<tr class="${fe ? 'festa-riga' : ''}" style="${t.stato === 'annullata' ? 'opacity:.55;' : ''}">
+          return `<tr id="t-${esc(t.id)}" class="${fe ? 'festa-riga' : ''}${pross && t.id === pross.id ? ' prossima-riga' : ''}" style="${t.stato === 'annullata' ? 'opacity:.55;' : ''}">
             <td data-sort="${t.data} ${hhmm(t.ora)}"><b ${fe ? 'class="festa"' : ''}>${fmtData(t.data)}</b><br><span class="${fe ? 'festa' : 'muted'}">${giornoSettimana(t.data)}</span>${fe ? `<br><span class="badge bad">Festa: ${esc(fe)}</span>` : ''}${t.data === oggiIso ? ' <span class="badge ok">oggi</span>' : ''}</td>
             <td>${esc(hhmm(t.ora) || '—')}</td>
             <td><span class="badge ${TIPO_BADGE[t.tipo]}">${esc(TIPI[t.tipo])}</span></td>
@@ -266,6 +273,12 @@
             <td class="act">${L.wa ? (L.wa.tornate[t.id] = t, L.wa.tornata(t)) : ''} ${puoScrivere() ? `<button class="btn ghost small" data-mod="${esc(t.id)}">Modifica</button>` : ''}</td></tr>`;
         }).join('')}</tbody></table></div>`;
       $$('[data-mod]', c).forEach((b) => b.addEventListener('click', () => apriTornata(st.righe.find((x) => x.id === b.dataset.mod))));
+      const vai = () => { const r = pross && document.getElementById('t-' + pross.id); if (r && r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+      if (pross) {
+        $('#c-vai').addEventListener('click', vai);
+        $('#c-vai').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vai(); } });
+        if (scorri) { scorri = false; setTimeout(vai, 60); }
+      }
     }
     disegna();
   };

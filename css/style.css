@@ -575,3 +575,7 @@ button.pchip.mail:hover { background: var(--ok); color: #fff; }
 :root[data-tema="scuro"] .btn.wa { color: #4cd98a; }
 @media (prefers-color-scheme: dark) { :root:not([data-tema="chiaro"]) .btn.wa { color: #4cd98a; } }
 td.act .btn + .btn, td.act .btn.wa { margin-left: 4px; }
+
+/* Calendario: prossima tornata evidenziata */
+tr.prossima-riga > td { background: var(--gold-soft); }
+tr.prossima-riga > td:first-child { box-shadow: inset 4px 0 0 var(--gold); }
