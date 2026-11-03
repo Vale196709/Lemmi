@@ -9,7 +9,7 @@
   const TUTTI = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const SOCI = ['amministratore', 'venerabile', 'segretario'];
   const CONFRATELLI = TUTTI.concat('fratello');   // il profilo Fratello vede solo la propria scheda, il calendario e il proprio accesso
-  const ACCESSO_SEZ = { home: CONFRATELLI, libromatricola: SOCI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: CONFRATELLI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: TUTTI, template: SOCI, procedure: SOCI, verbali: SOCI, loggia: CONFRATELLI, utenti: ['amministratore'], sistema: ['amministratore'], registro: ['amministratore'], cerca: SOCI, completa: SOCI, relazione: SOCI };
+  const ACCESSO_SEZ = { home: CONFRATELLI, libromatricola: SOCI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: CONFRATELLI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: ['amministratore', 'venerabile', 'tesoriere'], template: SOCI, procedure: SOCI, verbali: SOCI, loggia: CONFRATELLI, utenti: ['amministratore'], sistema: ['amministratore'], registro: ['amministratore'], cerca: SOCI, completa: SOCI, relazione: SOCI };
   const ETICHETTA_RUOLO = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere', fratello: 'Fratello' };
 
   const TIPI_DOMANDA = {

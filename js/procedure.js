@@ -11,6 +11,8 @@
   const ATTORI = { L: 'Loggia', C: 'Collegio', G: 'GOI', F: 'Interessato' };
   // Moduli GOI che si compilano da Template (A/1 e C/1 si generano dalla scheda del bussante).
   const MODULO = { 'A/2': 'A2', 'A/R': 'AR', 'C/2': 'C2', 'C/3': 'C3', 'C/3 bis': 'C3BIS', 'N/1': 'N1', 'N/2-3': 'N23', 'N/4': 'N4', 'E/1': 'E1', 'E/2': 'E2', 'D/1': 'D1', 'D/2': 'D2', 'V/1': 'V1' };
+  // collegamenti alle sezioni dell'app: solo quelle che il proprio ruolo può aprire (es. Tesoreria non per il Segretario)
+  const vedeApp = (a) => !(a === 'pag' && L.state.profilo && L.state.profilo.ruolo === 'segretario');
   const APP = {
     bus: { t: 'Bussanti', h: '#/bussanti' }, cal: { t: 'Calendario', h: '#/calendario' }, pag: { t: 'Tesoreria', h: '#/pagamenti' },
     fra: { t: 'Fratelli', h: '#/fratelli' }, ele: { t: 'Elezioni cariche', h: '#/elezioni' }, pie: { t: 'Piè di lista', h: '#/piedilista' },
@@ -161,7 +163,7 @@
         .concat((s.f || []).map(chip))
         .concat(s.m ? [`<button type="button" class="pchip mail" data-m="${esc(s.m)}" title="Apre una bozza precompilata">✉ ${esc(((window.LemmiBozze && window.LemmiBozze.modelli[s.m]) || {}).t || 'Bozza')}</button>`] : [])
         .concat(s.w ? [`<span class="pchip tempo">${esc(s.w)}</span>`] : [])
-        .concat((s.app || []).map((a) => `<a class="pchip app" href="${APP[a].h}">Nell’app: ${esc(APP[a].t)}</a>`))
+        .concat((s.app || []).filter(vedeApp).map((a) => `<a class="pchip app" href="${APP[a].h}">Nell’app: ${esc(APP[a].t)}</a>`))
         .join('');
       const br = s.br ? `<div class="pbr">${s.br.map((b) => `<div><b>${esc(b[0])}</b>${esc(b[1])}</div>`).join('')}</div>` : '';
       return `<div class="pstep${fatti.includes(i) ? ' fatto' : ''}" data-i="${i}"><div class="pnum"><button type="button" class="pcheck" aria-pressed="${fatti.includes(i)}" title="Segna il passo come fatto">${fatti.includes(i) ? '✓' : i + 1}</button>${i < p.s.length - 1 ? '<u></u>' : ''}</div>
@@ -173,7 +175,7 @@
       const tagsDi = (s) => (s.f || []).map(chip)
         .concat(s.m ? [`<button type="button" class="pchip mail" data-m="${esc(s.m)}" title="Apre una bozza precompilata">✉ ${esc(((window.LemmiBozze && window.LemmiBozze.modelli[s.m]) || {}).t || 'Bozza')}</button>`] : [])
         .concat(s.w ? [`<span class="pchip tempo">${esc(s.w)}</span>`] : [])
-        .concat((s.app || []).map((a) => `<a class="pchip app" href="${APP[a].h}">${esc(APP[a].t)}</a>`)).join('');
+        .concat((s.app || []).filter(vedeApp).map((a) => `<a class="pchip app" href="${APP[a].h}">${esc(APP[a].t)}</a>`)).join('');
       const testa = usati.map((a, c) => `<div class="pl-col att-${a}" style="grid-row:1;grid-column:${c + 1}">${ATTORI[a]}</div>`).join('');
       const celle = p.s.map((s, i) => {
         const br = s.br ? `<div class="pbr">${s.br.map((b) => `<div><b>${esc(b[0])}</b>${esc(b[1])}</div>`).join('')}</div>` : '';
