@@ -13,68 +13,60 @@
 --
 -- COME: Supabase › SQL Editor › incolla tutto › Run.
 -- In fondo compare un riepilogo con quante righe sono state tolte.
+-- Si può rieseguire senza problemi: la seconda volta non trova nulla.
 -- =====================================================================
 
-begin;
+-- 1) Pratiche legate a bussanti che non esistono più
+--    (passi e date si cancellano in automatico)
+delete from public.pratiche
+where rif_tipo = 'bussante' and rif_id is not null
+  and rif_id not in (select id::text from public.bussanti);
 
--- bussanti ancora esistenti (da NON toccare)
-create temp table _vivi on commit drop as
-  select id::text as id from public.bussanti;
-
--- pratiche legate a bussanti che non esistono più
-create temp table _pratiche on commit drop as
-  select id::text as id from public.pratiche
-  where rif_tipo = 'bussante' and rif_id is not null
-    and rif_id not in (select id from _vivi);
-
--- aggiungo anche le pratiche già cancellate in passato ma rimaste nei registri
-insert into _pratiche
-  select distinct coalesce(prima, dopo)->>'id' from public.registro_attivita
-  where tabella = 'pratiche' and coalesce(prima, dopo)->>'rif_tipo' = 'bussante'
-    and coalesce(prima, dopo)->>'rif_id' not in (select id from _vivi)
+-- 2) Registri e backup: tolgo ogni riga che parla di bussanti eliminati
+with vivi as (
+  select id::text as id from public.bussanti
+),
+prat as (   -- pratiche dei bussanti eliminati, ricostruite dal Registro
+  select distinct coalesce(prima, dopo)->>'id' as id
+  from public.registro_attivita
+  where tabella = 'pratiche'
+    and coalesce(prima, dopo)->>'rif_tipo' = 'bussante'
+    and coalesce(prima, dopo)->>'rif_id' not in (select id from vivi)
     and coalesce(prima, dopo)->>'id' is not null
-  except select id from _pratiche;
-
--- 1) pratiche (passi e date si cancellano in automatico)
-create temp table _conta (voce text, righe bigint) on commit drop;
-with d as (delete from public.pratiche where id::text in (select id from _pratiche) returning 1)
-insert into _conta select 'Pratiche del bussante', count(*) from d;
-
--- regola comune per riconoscere le righe di registro che parlano di bussanti eliminati
-create function pg_temp._da_togliere(t text, j jsonb) returns boolean language sql as $f$
-  select case
-    when t = 'bussanti'  then j->>'id' not in (select id from _vivi)
-    when t = 'documenti' then j->>'bussante_id' is not null and j->>'bussante_id' not in (select id from _vivi)
-    when t = 'pratiche'  then j->>'id' in (select id from _pratiche)
-    when t in ('pratiche_passi', 'pratiche_date') then j->>'pratica_id' in (select id from _pratiche)
-    else false end
-$f$;
-
--- 2) Registro delle attività
-with d as (delete from public.registro_attivita
-           where pg_temp._da_togliere(tabella, coalesce(prima, dopo)) returning 1)
-insert into _conta select 'Registro delle attività', count(*) from d;
-
--- 3) Cronologia delle modifiche
-with d as (delete from public.cronologia_modifiche
-           where pg_temp._da_togliere(tabella, coalesce(prima, dopo)) returning 1)
-insert into _conta select 'Cronologia delle modifiche', count(*) from d;
-
--- 4) Copie nei backup (anche i segni di «riga eliminata» con la stessa impronta)
-with h as (select distinct tabella, hash from public.backup_righe
-           where dati is not null and pg_temp._da_togliere(tabella, dati)),
-     d as (delete from public.backup_righe r using h
-           where r.tabella = h.tabella and r.hash = h.hash returning 1)
-insert into _conta select 'Copie nei backup', count(*) from d;
-
--- riepilogo
-select voce as "Cosa", righe as "Righe tolte" from _conta
-union all
-select 'Bussanti rimasti nell’app (non toccati)', count(*) from _vivi
-union all
-select 'File orfani nell’archivio documenti-loggia', count(*)
-  from storage.objects o
+),
+del_reg as (
+  delete from public.registro_attivita r
+  where (r.tabella = 'bussanti'  and coalesce(r.prima, r.dopo)->>'id' not in (select id from vivi))
+     or (r.tabella = 'documenti' and coalesce(r.prima, r.dopo)->>'bussante_id' not in (select id from vivi))
+     or (r.tabella = 'pratiche'  and coalesce(r.prima, r.dopo)->>'id' in (select id from prat))
+     or (r.tabella in ('pratiche_passi', 'pratiche_date') and coalesce(r.prima, r.dopo)->>'pratica_id' in (select id from prat))
+  returning 1
+),
+del_cron as (
+  delete from public.cronologia_modifiche c
+  where (c.tabella = 'bussanti'  and coalesce(c.prima, c.dopo)->>'id' not in (select id from vivi))
+     or (c.tabella = 'documenti' and coalesce(c.prima, c.dopo)->>'bussante_id' not in (select id from vivi))
+  returning 1
+),
+impronte as (   -- copie nei backup (anche i segni di «riga eliminata» con la stessa impronta)
+  select distinct b.tabella, b.hash
+  from public.backup_righe b
+  where b.dati is not null
+    and (   (b.tabella = 'bussanti'  and b.dati->>'id' not in (select id from vivi))
+         or (b.tabella = 'documenti' and b.dati->>'bussante_id' not in (select id from vivi))
+         or (b.tabella = 'pratiche'  and b.dati->>'rif_tipo' = 'bussante' and b.dati->>'rif_id' not in (select id from vivi))
+         or (b.tabella in ('pratiche_passi', 'pratiche_date') and b.dati->>'pratica_id' in (select id from prat)))
+),
+del_bk as (
+  delete from public.backup_righe r using impronte i
+  where r.tabella = i.tabella and r.hash = i.hash
+  returning 1
+)
+select 'Registro delle attività' as "Cosa", (select count(*) from del_reg) as "Righe tolte"
+union all select 'Cronologia delle modifiche', (select count(*) from del_cron)
+union all select 'Copie nei backup', (select count(*) from del_bk)
+union all select 'Bussanti rimasti nell’app (non toccati)', (select count(*) from vivi)
+union all select 'File orfani nell’archivio documenti-loggia', (
+  select count(*) from storage.objects o
   where o.bucket_id = 'documenti-loggia'
-    and not exists (select 1 from public.documenti d where d.percorso = o.name);
-
-commit;
+    and not exists (select 1 from public.documenti d where d.percorso = o.name));
