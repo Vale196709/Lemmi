@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.42.1',
-  data: '2026-11-03',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
+  numero: '0.43.0',
+  data: '2026-11-04',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.43.0', data: '2026-11-04', t: 'Cruscotto: il numero dei Fratelli conta solo gli attivi; script di pulizia dei dati dei bussanti eliminati (sql/pulizia_bussanti.sql)' },
     { n: '0.42.1', data: '2026-11-03', t: 'Il Segretario non vede più la voce Tesoreria del menu' },
     { n: '0.42.0', data: '2026-11-03', t: 'Agapi con adesioni (anche dall’area del Fratello), ricorrenze nel Cruscotto con auguri su WhatsApp, abbinamento dei bonifici che impara dai collegamenti fatti; grafica: linea del tempo del Fratello, colori di stato uniformi, tabelle a schede sul telefono, caricamento a sagome, «Annulla» dopo le eliminazioni, intestazione della Loggia nelle stampe' },
     { n: '0.41.0', data: '2026-11-03', t: 'Calendario: si apre sulla prossima tornata, evidenziata, con il richiamo in alto' },

@@ -147,7 +147,7 @@
     const tutti = chk(await state.sb.from('v_fratelli_completi').select('id,cognome,nome,matricola,stato,grado_attuale,carica_attuale').order('cognome').order('nome'));
     const righe = tutti.filter((x) => !stato || (x.stato || 'n/d') === stato);
     apri({
-      t: stato || 'Fratelli', titolo: stato ? 'Fratelli · stato: ' + stato : 'Fratelli in anagrafica',
+      t: stato ? L.etichettaStato(stato) : 'Fratelli', titolo: stato === 'attivo' ? 'Fratelli attivi' : (stato ? 'Fratelli · stato: ' + L.etichettaStato(stato) : 'Fratelli in anagrafica'),
       html: kpi([{ l: 'Fratelli', v: righe.length }]),
       bind: (corpo) => tabella(corpo, {
         righe,

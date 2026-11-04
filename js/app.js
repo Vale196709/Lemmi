@@ -518,6 +518,7 @@
     const bussanti = chk(bus), fratelli = chk(fr);
     const perStato = {};
     fratelli.forEach((f) => { const s = f.stato || 'n/d'; perStato[s] = (perStato[s] || 0) + 1; });
+    const attivi = perStato.attivo || 0;   // il numero in evidenza conta solo i Fratelli attivi
     const eventi = [];
     bussanti.forEach((b) => {
       if (b.data_prima_votazione && b.data_prima_votazione >= oggi()) eventi.push({ d: b.data_prima_votazione, t: 'Prima votazione', b });
@@ -528,7 +529,7 @@
       <div class="page-head"><div><h1>Cruscotto</h1><p>${esc(nomeLoggia('La tua Loggia'))}${state.loggia.oriente ? ' · Oriente di ' + esc(state.loggia.oriente) : ''}</p></div></div>
       <div class="cr-strip">
         <div class="cr-kpis">
-          <div class="cr-kpi drillable" data-drill="fratelli" role="button" tabindex="0" title="Clicca per l’elenco"><b>${fratelli.length}</b><span>Fratelli</span></div>
+          <div class="cr-kpi drillable" data-drill="fratelli" data-k="attivo" role="button" tabindex="0" title="Clicca per l’elenco dei Fratelli attivi"><b>${attivi}</b><span>Fratelli attivi</span></div>
           <div class="cr-kpi drillable" data-drill="bussanti" role="button" tabindex="0" title="Clicca per l’elenco"><b>${bussanti.length}</b><span>Bussanti</span></div>
           <div class="cr-kpi drillable" data-drill="votazioni" role="button" tabindex="0" title="Clicca per l’elenco"><b>${eventi.length}</b><span>Votazioni in programma</span></div>
         </div>
