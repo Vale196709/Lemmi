@@ -1,0 +1,15 @@
+AGGIORNAMENTO 43 - Agapi: obiettivo di coperti e ospiti con nome
+
+PRIMA: Supabase > SQL Editor > New query, incolla sql/lemmi_aggiornamento_43.sql e premi Run. Poi Ctrl+F5 (versione 0.44.0).
+(Richiede l'aggiornamento 42 gia' eseguito.)
+
+ - Calendario > tornata di tipo Agape > campo «Obiettivo coperti» (es. 25), oppure direttamente nell'elenco dell'agape.
+ - Elenco dell'agape (etichetta «Agape · N coperti» nel Calendario):
+     barra «18 di 25 · mancano 7», riquadri Obiettivo e Mancano;
+     sezione «Ospiti con nome»: cognome, nome, tipo, invitato da, cellulare, risposta Si/No/—, note, incassato;
+     con il cellulare compare «WhatsApp» con l'invito gia' scritto per l'ospite.
+ - Coperti = Fratelli presenti + ospiti indicati come numero + ospiti con nome confermati (Si).
+   Per lo stesso ospite usa un solo metodo, per non contarlo due volte.
+ - «Copia elenco per il ristorante» comprende anche gli ospiti con nome confermati.
+ - Gli ospiti con nome li vedono solo amministratore, Venerabile, Segretario e Tesoriere.
+ - Il backup completo comprende la nuova tabella (agape_ospiti).

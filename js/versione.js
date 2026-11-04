@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.43.1',
+  numero: '0.44.0',
   data: '2026-11-04',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.44.0', data: '2026-11-04', t: 'Agapi: obiettivo di coperti con indicatore «18/25, mancano 7» e ospiti con nome (tipo, chi li invita, cellulare, invito su WhatsApp, incasso); elenco per il ristorante completo (sql/lemmi_aggiornamento_43.sql)' },
     { n: '0.43.1', data: '2026-11-04', t: 'Ogni eliminazione chiede prima conferma (poi resta «Annulla» per qualche secondo)' },
     { n: '0.43.0', data: '2026-11-04', t: 'Cruscotto: il numero dei Fratelli conta solo gli attivi; script di pulizia dei dati dei bussanti eliminati (sql/pulizia_bussanti.sql)' },
     { n: '0.42.1', data: '2026-11-03', t: 'Il Segretario non vede più la voce Tesoreria del menu' },

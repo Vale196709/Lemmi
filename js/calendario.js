@@ -103,6 +103,7 @@
       <div class="f s4" id="w-cagape"><label>&nbsp;</label><label style="display:flex;gap:6px;align-items:center;font-weight:500;min-height:40px"><input type="checkbox" name="con_agape" ${x.con_agape ? 'checked' : ''}> Segue l’agape (raccolta adesioni)</label></div>
       <div class="f s4 w-ag"><label for="t-qag">Quota a persona (€)</label><input id="t-qag" name="quota_agape" inputmode="decimal" value="${x.quota_agape !== null && x.quota_agape !== undefined ? esc(String(x.quota_agape).replace('.', ',')) : ''}" placeholder="es. 35,00"></div>
       <div class="f s4 w-ag"><label for="t-entro">Adesioni entro il</label><input id="t-entro" name="adesioni_entro" value="${esc(isoToIt(x.adesioni_entro))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
+      <div class="f s4 w-ag"><label for="t-obc">Obiettivo coperti</label><input id="t-obc" name="obiettivo_coperti" type="number" min="1" max="500" inputmode="numeric" value="${x.obiettivo_coperti ? esc(String(x.obiettivo_coperti)) : ''}" placeholder="es. 25"></div>
       <div class="f hint w-ag">I Fratelli con un accesso all’app confermano dalla loro area; le altre risposte le segni tu da «Agape» nel Calendario.</div></div>`;
     const extra = !nuova && puoCancellare() ? '<button class="btn danger" type="button" data-del>Elimina</button>' : '';
     const m = finestra(nuova ? 'Nuova tornata' : 'Modifica tornata', corpo, {
@@ -133,11 +134,16 @@
         const entro = agape ? itToIso(e.adesioni_entro.value) : null;
         if (entro === 'ERR') return errore('Data «Adesioni entro il» non valida: usa il formato gg/mm/aaaa.');
         if (agape || (t && 'con_agape' in t)) Object.assign(dati, { con_agape: tipo !== 'agape' && e.con_agape.checked, quota_agape: quota, adesioni_entro: entro });
+        // obiettivo di coperti (colonna dell'aggiornamento 43): si salva solo se indicato o se la tornata ce l'ha già
+        const ob0 = e.obiettivo_coperti.value.trim(), obiettivo = agape && ob0 ? Math.round(Number(ob0)) : null;
+        if (obiettivo !== null && !(obiettivo >= 1 && obiettivo <= 500)) return errore('Obiettivo coperti non valido: scrivi un numero da 1 a 500.');
+        if (obiettivo !== null || (t && 'obiettivo_coperti' in t)) dati.obiettivo_coperti = obiettivo;
         try {
           if (nuova) chk(await state.sb.from('tornate').insert(dati));
           else chk(await state.sb.from('tornate').update(dati).eq('id', t.id));
         } catch (er) {
           if (er && er.code === '23505') return errore('Esiste già una tornata dello stesso tipo in quella data.');
+          if (/obiettivo_coperti/.test((er && er.message) || '')) return errore('Per l’obiettivo di coperti esegui prima lo script sql/lemmi_aggiornamento_43.sql nell’editor SQL di Supabase.');
           if (/con_agape|quota_agape|adesioni_entro/.test((er && er.message) || '')) return errore('Per l’agape esegui prima lo script sql/lemmi_aggiornamento_42.sql nell’editor SQL di Supabase.');
           throw er;
         }

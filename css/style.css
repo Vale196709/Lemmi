@@ -706,6 +706,15 @@ tr.in-eliminazione td { text-decoration: line-through; }
 .ag-seg button[aria-pressed="true"].no { background: var(--bad-bg); color: var(--bad); font-weight: 700; }
 .ag-seg button[aria-pressed="true"].nr { background: var(--chip); color: var(--ink); font-weight: 700; }
 .ag-osp { width: 64px; padding: 6px 8px; }
+.ag-ob { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+.ag-ob label { font-weight: 600; font-size: .85rem; }
+.ag-ob input { width: 84px; padding: 6px 8px; }
+.ag-prog { flex: 1 1 160px; height: 10px; border-radius: 999px; background: var(--chip); overflow: hidden; }
+.ag-prog i { display: block; height: 100%; background: var(--gold); border-radius: 999px; transition: width .25s; }
+.ag-prog.ok i { background: var(--ok); }
+.ag-h3 { margin: 22px 0 6px; font-size: 1rem; }
+.ag-osp-form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+.ag-osp-form input, .ag-osp-form select { width: auto; flex: 1 1 140px; }
 .ag-box { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--gold-soft); color: var(--gold-ink); font-size: .84rem; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ag-box .ag-seg button { background: var(--card); }
 a.badge.gold:hover, button.badge { cursor: pointer; text-decoration: none; }

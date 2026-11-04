@@ -1,7 +1,10 @@
 /* Lemmi - Agapi: adesioni dei Fratelli, ospiti, coperti e quote (script sql/lemmi_aggiornamento_42.sql).
  * - Calendario: su ogni tornata con agape un'etichetta «Agape · N» apre l'elenco delle adesioni.
  *   Venerabile, Segretario, Tesoriere e amministratore segnano risposte, ospiti, note e incassi.
- * - Area del Fratello: «Partecipo» / «Non partecipo» sulle prossime agapi, con il numero di ospiti. */
+ * - Area del Fratello: «Partecipo» / «Non partecipo» sulle prossime agapi, con il numero di ospiti.
+ * - Aggiornamento 43 (sql/lemmi_aggiornamento_43.sql): obiettivo di coperti con indicatore «N / obiettivo» e ospiti con nome
+ *   (tipo, chi li invita, cellulare, risposta, incasso). I coperti sono: Fratelli presenti + ospiti indicati come numero +
+ *   ospiti con nome confermati. */
 (function () {
   'use strict';
   const L = window.Lemmi;
@@ -14,23 +17,34 @@
   const MANCA_SQL = 'Per le adesioni alle agapi esegui prima lo script sql/lemmi_aggiornamento_42.sql nell’editor SQL di Supabase.';
   const mancaSql = (e) => /agape_adesioni|aderisci_agape|schema cache|does not exist|Could not find/i.test((e && e.message) || '');
   const num = (x) => Number(x || 0);
+  const MANCA_SQL43 = 'Per obiettivo e ospiti con nome esegui prima lo script sql/lemmi_aggiornamento_43.sql nell’editor SQL di Supabase.';
+  const mancaSql43 = (e) => /agape_ospiti|obiettivo_coperti/i.test((e && e.message) || '');
+  const TIPO_OSP = { ospite: 'Ospite', visitatore: 'Visitatore (altra Loggia)', familiare: 'Familiare' };
+  const STATO_OSP = { si: 'confermato', no: 'rifiuta', nr: 'invitato' };
+  const importo = (txt) => { const x = String(txt || '').trim().replace(/[€\s]/g, ''); return x === '' ? null : Number(x.includes(',') ? x.replace(/\./g, '').replace(',', '.') : x); };
 
-  // conteggi per tornata: { id: { si, no, ospiti } } (vuoto se lo script non è stato eseguito)
+  // conteggi per tornata: { id: { si, no, ospiti, nom } } (vuoto se lo script non è stato eseguito)
   async function conteggi(ids) {
     const out = {};
+    const get = (id) => out[id] || (out[id] = { si: 0, no: 0, ospiti: 0, nom: 0 });
     try {
       chk(await state.sb.from('agape_adesioni').select('tornata_id,partecipa,ospiti').in('tornata_id', ids)).forEach((a) => {
-        const c = out[a.tornata_id] || (out[a.tornata_id] = { si: 0, no: 0, ospiti: 0 });
+        const c = get(a.tornata_id);
         if (a.partecipa) { c.si++; c.ospiti += num(a.ospiti); } else c.no++;
       });
     } catch (e) { /* tabella assente: nessun conteggio */ }
+    try {
+      chk(await state.sb.from('agape_ospiti').select('tornata_id,stato').in('tornata_id', ids)).forEach((o) => { if (o.stato === 'confermato') get(o.tornata_id).nom++; });
+    } catch (e) { /* script 43 non eseguito: nessun ospite con nome */ }
     return out;
   }
 
   function badge(t, c) {
-    const coperti = c ? c.si + c.ospiti : 0;
-    const testo = 'Agape' + (c ? ' · ' + coperti + (coperti === 1 ? ' coperto' : ' coperti') : '') + (t.quota_agape ? ' · ' + eur(t.quota_agape) : '');
-    return gestisce() ? `<button type="button" class="badge gold" data-agape="${esc(t.id)}" title="Adesioni all’agape">${esc(testo)}</button>` : `<span class="badge gold">${esc(testo)}</span>`;
+    const coperti = c ? c.si + c.ospiti + c.nom : 0, ob = num(t.obiettivo_coperti);
+    const conta = ob ? ' · ' + coperti + '/' + ob + ' coperti' : (c ? ' · ' + coperti + (coperti === 1 ? ' coperto' : ' coperti') : '');
+    const testo = 'Agape' + conta + (t.quota_agape ? ' · ' + eur(t.quota_agape) : '');
+    const cl = ob && coperti >= ob ? 'badge ok' : 'badge gold';
+    return gestisce() ? `<button type="button" class="${cl}" data-agape="${esc(t.id)}" title="Adesioni all’agape">${esc(testo)}</button>` : `<span class="${cl}">${esc(testo)}</span>`;
   }
 
   /* ---------- finestra delle adesioni (gestione) ---------- */
@@ -43,11 +57,25 @@
         state.sb.from('agape_adesioni').select('*').eq('tornata_id', t.id).then(chk),
       ]);
     } catch (e) { toast(mancaSql(e) ? MANCA_SQL : messaggioErrore(e), 'bad'); return; }
+    let os = [], ospOk = true;   // ospiti con nome (script 43)
+    try { os = chk(await state.sb.from('agape_ospiti').select('*').eq('tornata_id', t.id).order('cognome').order('nome')); } catch (e) { ospOk = false; }
     const per = {}; ad.forEach((a) => { per[a.fratello_id] = a; });
     // invitati: i Fratelli attivi, più chiunque abbia già una risposta registrata
     const elenco = fr.filter((f) => f.stato === 'attivo' || per[f.id]);
     const quota = num(t.quota_agape);
     const chiusa = t.data < oggi();
+    const attivi = fr.filter((f) => f.stato === 'attivo');
+    const nomeFr = (id) => { const f = fr.find((x) => x.id === id); return f ? f.cognome + ' ' + f.nome : ''; };
+    const sezOspiti = ospOk ? `<h3 class="ag-h3">Ospiti con nome</h3>
+        <p class="hint">Per gli ospiti elencati qui non usare anche la colonna «Ospiti» del Fratello che li porta, altrimenti vengono contati due volte. Contano nei coperti solo quando la risposta è «Sì».</p>
+        <div class="table-wrap"><table><thead><tr><th>Ospite</th><th>Tipo</th><th>Invitato da</th><th>Risposta</th><th>Contatto</th><th>Note</th><th class="num">Incassato</th><th></th></tr></thead><tbody id="ag-osp-righe"></tbody></table></div>
+        <form id="ag-osp-form" class="ag-osp-form" autocomplete="off">
+          <input name="cognome" placeholder="Cognome" aria-label="Cognome dell’ospite" maxlength="80">
+          <input name="nome" placeholder="Nome" aria-label="Nome dell’ospite" maxlength="80">
+          <select name="tipo" aria-label="Tipo di ospite">${Object.keys(TIPO_OSP).map((k) => `<option value="${k}">${esc(TIPO_OSP[k])}</option>`).join('')}</select>
+          <select name="invitato_da" aria-label="Invitato da"><option value="">Invitato da…</option>${attivi.map((f) => `<option value="${esc(f.id)}">${esc(f.cognome + ' ' + f.nome)}</option>`).join('')}</select>
+          <input name="contatto" placeholder="Cellulare (facoltativo)" inputmode="tel" aria-label="Cellulare dell’ospite" maxlength="40">
+          <button class="btn small" type="submit">Aggiungi ospite</button></form>` : `<div class="notice" style="margin-top:14px">Per l’obiettivo di coperti e gli ospiti con nome esegui prima lo script <b>sql/lemmi_aggiornamento_43.sql</b> nell’editor SQL di Supabase.</div>`;
 
     const ov = document.createElement('div');
     ov.className = 'modal-ov';
@@ -57,6 +85,7 @@
         <button class="btn ghost small" type="button" data-x>Chiudi</button></div>
       <div class="modal-b">
         <div class="ag-kpi" id="ag-kpi"></div>
+        ${ospOk ? `<div class="ag-ob"><label for="ag-ob">Obiettivo coperti</label><input id="ag-ob" type="number" min="1" max="500" inputmode="numeric" value="${num(t.obiettivo_coperti) || ''}" placeholder="es. 25"><div class="ag-prog" id="ag-prog" hidden><i></i></div><span class="hint" id="ag-prog-t"></span></div>` : ''}
         <div class="actions" style="margin-bottom:12px">
           <div class="searchbar" style="flex:1 1 220px">${L.IC.search}<input id="ag-q" type="search" placeholder="Cerca un Fratello…"></div>
           <select id="ag-f" style="width:auto"><option value="">Tutti</option><option value="si">Partecipano</option><option value="no">Non partecipano</option><option value="nr">Senza risposta</option></select>
@@ -66,6 +95,7 @@
         ${chiusa ? '<div class="notice" style="margin-bottom:10px">L’agape si è già svolta: puoi ancora correggere presenze e incassi.</div>' : ''}
         <div class="table-wrap"><table><thead><tr><th>Fratello</th><th>Risposta</th><th>Ospiti</th><th>Note</th><th class="num">Incassato</th></tr></thead><tbody id="ag-righe"></tbody></table></div>
         <p class="hint" style="margin-top:10px">Ogni modifica si salva da sola. Le risposte date dal Fratello nella sua area sono segnate con «dall’app».</p>
+        ${sezOspiti}
       </div></div>`;
     document.body.appendChild(ov);
     const chiudi = () => { document.removeEventListener('keydown', escTasto); ov.remove(); L.route(); };
@@ -76,12 +106,24 @@
 
     const kpi = () => {
       const si = ad.filter((a) => a.partecipa), no = ad.filter((a) => !a.partecipa);
-      const ospiti = si.reduce((s, a) => s + num(a.ospiti), 0), coperti = si.length + ospiti;
+      const nomSi = os.filter((o) => o.stato === 'confermato'), nomInv = os.filter((o) => o.stato === 'invitato');
+      const ospiti = si.reduce((s, a) => s + num(a.ospiti), 0) + nomSi.length, coperti = si.length + ospiti;
       const nr = elenco.filter((f) => !per[f.id]).length;
-      const incassato = ad.reduce((s, a) => s + num(a.incassato), 0);
+      const incassato = ad.reduce((s, a) => s + num(a.incassato), 0) + os.reduce((s, o) => s + num(o.incassato), 0);
+      const ob = num(t.obiettivo_coperti), mancano = Math.max(0, ob - coperti);
       $('#ag-kpi', ov).innerHTML = `<div><span>Fratelli presenti</span><b>${si.length}</b></div><div><span>Ospiti</span><b>${ospiti}</b></div>
-        <div><span>Coperti</span><b>${coperti}</b></div><div><span>Assenti</span><b>${no.length}</b></div><div><span>Senza risposta</span><b>${nr}</b></div>
+        <div><span>Coperti</span><b>${coperti}</b></div>${ob ? `<div><span>Obiettivo</span><b>${ob}</b></div><div><span>Mancano</span><b style="color:${mancano ? 'var(--warn)' : 'var(--ok)'}">${mancano}</b></div>` : ''}
+        <div><span>Assenti</span><b>${no.length}</b></div><div><span>Fratelli senza risposta</span><b>${nr}</b></div>${nomInv.length ? `<div><span>Ospiti da confermare</span><b>${nomInv.length}</b></div>` : ''}
         ${quota ? `<div><span>Da incassare</span><b>${eur(coperti * quota)}</b></div>` : ''}<div><span>Incassato</span><b style="color:${quota && incassato >= coperti * quota && coperti ? 'var(--ok)' : 'inherit'}">${eur(incassato)}</b></div>`;
+      const prog = $('#ag-prog', ov), pt = $('#ag-prog-t', ov);
+      if (prog && pt) {
+        if (ob) {
+          prog.hidden = false;
+          prog.firstElementChild.style.width = Math.min(100, Math.round(coperti / ob * 100)) + '%';
+          prog.classList.toggle('ok', coperti >= ob);
+          pt.textContent = coperti < ob ? coperti + ' di ' + ob + ' · mancano ' + mancano : coperti === ob ? 'Obiettivo raggiunto: ' + coperti + ' coperti' : 'Obiettivo superato di ' + (coperti - ob);
+        } else { prog.hidden = true; pt.textContent = ''; }
+      }
     };
 
     const seg = (f, a) => {
@@ -138,8 +180,7 @@
       } else if (el.dataset.note !== undefined && el.hasAttribute('data-note')) {
         await salva(el.dataset.note, { note: el.value.trim() || null });
       } else if (el.dataset.inc) {
-        const s = el.value.trim().replace(/[€\s]/g, '');
-        const v = s === '' ? null : Number(s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s);
+        const v = importo(el.value);
         if (v !== null && !(v >= 0)) { toast('Importo non valido: scrivi per esempio 35,00.', 'bad'); return; }
         await salva(el.dataset.inc, { incassato: v });
       } else return;
@@ -148,14 +189,15 @@
     $('#ag-q', ov).addEventListener('input', disegna);
     $('#ag-f', ov).addEventListener('change', disegna);
 
-    // elenco per il ristorante: coperti, nomi e note
+    // elenco per il ristorante: coperti, nomi e note (Fratelli e ospiti con nome confermati)
     $('#ag-copia', ov).addEventListener('click', async () => {
       const si = elenco.filter((f) => per[f.id] && per[f.id].partecipa);
-      const coperti = si.reduce((s, f) => s + 1 + num(per[f.id].ospiti), 0);
+      const ospConf = os.filter((o) => o.stato === 'confermato');
+      const coperti = si.reduce((s, f) => s + 1 + num(per[f.id].ospiti), 0) + ospConf.length;
       const righe = [`Agape del ${fmtData(t.data)} – ${coperti} coperti`, '', ...si.map((f) => {
         const a = per[f.id];
         return `• ${f.cognome} ${f.nome}${num(a.ospiti) ? ' + ' + num(a.ospiti) + (num(a.ospiti) === 1 ? ' ospite' : ' ospiti') : ''}${a.note ? ' (' + a.note + ')' : ''}`;
-      })];
+      }), ...ospConf.map((o) => `• ${o.cognome} ${o.nome} (${(TIPO_OSP[o.tipo] || 'Ospite').toLowerCase()}${o.invitato_da ? ', ospite di ' + nomeFr(o.invitato_da) : ''})${o.note ? ' – ' + o.note : ''}`)];
       const testo = righe.join('\n');
       try { await navigator.clipboard.writeText(testo); toast('Elenco copiato: incollalo nel messaggio al ristorante', 'ok'); }
       catch (e) { window.prompt('Copia l’elenco:', testo); }
@@ -170,7 +212,86 @@
       const w = window.open('https://wa.me/?text=' + encodeURIComponent(testo), '_blank');
       if (!w) location.href = 'https://wa.me/?text=' + encodeURIComponent(testo);
     });
+
+    /* ---------- obiettivo di coperti ---------- */
+    const ob = $('#ag-ob', ov);
+    if (ob) ob.addEventListener('change', async () => {
+      const txt = ob.value.trim(), v = txt === '' ? null : Math.round(Number(txt));
+      if (v !== null && !(v >= 1 && v <= 500)) { toast('Obiettivo non valido: scrivi un numero da 1 a 500.', 'bad'); ob.value = t.obiettivo_coperti || ''; return; }
+      try {
+        const r = chk(await state.sb.from('tornate').update({ obiettivo_coperti: v }).eq('id', t.id).select('id'));
+        if (!r.length) throw new Error('Non hai i permessi per modificare l’obiettivo di questa agape.');
+        t.obiettivo_coperti = v; kpi();
+        toast(v ? 'Obiettivo di ' + v + ' coperti salvato' : 'Obiettivo tolto', 'ok');
+      } catch (er) { toast(mancaSql43(er) ? MANCA_SQL43 : messaggioErrore(er), 'bad'); ob.value = t.obiettivo_coperti || ''; }
+    });
+
+    /* ---------- ospiti con nome ---------- */
+    const testoOspite = (o) => { const l = state.loggia || {};
+      return [`Buongiorno ${o.nome},`, `ti invitiamo con piacere all’agape fraterna del ${fmtData(t.data)}${t.ora ? ', ore ' + String(t.ora).slice(0, 5) : ''}${t.luogo ? ', presso ' + t.luogo : ''}.`,
+        quota ? 'Quota: ' + eur(quota) + ' a persona.' : '', `Ti chiediamo di confermare la tua presenza${t.adesioni_entro ? ' entro il ' + fmtData(t.adesioni_entro) : ''} rispondendo a questo messaggio.`,
+        l.nome ? `Loggia ${l.nome}${l.numero ? ' n. ' + l.numero : ''}` : ''].filter(Boolean).join('\n'); };
+    const segO = (o) => {
+      const v = o.stato === 'confermato' ? 'si' : o.stato === 'rifiuta' ? 'no' : 'nr';
+      const b = (k, x) => `<button type="button" class="${k}" data-or="${k}" data-o="${esc(o.id)}" aria-pressed="${v === k}">${x}</button>`;
+      return `<div class="ag-seg" role="group" aria-label="Risposta di ${esc(o.cognome)}">${b('si', 'Sì')}${b('no', 'No')}${b('nr', '—')}</div>`;
+    };
+    const disegnaOsp = () => {
+      const corpoO = $('#ag-osp-righe', ov); if (!corpoO) return;
+      corpoO.innerHTML = os.length ? os.map((o) => {
+        const n = L.wa && L.wa.numeroWa ? L.wa.numeroWa(o.contatto) : '';
+        const waLink = n ? ` <a class="btn ghost small wa" target="_blank" rel="noopener" href="https://wa.me/${n}?text=${encodeURIComponent(testoOspite(o))}" title="Invito su WhatsApp">WhatsApp</a>` : '';
+        return `<tr data-ospite="${esc(o.id)}"><td><b>${esc(o.cognome)} ${esc(o.nome)}</b></td><td>${esc(TIPO_OSP[o.tipo] || o.tipo)}</td><td>${esc(nomeFr(o.invitato_da)) || '—'}</td>
+          <td>${segO(o)}</td><td>${esc(o.contatto || '')}${waLink}</td>
+          <td><input data-onote="${esc(o.id)}" value="${esc(o.note || '')}" placeholder="es. vegetariano" aria-label="Note"></td>
+          <td class="num"><input data-oinc="${esc(o.id)}" inputmode="decimal" style="width:96px;text-align:right" value="${o.incassato !== null && o.incassato !== undefined ? esc(String(o.incassato).replace('.', ',')) : ''}" placeholder="${o.stato === 'confermato' && quota ? esc(String(quota).replace('.', ',')) : ''}" aria-label="Incassato"></td>
+          <td><button type="button" class="btn danger small" data-odel="${esc(o.id)}">Elimina</button></td></tr>`;
+      }).join('') : '<tr><td colspan="8"><div class="empty">Nessun ospite con nome: aggiungine uno qui sotto.</div></td></tr>';
+      kpi();
+    };
+    async function salvaOsp(id, mod) {
+      try { const r = chk(await state.sb.from('agape_ospiti').update(mod).eq('id', id).select().single()); os = os.map((o) => (o.id === id ? r : o)); }
+      catch (e) { toast(mancaSql43(e) ? MANCA_SQL43 : messaggioErrore(e), 'bad'); }
+    }
+    const corpoO = $('#ag-osp-righe', ov);
+    if (corpoO) {
+      corpoO.addEventListener('click', async (e) => {
+        const r = e.target.closest('[data-or]'), d = e.target.closest('[data-odel]');
+        if (r) {
+          r.parentElement.querySelectorAll('button').forEach((x) => { x.disabled = true; });
+          await salvaOsp(r.dataset.o, { stato: STATO_OSP[r.dataset.or] });
+          disegnaOsp();
+        } else if (d) {
+          const o = os.find((x) => x.id === d.dataset.odel); if (!o) return;
+          L.eliminaConAnnulla({ domanda: 'Eliminare l’ospite ' + o.cognome + ' ' + o.nome + ' dall’elenco?', messaggio: 'Ospite ' + o.cognome + ' ' + o.nome + ' eliminato', el: d.closest('tr'),
+            esegui: async () => chk(await state.sb.from('agape_ospiti').delete().eq('id', o.id)),
+            dopo: () => { os = os.filter((x) => x.id !== o.id); disegnaOsp(); } });
+        }
+      });
+      corpoO.addEventListener('change', async (e) => {
+        const el = e.target;
+        if (el.hasAttribute('data-onote')) await salvaOsp(el.dataset.onote, { note: el.value.trim() || null });
+        else if (el.hasAttribute('data-oinc')) {
+          const v = importo(el.value);
+          if (v !== null && !(v >= 0)) { toast('Importo non valido: scrivi per esempio 35,00.', 'bad'); return; }
+          await salvaOsp(el.dataset.oinc, { incassato: v });
+        } else return;
+        disegnaOsp();
+      });
+      $('#ag-osp-form', ov).addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const f = ev.target.elements, cognome = f.cognome.value.trim(), nome = f.nome.value.trim();
+        if (!cognome || !nome) { toast('Scrivi cognome e nome dell’ospite.', 'bad'); return; }
+        const dati = { tornata_id: t.id, cognome, nome, tipo: f.tipo.value, invitato_da: f.invitato_da.value || null, contatto: f.contatto.value.trim() || null, stato: 'invitato' };
+        try {
+          const r = chk(await state.sb.from('agape_ospiti').insert(dati).select().single());
+          os.push(r); os.sort((a, b) => (a.cognome + ' ' + a.nome).localeCompare(b.cognome + ' ' + b.nome, 'it'));
+          ev.target.reset(); disegnaOsp(); toast('Ospite aggiunto: segna «Sì» quando conferma', 'ok'); f.cognome.focus();
+        } catch (e) { toast(mancaSql43(e) ? MANCA_SQL43 : messaggioErrore(e), 'bad'); }
+      });
+    }
     disegna();
+    disegnaOsp();
   }
 
   /* ---------- area del Fratello: risposta alle prossime agapi ---------- */

@@ -145,6 +145,14 @@ vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file E
 - L’etichetta «Agape · N coperti» apre l’elenco: risposta (Sì / No / —), ospiti, note, incassato. Ogni modifica si salva da sola. «Copia elenco per il ristorante» prepara il testo con coperti e note; «Invito su WhatsApp» il messaggio per il gruppo.
 - I Fratelli con un accesso rispondono da «La mia scheda › Prossime tornate» (Partecipo / Non partecipo, ospiti) fino alla data di chiusura; non possono segnare gli incassi.
 
+### Obiettivo di coperti e ospiti con nome (aggiornamento 43)
+
+- Richiede anche `sql/lemmi_aggiornamento_43.sql` (Run; si può rieseguire).
+- **Obiettivo coperti** (es. 25): si imposta dal modulo della tornata o direttamente nell'elenco dell'agape. Compaiono la barra «18 di 25 · mancano 7», i riquadri Obiettivo/Mancano e, nel Calendario, l'etichetta «Agape · 18/25 coperti» (verde a obiettivo raggiunto).
+- **Ospiti con nome**: cognome, nome, tipo (ospite, visitatore di altra Loggia, familiare), chi li invita, cellulare, risposta (Sì / No / —), note (es. menù) e incassato. Con il cellulare compare «WhatsApp» con l'invito già scritto. Li vedono solo amministratore, Venerabile, Segretario e Tesoriere.
+- I coperti sono: Fratelli presenti + ospiti indicati come numero accanto al Fratello + ospiti con nome confermati («Sì»). Per lo stesso ospite usa un solo metodo, per non contarlo due volte.
+- «Copia elenco per il ristorante» comprende anche gli ospiti con nome confermati, con tipo e Fratello che li invita.
+
 ## Grafica (aggiornamento 42)
 
 - Colori di stato uguali in tutta l’app: verde in regola, ambra in scadenza (quote da pagare entro 30 giorni), rosso scaduto (`Lemmi.badgeStato`).
