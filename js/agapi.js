@@ -4,7 +4,9 @@
  * - Area del Fratello: «Partecipo» / «Non partecipo» sulle prossime agapi, con il numero di ospiti.
  * - Aggiornamento 43 (sql/lemmi_aggiornamento_43.sql): obiettivo di coperti con indicatore «N / obiettivo» e ospiti con nome
  *   (tipo, chi li invita, cellulare, risposta, incasso). I coperti sono: Fratelli presenti + ospiti indicati come numero +
- *   ospiti con nome confermati. */
+ *   ospiti con nome confermati.
+ * - Aggiornamento 44 (sql/lemmi_aggiornamento_44.sql): pagamenti per partecipante (bonifico o contanti), con il riquadro
+ *   dei contanti da versare in banca e «Segna come versati». */
 (function () {
   'use strict';
   const L = window.Lemmi;
@@ -59,12 +61,23 @@
     } catch (e) { toast(mancaSql(e) ? MANCA_SQL : messaggioErrore(e), 'bad'); return; }
     let os = [], ospOk = true;   // ospiti con nome (script 43)
     try { os = chk(await state.sb.from('agape_ospiti').select('*').eq('tornata_id', t.id).order('cognome').order('nome')); } catch (e) { ospOk = false; }
+    let pag = [], pagOk = true;   // pagamenti (script 44)
+    try { pag = chk(await state.sb.from('agape_pagamenti').select('*').eq('tornata_id', t.id).order('data').order('creato_il')); } catch (e) { pagOk = false; }
     const per = {}; ad.forEach((a) => { per[a.fratello_id] = a; });
     // invitati: i Fratelli attivi, più chiunque abbia già una risposta registrata
     const elenco = fr.filter((f) => f.stato === 'attivo' || per[f.id]);
     const quota = num(t.quota_agape);
     const chiusa = t.data < oggi();
     const attivi = fr.filter((f) => f.stato === 'attivo');
+    const pagati = (k, id) => pag.filter((p) => (k === 'f' ? p.fratello_id : p.ospite_id) === id);
+    const somma = (l) => l.reduce((x, p) => x + num(p.importo), 0);
+    const dovutoF = (id) => { const a = per[id]; return a && a.partecipa && quota ? (1 + num(a.ospiti)) * quota : 0; };
+    const dovutoO = (o) => (o.stato === 'confermato' ? quota : 0);
+    const cellaPag = (k, id, dov, vecchio) => {
+      if (!pagOk) return vecchio;
+      const v = somma(pagati(k, id)), ok = dov && v >= dov;
+      return `<button type="button" class="btn ghost small ag-pagb${ok ? ' ok' : ''}" data-pag="${k}:${esc(id)}" title="Pagamenti">${esc(eur(v))}${dov ? ' / ' + esc(eur(dov)) : ''}</button>`;
+    };
     const nomeFr = (id) => { const f = fr.find((x) => x.id === id); return f ? f.cognome + ' ' + f.nome : ''; };
     const sezOspiti = ospOk ? `<h3 class="ag-h3">Ospiti con nome</h3>
         <p class="hint">Per gli ospiti elencati qui non usare anche la colonna «Ospiti» del Fratello che li porta, altrimenti vengono contati due volte. Contano nei coperti solo quando la risposta è «Sì».</p>
@@ -86,6 +99,7 @@
       <div class="modal-b">
         <div class="ag-kpi" id="ag-kpi"></div>
         ${ospOk ? `<div class="ag-ob"><label for="ag-ob">Obiettivo coperti</label><input id="ag-ob" type="number" min="1" max="500" inputmode="numeric" value="${num(t.obiettivo_coperti) || ''}" placeholder="es. 25"><div class="ag-prog" id="ag-prog" hidden><i></i></div><span class="hint" id="ag-prog-t"></span></div>` : ''}
+        <div class="ag-cassa" id="ag-cassa" hidden></div>
         <div class="actions" style="margin-bottom:12px">
           <div class="searchbar" style="flex:1 1 220px">${L.IC.search}<input id="ag-q" type="search" placeholder="Cerca un Fratello…"></div>
           <select id="ag-f" style="width:auto"><option value="">Tutti</option><option value="si">Partecipano</option><option value="no">Non partecipano</option><option value="nr">Senza risposta</option></select>
@@ -109,12 +123,13 @@
       const nomSi = os.filter((o) => o.stato === 'confermato'), nomInv = os.filter((o) => o.stato === 'invitato');
       const ospiti = si.reduce((s, a) => s + num(a.ospiti), 0) + nomSi.length, coperti = si.length + ospiti;
       const nr = elenco.filter((f) => !per[f.id]).length;
-      const incassato = ad.reduce((s, a) => s + num(a.incassato), 0) + os.reduce((s, o) => s + num(o.incassato), 0);
+      const incassato = pagOk ? somma(pag) : ad.reduce((x, a) => x + num(a.incassato), 0) + os.reduce((x, o) => x + num(o.incassato), 0);
       const ob = num(t.obiettivo_coperti), mancano = Math.max(0, ob - coperti);
       $('#ag-kpi', ov).innerHTML = `<div><span>Fratelli presenti</span><b>${si.length}</b></div><div><span>Ospiti</span><b>${ospiti}</b></div>
         <div><span>Coperti</span><b>${coperti}</b></div>${ob ? `<div><span>Obiettivo</span><b>${ob}</b></div><div><span>Mancano</span><b style="color:${mancano ? 'var(--warn)' : 'var(--ok)'}">${mancano}</b></div>` : ''}
         <div><span>Assenti</span><b>${no.length}</b></div><div><span>Fratelli senza risposta</span><b>${nr}</b></div>${nomInv.length ? `<div><span>Ospiti da confermare</span><b>${nomInv.length}</b></div>` : ''}
         ${quota ? `<div><span>Da incassare</span><b>${eur(coperti * quota)}</b></div>` : ''}<div><span>Incassato</span><b style="color:${quota && incassato >= coperti * quota && coperti ? 'var(--ok)' : 'inherit'}">${eur(incassato)}</b></div>`;
+      cassa();
       const prog = $('#ag-prog', ov), pt = $('#ag-prog-t', ov);
       if (prog && pt) {
         if (ob) {
@@ -141,7 +156,7 @@
           <td>${seg(f, a)}</td>
           <td><input class="ag-osp" type="number" min="0" max="20" data-osp="${esc(f.id)}" value="${a && a.partecipa ? num(a.ospiti) : 0}" ${a && a.partecipa ? '' : 'disabled'} aria-label="Ospiti"></td>
           <td><input data-note="${esc(f.id)}" value="${esc((a && a.note) || '')}" placeholder="es. vegetariano" ${a ? '' : 'disabled'} aria-label="Note"></td>
-          <td class="num"><input data-inc="${esc(f.id)}" inputmode="decimal" style="width:96px;text-align:right" value="${a && a.incassato !== null && a.incassato !== undefined ? esc(String(a.incassato).replace('.', ',')) : ''}" placeholder="${a && a.partecipa && quota ? esc(String((1 + num(a.ospiti)) * quota).replace('.', ',')) : ''}" ${a && a.partecipa ? '' : 'disabled'} aria-label="Incassato"></td></tr>`;
+          <td class="num">${cellaPag('f', f.id, dovutoF(f.id), `<input data-inc="${esc(f.id)}" inputmode="decimal" style="width:96px;text-align:right" value="${a && a.incassato !== null && a.incassato !== undefined ? esc(String(a.incassato).replace('.', ',')) : ''}" placeholder="${a && a.partecipa && quota ? esc(String((1 + num(a.ospiti)) * quota).replace('.', ',')) : ''}" ${a && a.partecipa ? '' : 'disabled'} aria-label="Incassato">`)}</td></tr>`;
       }).join('') : '<tr><td colspan="5"><div class="empty">Nessun Fratello in questo elenco.</div></td></tr>';
       kpi();
     };
@@ -165,6 +180,8 @@
 
     const corpo = $('#ag-righe', ov);
     corpo.addEventListener('click', async (e) => {
+      const pg = e.target.closest('[data-pag]');
+      if (pg) { const [k, id] = pg.dataset.pag.split(':'); apriPag(k, id); return; }
       const b = e.target.closest('[data-r]');
       if (!b) return;
       const fid = b.dataset.f, r = b.dataset.r;
@@ -244,7 +261,7 @@
         return `<tr data-ospite="${esc(o.id)}"><td><b>${esc(o.cognome)} ${esc(o.nome)}</b></td><td>${esc(TIPO_OSP[o.tipo] || o.tipo)}</td><td>${esc(nomeFr(o.invitato_da)) || '—'}</td>
           <td>${segO(o)}</td><td>${esc(o.contatto || '')}${waLink}</td>
           <td><input data-onote="${esc(o.id)}" value="${esc(o.note || '')}" placeholder="es. vegetariano" aria-label="Note"></td>
-          <td class="num"><input data-oinc="${esc(o.id)}" inputmode="decimal" style="width:96px;text-align:right" value="${o.incassato !== null && o.incassato !== undefined ? esc(String(o.incassato).replace('.', ',')) : ''}" placeholder="${o.stato === 'confermato' && quota ? esc(String(quota).replace('.', ',')) : ''}" aria-label="Incassato"></td>
+          <td class="num">${cellaPag('o', o.id, dovutoO(o), `<input data-oinc="${esc(o.id)}" inputmode="decimal" style="width:96px;text-align:right" value="${o.incassato !== null && o.incassato !== undefined ? esc(String(o.incassato).replace('.', ',')) : ''}" placeholder="${o.stato === 'confermato' && quota ? esc(String(quota).replace('.', ',')) : ''}" aria-label="Incassato">`)}</td>
           <td><button type="button" class="btn danger small" data-odel="${esc(o.id)}">Elimina</button></td></tr>`;
       }).join('') : '<tr><td colspan="8"><div class="empty">Nessun ospite con nome: aggiungine uno qui sotto.</div></td></tr>';
       kpi();
@@ -256,7 +273,8 @@
     const corpoO = $('#ag-osp-righe', ov);
     if (corpoO) {
       corpoO.addEventListener('click', async (e) => {
-        const r = e.target.closest('[data-or]'), d = e.target.closest('[data-odel]');
+        const r = e.target.closest('[data-or]'), d = e.target.closest('[data-odel]'), pg = e.target.closest('[data-pag]');
+        if (pg) { const [k, id] = pg.dataset.pag.split(':'); apriPag(k, id); return; }
         if (r) {
           r.parentElement.querySelectorAll('button').forEach((x) => { x.disabled = true; });
           await salvaOsp(r.dataset.o, { stato: STATO_OSP[r.dataset.or] });
@@ -289,6 +307,96 @@
           ev.target.reset(); disegnaOsp(); toast('Ospite aggiunto: segna «Sì» quando conferma', 'ok'); f.cognome.focus();
         } catch (e) { toast(mancaSql43(e) ? MANCA_SQL43 : messaggioErrore(e), 'bad'); }
       });
+    }
+
+    /* ---------- contanti da versare ---------- */
+    const cassa = () => {
+      const box = $('#ag-cassa', ov); if (!box) return;
+      if (!pagOk) { box.hidden = false; box.innerHTML = 'Per registrare bonifici e contanti esegui prima lo script <b>sql/lemmi_aggiornamento_44.sql</b> nell’editor SQL di Supabase.'; return; }
+      if (!pag.length) { box.hidden = true; box.innerHTML = ''; return; }
+      const con = pag.filter((p) => p.metodo === 'contanti'), dav = con.filter((p) => !p.versato_il), ver = con.filter((p) => p.versato_il);
+      box.hidden = false;
+      box.innerHTML = `<span>Bonifici <b>${esc(eur(somma(pag.filter((p) => p.metodo === 'bonifico'))))}</b></span>
+        <span>Contanti <b>${esc(eur(somma(con)))}</b> (già versati ${esc(eur(somma(ver)))})</span>
+        ${dav.length ? `<span class="ag-dav">Da versare in banca: <b>${esc(eur(somma(dav)))}</b> · ${dav.length} ${dav.length === 1 ? 'pagamento' : 'pagamenti'}</span>
+        <input type="date" id="ag-vdata" value="${esc(oggi())}" aria-label="Data del versamento"><button type="button" class="btn small" id="ag-versa">Segna come versati</button>` : ''}`;
+    };
+    $('#ag-cassa', ov).addEventListener('click', async (e) => {
+      if (!e.target.closest('#ag-versa')) return;
+      const data = $('#ag-vdata', ov).value, dav = pag.filter((p) => p.metodo === 'contanti' && !p.versato_il);
+      if (!data) { toast('Indica la data del versamento.', 'bad'); return; }
+      if (!dav.length) return;
+      if (!confirm('Segnare come versati in banca ' + eur(somma(dav)) + ' di contanti (' + dav.length + (dav.length === 1 ? ' pagamento' : ' pagamenti') + ') con data ' + fmtData(data) + '?')) return;
+      try {
+        const r = chk(await state.sb.from('agape_pagamenti').update({ versato_il: data }).eq('tornata_id', t.id).eq('metodo', 'contanti').is('versato_il', null).select());
+        const m = {}; r.forEach((x) => { m[x.id] = x; });
+        pag = pag.map((p) => m[p.id] || p);
+        toast('Contanti segnati come versati', 'ok');
+      } catch (er) { toast(mancaSql(er) ? MANCA_SQL : messaggioErrore(er), 'bad'); }
+      disegna(); disegnaOsp();
+    });
+
+    /* ---------- pagamenti di un partecipante ---------- */
+    function apriPag(k, id) {
+      const pers = k === 'f' ? fr.find((f) => f.id === id) : os.find((o) => o.id === id);
+      if (!pers) return;
+      const nome = pers.cognome + ' ' + pers.nome;
+      const dov = k === 'f' ? dovutoF(id) : dovutoO(pers);
+      const sub = document.createElement('div');
+      sub.className = 'modal-ov';
+      sub.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Pagamenti di ${esc(nome)}">
+        <div class="modal-h"><div><h2 style="margin:0">Pagamenti</h2><div class="hint">${esc(nome)}</div></div><button class="btn ghost small" type="button" data-x2>Chiudi</button></div>
+        <div class="modal-b"><div class="ag-kpi" id="pg-kpi"></div>
+          <div class="table-wrap"><table><thead><tr><th>Data</th><th>Metodo</th><th class="num">Importo</th><th>Nota</th><th></th></tr></thead><tbody id="pg-righe"></tbody></table></div>
+          <form id="pg-form" class="ag-osp-form" autocomplete="off">
+            <input name="importo" inputmode="decimal" placeholder="Importo €" aria-label="Importo" style="max-width:120px">
+            <select name="metodo" aria-label="Metodo"><option value="contanti">Contanti</option><option value="bonifico">Bonifico</option></select>
+            <input name="data" type="date" value="${esc(oggi())}" aria-label="Data del pagamento">
+            <input name="nota" placeholder="Nota (facoltativa)" aria-label="Nota" maxlength="120">
+            <button class="btn small" type="submit">Aggiungi pagamento</button></form></div></div>`;
+      document.body.appendChild(sub);
+      const rendi = () => {
+        const l = pagati(k, id), tot = somma(l);
+        $('#pg-kpi', sub).innerHTML = (dov ? `<div><span>Dovuto</span><b>${esc(eur(dov))}</b></div>` : '') +
+          `<div><span>Pagato</span><b style="color:${dov && tot >= dov ? 'var(--ok)' : 'inherit'}">${esc(eur(tot))}</b></div>` +
+          (dov ? `<div><span>${tot > dov ? 'In più' : 'Residuo'}</span><b>${esc(eur(Math.abs(dov - tot)))}</b></div>` : '');
+        $('#pg-form', sub).elements.importo.placeholder = dov > tot ? String(Math.round((dov - tot) * 100) / 100).replace('.', ',') : 'Importo €';
+        $('#pg-righe', sub).innerHTML = l.length ? l.map((p) => `<tr data-p="${esc(p.id)}"><td>${esc(fmtData(p.data))}</td><td>${p.metodo === 'contanti' ? 'Contanti' : 'Bonifico'}</td><td class="num">${esc(eur(p.importo))}</td>
+          <td>${esc(p.nota || '')}${p.metodo === 'contanti' ? (p.versato_il ? ` <span class="badge ok">versato il ${esc(fmtData(p.versato_il))}</span>` : ' <span class="badge warn">da versare</span>') : ''}</td>
+          <td>${p.versato_il ? `<button type="button" class="btn ghost small" data-rimetti="${esc(p.id)}">Rimetti da versare</button> ` : ''}<button type="button" class="btn danger small" data-pdel="${esc(p.id)}">Elimina</button></td></tr>`).join('')
+          : '<tr><td colspan="5"><div class="empty">Nessun pagamento registrato.</div></td></tr>';
+      };
+      const chiudiSub = () => { document.removeEventListener('keydown', escSub, true); sub.remove(); disegna(); disegnaOsp(); };
+      const escSub = (e) => { if (e.key === 'Escape') { e.stopPropagation(); chiudiSub(); } };
+      document.addEventListener('keydown', escSub, true);
+      $('[data-x2]', sub).onclick = chiudiSub;
+      sub.addEventListener('mousedown', (e) => { if (e.target === sub) chiudiSub(); });
+      $('#pg-righe', sub).addEventListener('click', async (e) => {
+        const d = e.target.closest('[data-pdel]'), rm = e.target.closest('[data-rimetti]');
+        if (rm) {
+          try { const r = chk(await state.sb.from('agape_pagamenti').update({ versato_il: null }).eq('id', rm.dataset.rimetti).select().single()); pag = pag.map((p) => (p.id === r.id ? r : p)); rendi(); }
+          catch (er) { toast(messaggioErrore(er), 'bad'); }
+        } else if (d) {
+          const p = pag.find((x) => x.id === d.dataset.pdel); if (!p) return;
+          L.eliminaConAnnulla({ domanda: 'Eliminare il pagamento di ' + eur(p.importo) + ' del ' + fmtData(p.data) + (p.versato_il ? ' (già segnato come versato in banca)' : '') + '?', messaggio: 'Pagamento eliminato', el: d.closest('tr'),
+            esegui: async () => chk(await state.sb.from('agape_pagamenti').delete().eq('id', p.id)),
+            dopo: () => { pag = pag.filter((x) => x.id !== p.id); rendi(); } });
+        }
+      });
+      $('#pg-form', sub).addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const f = ev.target.elements, v = importo(f.importo.value);
+        if (v === null || !(v > 0)) { toast('Scrivi un importo valido, per esempio 35,00.', 'bad'); return; }
+        if (!f.data.value) { toast('Indica la data del pagamento.', 'bad'); return; }
+        const dati = { tornata_id: t.id, importo: v, metodo: f.metodo.value, data: f.data.value, nota: f.nota.value.trim() || null };
+        dati[k === 'f' ? 'fratello_id' : 'ospite_id'] = id;
+        try {
+          const r = chk(await state.sb.from('agape_pagamenti').insert(dati).select().single());
+          pag.push(r); ev.target.reset(); f.data.value = oggi(); rendi(); toast('Pagamento registrato', 'ok'); f.importo.focus();
+        } catch (er) { toast(mancaSql(er) ? 'Per i pagamenti esegui prima sql/lemmi_aggiornamento_44.sql nell’editor SQL di Supabase.' : messaggioErrore(er), 'bad'); }
+      });
+      rendi();
+      $('#pg-form', sub).elements.importo.focus();
     }
     disegna();
     disegnaOsp();

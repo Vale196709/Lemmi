@@ -1,0 +1,11 @@
+AGGIORNAMENTO 44 - Agapi: pagamenti per partecipante (bonifico e contanti)
+
+PRIMA: Supabase > SQL Editor > New query, incolla sql/lemmi_aggiornamento_44.sql e premi Run. Poi Ctrl+F5 (versione 0.45.0).
+(Richiede gli aggiornamenti 42 e 43 gia' eseguiti.)
+
+ - Elenco dell'agape: accanto a ogni Fratello e a ogni ospite con nome compare «€ pagato / € dovuto».
+   Cliccando si aprono i pagamenti: importo, metodo (contanti o bonifico), data, nota. Piu' pagamenti per persona.
+ - Riquadro in alto: bonifici, contanti e contanti da versare in banca.
+   Dopo il versamento: «Segna come versati» (con la data). Da un singolo pagamento: «Rimetti da versare».
+ - I pagamenti li vedono solo amministratore, Venerabile, Segretario e Tesoriere.
+ - Il backup completo comprende la nuova tabella (agape_pagamenti).

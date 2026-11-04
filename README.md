@@ -153,6 +153,15 @@ vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file E
 - I coperti sono: Fratelli presenti + ospiti indicati come numero accanto al Fratello + ospiti con nome confermati («Sì»). Per lo stesso ospite usa un solo metodo, per non contarlo due volte.
 - «Copia elenco per il ristorante» comprende anche gli ospiti con nome confermati, con tipo e Fratello che li invita.
 
+### Pagamenti: bonifici e contanti (aggiornamento 44)
+
+- Richiede anche `sql/lemmi_aggiornamento_44.sql` (Run; si può rieseguire). Sostituisce il vecchio campo «Incassato».
+- Nell'elenco dell'agape, accanto a ogni Fratello e a ogni ospite con nome, il pulsante «€ pagato / € dovuto» apre i pagamenti: importo, metodo (contanti o bonifico), data e nota. Si possono registrare più pagamenti (per esempio metà in contanti e metà con bonifico). Il pulsante diventa verde a saldo avvenuto.
+- Il dovuto è: quota × (Fratello + ospiti indicati come numero) per i Fratelli che partecipano; quota per gli ospiti con nome confermati.
+- Il riquadro in alto riporta bonifici, contanti e **contanti da versare in banca**. Dopo il versamento, «Segna come versati» (con la data) chiude tutti i contanti in attesa; da un pagamento si può anche «Rimettere da versare».
+- I pagamenti li vedono solo amministratore, Venerabile, Segretario e Tesoriere. I vecchi campi «incassato» restano nel database ma non sono più usati.
+- Prossima tappa: collegare l'agape a un evento del Conto di Loggia, abbinare i bonifici dall'estratto conto e riepilogare le spese del ristorante.
+
 ## Grafica (aggiornamento 42)
 
 - Colori di stato uguali in tutta l’app: verde in regola, ambra in scadenza (quote da pagare entro 30 giorni), rosso scaduto (`Lemmi.badgeStato`).
