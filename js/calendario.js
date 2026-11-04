@@ -161,7 +161,7 @@
     const del = $('[data-del]', m.ov);
     if (del) del.onclick = () => {
       m.chiudi();
-      L.eliminaConAnnulla({ messaggio: 'Tornata del ' + fmtData(t.data) + ' eliminata', el: document.getElementById('t-' + t.id),
+      L.eliminaConAnnulla({ domanda: 'Eliminare la tornata del ' + fmtData(t.data) + '?', messaggio: 'Tornata del ' + fmtData(t.data) + ' eliminata', el: document.getElementById('t-' + t.id),
         esegui: async () => chk(await state.sb.from('tornate').delete().eq('id', t.id)) });
     };
   }

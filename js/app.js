@@ -118,7 +118,9 @@
    * solo allo scadere l'eliminazione viene davvero eseguita sul database. Se si chiude l'app prima, non si elimina nulla. */
   const SECONDI_ANNULLA = 7;
   function eliminaConAnnulla(opz) {
-    // opz: { messaggio, esegui: async () => {}, el: elemento da nascondere (facoltativo), dopo: () => {} (facoltativo) }
+    // opz: { domanda, messaggio, esegui: async () => {}, el: elemento da nascondere (facoltativo), dopo: () => {} (facoltativo) }
+    // prima di ogni eliminazione si chiede sempre conferma; dopo resta qualche secondo per «Annulla»
+    if (!confirm(opz.domanda || 'Confermi l’eliminazione?')) return false;
     const el = opz.el || null;
     if (el) el.classList.add('in-eliminazione');
     const t = document.createElement('div');

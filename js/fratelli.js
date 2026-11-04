@@ -222,7 +222,7 @@
     const del = $('[data-del]', m.ov);
     if (del) del.onclick = () => {
       m.chiudi();
-      L.eliminaConAnnulla({ messaggio: 'Passaggio di grado eliminato', esegui: async () => chk(await state.sb.from('passaggi_grado').delete().eq('id', r.id)) });
+      L.eliminaConAnnulla({ domanda: 'Eliminare questo passaggio di grado?', messaggio: 'Passaggio di grado eliminato', esegui: async () => chk(await state.sb.from('passaggi_grado').delete().eq('id', r.id)) });
     };
   }
 

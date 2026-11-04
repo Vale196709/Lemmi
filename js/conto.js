@@ -317,7 +317,7 @@
     catch (e) { toast(messaggioErrore(e), 'bad'); }
   }
   async function eliminaManuale(id, el) {
-    L.eliminaConAnnulla({ messaggio: 'Movimento eliminato', el: el || null, esegui: async () => chk(await state.sb.from('conto_movimenti').delete().eq('id', id)) });
+    L.eliminaConAnnulla({ domanda: 'Eliminare questo movimento dal Conto di Loggia?', messaggio: 'Movimento eliminato', el: el || null, esegui: async () => chk(await state.sb.from('conto_movimenti').delete().eq('id', id)) });
   }
 
   /* ---------- import dell'estratto conto ---------- */
@@ -558,7 +558,7 @@
     const del = $('[data-ef-del]', m.ov);
     if (del) del.onclick = () => {
       m.chiudi();
-      L.eliminaConAnnulla({ messaggio: 'Evento eliminato (i movimenti restano)', esegui: async () => chk(await state.sb.from('eventi_conto').delete().eq('id', ev.id)) });
+      L.eliminaConAnnulla({ domanda: 'Eliminare questo evento? I movimenti collegati restano.', messaggio: 'Evento eliminato (i movimenti restano)', esegui: async () => chk(await state.sb.from('eventi_conto').delete().eq('id', ev.id)) });
     };
   }
 

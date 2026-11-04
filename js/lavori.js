@@ -212,7 +212,7 @@
     const del = $('[data-del]', m.ov);
     if (del) del.onclick = () => {
       m.chiudi();
-      L.eliminaConAnnulla({ messaggio: 'Lavoro eliminato' + (l.file_path ? ' (con il file)' : ''), esegui: async () => {
+      L.eliminaConAnnulla({ domanda: 'Eliminare questo lavoro' + (l.file_path ? ' e il suo file' : '') + '?', messaggio: 'Lavoro eliminato' + (l.file_path ? ' (con il file)' : ''), esegui: async () => {
         if (l.file_path) chk(await state.sb.storage.from(BUCKET).remove([l.file_path]));
         chk(await state.sb.from('lavori').delete().eq('id', l.id));
       } });

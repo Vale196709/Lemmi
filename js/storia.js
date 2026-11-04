@@ -64,7 +64,7 @@
     const del = $('[data-del]', m.ov);
     if (del) del.onclick = () => {
       m.chiudi();
-      L.eliminaConAnnulla({ messaggio: 'Carica eliminata: ' + c.carica, esegui: async () => chk(await state.sb.from('cariche_storico').delete().eq('id', c.id)) });
+      L.eliminaConAnnulla({ domanda: 'Eliminare la carica «' + c.carica + '» dalla storia?', messaggio: 'Carica eliminata: ' + c.carica, esegui: async () => chk(await state.sb.from('cariche_storico').delete().eq('id', c.id)) });
     };
   }
 

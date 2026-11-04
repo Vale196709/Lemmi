@@ -310,7 +310,7 @@
     if (del) del.onclick = () => {
       if (num(r.versato) > 0) { $('[data-err]', m.ov).textContent = 'Non si può eliminare: ci sono versamenti collegati a questa scadenza.'; return; }
       m.chiudi();
-      L.eliminaConAnnulla({ messaggio: 'Scadenza eliminata', el: $('[data-mod="' + r.id + '"]') ? $('[data-mod="' + r.id + '"]').closest('tr') : null, esegui: async () => chk(await state.sb.from('scadenze').delete().eq('id', r.id)) });
+      L.eliminaConAnnulla({ domanda: 'Eliminare questa scadenza?', messaggio: 'Scadenza eliminata', el: $('[data-mod="' + r.id + '"]') ? $('[data-mod="' + r.id + '"]').closest('tr') : null, esegui: async () => chk(await state.sb.from('scadenze').delete().eq('id', r.id)) });
     };
   }
 
@@ -372,7 +372,7 @@
         : `<tr><td colspan="8"><div class="empty">${IC.inbox}<div>Nessun versamento registrato per il ${pag.anno}.</div></div></td></tr>`}
       </tbody>${pag.vers.length ? `<tfoot><tr><td colspan="3"><b>Totale</b></td><td class="num"><b>${eur(totale)}</b></td><td colspan="4"></td></tr></tfoot>` : ''}</table></div>`;
     $$('[data-delv]', c).forEach((b) => b.addEventListener('click', () => {
-      L.eliminaConAnnulla({ messaggio: 'Versamento eliminato', el: b.closest('tr'), esegui: async () => chk(await state.sb.from('versamenti').delete().eq('id', b.dataset.delv)) });
+      L.eliminaConAnnulla({ domanda: 'Eliminare questo versamento?', messaggio: 'Versamento eliminato', el: b.closest('tr'), esegui: async () => chk(await state.sb.from('versamenti').delete().eq('id', b.dataset.delv)) });
     }));
   }
 

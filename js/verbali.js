@@ -84,7 +84,7 @@
     $$('[data-del]', v).forEach((b) => b.addEventListener('click', () => {
       const rec = verbali.find((x) => x.id === b.dataset.del);
       if (!rec) return;
-      L.eliminaConAnnulla({ messaggio: `Verbale del ${fmtData(rec.data)} eliminato (con le presenze)`, el: b.closest('tr'), esegui: async () => chk(await state.sb.from('verbali').delete().eq('id', rec.id)) });
+      L.eliminaConAnnulla({ domanda: `Eliminare il verbale del ${fmtData(rec.data)} e le sue presenze?`, messaggio: `Verbale del ${fmtData(rec.data)} eliminato (con le presenze)`, el: b.closest('tr'), esegui: async () => chk(await state.sb.from('verbali').delete().eq('id', rec.id)) });
     }));
   }
 
