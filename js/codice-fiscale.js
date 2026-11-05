@@ -86,7 +86,6 @@
         var giorno = parseInt(cf.substr(9, 2), 10);
         var sessoCf = giorno > 40 ? 'F' : 'M';
         if ((giorno > 40 ? giorno - 40 : giorno) !== parseInt(m[3], 10)) avvisi.push('Il giorno di nascita non corrisponde');
-        if (!dati.sesso && false) { /* sesso non fornito */ }
         if (dati.sesso && dati.sesso.toUpperCase() !== sessoCf) avvisi.push('Il sesso non corrisponde');
       }
     } else if (dati.sesso) {

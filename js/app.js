@@ -692,6 +692,7 @@
         <a class="btn ghost" href="${id ? '#/bussanti/' + esc(id) : '#/bussanti'}">Annulla</a><span class="err" id="f-err"></span></div></form>`;
 
     const f = $('#f-b');
+    if (window.LemmiLuoghi) window.LemmiLuoghi.collega(f, [{ comune: 'luogo_nascita', prov: 'provincia_nascita', estero: true }, { comune: 'citta', prov: 'provincia' }, { comune: 'dcitta', prov: 'dprov' }]);
     const aggiorna = () => {
       const t = f.elements.tipo_domanda.value;
       $$('[data-p]', f).forEach((el) => el.classList.toggle('hidden', el.dataset.p !== t));
@@ -723,8 +724,9 @@
       if (dateErrate.length) return segnala(dateErrate[0], 'Data non valida in “' + nomeCampo(dateErrate[0]) + '”: usa il formato gg/mm/aaaa (es. 14/03/1978).');
 
       const dati = leggiForm(f);
+      const cfv = dati.codice_fiscale && window.CodiceFiscale ? window.CodiceFiscale.valida(dati.codice_fiscale) : { ok: true, errori: [] };
       const ctrl = [
-        ['codice_fiscale', dati.codice_fiscale && !/^[A-Z0-9]{16}$/.test(dati.codice_fiscale), 'Il codice fiscale deve avere 16 caratteri (lettere e cifre).'],
+        ['codice_fiscale', !cfv.ok, cfv.errori[0]],
         ['provincia_nascita', dati.provincia_nascita && !/^[A-Z]{2}$/.test(dati.provincia_nascita), 'La provincia di nascita va indicata con la sigla di 2 lettere (es. RM).'],
         ['provincia', dati.provincia && !/^[A-Z]{2}$/.test(dati.provincia), 'La provincia di residenza va indicata con la sigla di 2 lettere (es. RM).'],
         ['cap', dati.cap && !/^\d{5}$/.test(dati.cap), 'Il CAP deve essere di 5 cifre.'],
@@ -738,6 +740,12 @@
       }
       const ko = ctrl.find((c) => c[1]);
       if (ko) return segnala(f.elements[ko[0]], ko[2]);
+      const lv = window.LemmiLuoghi && window.LemmiLuoghi.verifica(f);
+      if (lv) return segnala(lv.campo, lv.msg);
+      if (dati.codice_fiscale && window.CodiceFiscale) {
+        const co = window.CodiceFiscale.controllaCoerenza(dati.codice_fiscale, { cognome: dati.cognome, nome: dati.nome, dataNascita: dati.data_nascita, codiceCatastale: window.LemmiLuoghi && window.LemmiLuoghi.catastale(f, 'luogo_nascita') });
+        if (!co.ok && !window.confirm('Il codice fiscale non sembra coerente con gli altri dati:\n\n- ' + co.avvisi.join('\n- ') + '\n\nSalvare comunque?')) return segnala(f.elements.codice_fiscale, 'Controlla il codice fiscale e i dati anagrafici.');
+      }
       const btn = $('button[type=submit]', f); btn.disabled = true;
       try {
         let rid = id;

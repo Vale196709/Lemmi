@@ -257,11 +257,22 @@
           if (c.mail && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return errore('E-mail non valida.');
           if (c.cap && v && !/^\d{5}$/.test(v)) return errore('Il CAP deve avere 5 cifre.');
           if (c.sigla && v) { if (!/^[A-Za-z]{2}$/.test(v)) return errore(c.t + ': usa la sigla di due lettere.'); v = v.toUpperCase(); }
-          if (c.cf && v) { v = v.replace(/\s/g, '').toUpperCase(); if (!/^[A-Z0-9]{16}$/.test(v)) return errore('Il codice fiscale deve avere 16 caratteri.'); }
+          if (c.cf && v) {
+            v = v.replace(/\s/g, '').toUpperCase();
+            // il formato si controlla solo se il codice è stato cambiato: i dati già salvati non bloccano le altre modifiche
+            const cfv = window.CodiceFiscale ? window.CodiceFiscale.valida(v) : { ok: /^[A-Z0-9]{16}$/.test(v), errori: ['Il codice fiscale deve avere 16 caratteri.'] };
+            if (v !== (riga.codice_fiscale || '') && !cfv.ok) return errore(cfv.errori[0]);
+          }
           if (c.anno) { if (v && (!/^\d{4}$/.test(v) || Number(v) < 1900 || Number(v) > 2100)) return errore('Anno di iniziazione non valido (4 cifre).'); dati[c.k] = v ? Number(v) : null; continue; }
           dati[c.k] = v || null;
         }
         if ('data_nascita' in dati && dati.data_nascita && dati.data_nascita >= window.Lemmi.oggi()) return errore('La data di nascita deve essere nel passato.');
+        const lv = window.LemmiLuoghi && window.LemmiLuoghi.verifica(fm);
+        if (lv) return errore(lv.msg);
+        if (dati.codice_fiscale && dati.codice_fiscale !== (riga.codice_fiscale || '') && window.CodiceFiscale) {
+          const co = window.CodiceFiscale.controllaCoerenza(dati.codice_fiscale, { cognome: dati.cognome, nome: dati.nome, dataNascita: dati.data_nascita, codiceCatastale: window.LemmiLuoghi && window.LemmiLuoghi.catastale(fm, 'luogo_nascita') });
+          if (!co.ok && !window.confirm('Il codice fiscale non sembra coerente con gli altri dati:\n\n- ' + co.avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
+        }
         if (dati.data_nascita && dati.data_iniziazione && dati.data_iniziazione < dati.data_nascita) return errore('L’iniziazione non può precedere la nascita.');
         if (dati.data_iniziazione && 'anno_iniziazione' in dati) dati.anno_iniziazione = Number(dati.data_iniziazione.slice(0, 4));
         const r = chk(await state.sb.from('fratelli').update(dati).eq('id', f.id).select('id'));
@@ -270,6 +281,7 @@
       },
     });
     const st = m.f.elements.stato; if (st) st.setAttribute('list', 'dl-stati');
+    if (window.LemmiLuoghi) window.LemmiLuoghi.collega(m.f, [{ comune: 'luogo_nascita', prov: 'provincia_nascita', estero: true }, { comune: 'citta', prov: 'provincia' }]);
   }
 
   /* ---------- uscita: Oriente Eterno o trasferimento ad altra Officina (script lemmi_aggiornamento_40.sql) ----------
