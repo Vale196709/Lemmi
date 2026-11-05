@@ -33,6 +33,53 @@
     return out;
   }
 
+  const minuscola = (t) => t.charAt(0).toLowerCase() + t.slice(1);
+  const iso = (d) => (d ? String(d).slice(0, 10) : '');
+
+  // Problemi di una scheda: segnalazioni, senza modificare nulla. L2 = LemmiLuoghi (se l'elenco si è caricato)
+  function problemi(r, tipo, L2, oggi) {
+    const p = [];
+    const nascita = iso(r.data_nascita);
+    const prov = String(r.provincia || '').toUpperCase();
+    const provN = String(r.provincia_nascita || '').toUpperCase();
+    if (!vuoto(r.codice_fiscale) && window.CodiceFiscale) {
+      const val = window.CodiceFiscale.valida(r.codice_fiscale);
+      if (!val.ok) p.push('Codice fiscale: ' + minuscola(val.errori[0]));
+      else {
+        const m = L2 && !vuoto(r.luogo_nascita) && provN !== 'EE' ? L2.trova(r.luogo_nascita, provN) : [];
+        const co = window.CodiceFiscale.controllaCoerenza(r.codice_fiscale, { cognome: r.cognome, nome: r.nome, dataNascita: nascita || null, codiceCatastale: m.length === 1 ? m[0].cat : null });
+        if (!co.ok) co.avvisi.forEach((a) => p.push('Codice fiscale: ' + minuscola(a)));
+      }
+    }
+    if (L2) {
+      if (!vuoto(r.luogo_nascita) && provN !== 'EE' && !L2.trova(r.luogo_nascita, '').length)
+        p.push('Luogo di nascita «' + r.luogo_nascita + '» non è nell’elenco dei comuni (può essere giusto se è estero o un comune soppresso)');
+      else if (!vuoto(r.luogo_nascita) && provN && provN !== 'EE' && !L2.trova(r.luogo_nascita, provN).length)
+        p.push('Luogo di nascita «' + r.luogo_nascita + '» non risulta nella provincia ' + provN);
+      if (!vuoto(r.citta)) {
+        const m = L2.trova(r.citta, prov);
+        if (!L2.trova(r.citta, '').length) p.push('Città «' + r.citta + '» non è nell’elenco dei comuni');
+        else if (prov && !m.length) p.push('Città «' + r.citta + '» non risulta nella provincia ' + prov);
+        else if (m.length === 1 && m[0].cap && /^\d{5}$/.test(String(r.cap || '')) && !L2.capDentro(m[0].cap, String(r.cap)))
+          p.push('CAP ' + r.cap + ' non coerente con ' + m[0].nome + ' (' + m[0].cap + ')');
+      }
+    }
+    if (window.LemmiDate) {
+      const cd = tipo === 'Fratello'
+        ? window.LemmiDate.fratello({ data_nascita: nascita || null, data_iniziazione: iso(r.data_iniziazione) || null }, oggi)
+        : window.LemmiDate.bussante({ tipo_domanda: r.tipo_domanda, data_domanda: iso(r.data_domanda) || null, data_nascita: nascita || null,
+          data_presa_in_considerazione: iso(r.data_presa_in_considerazione) || null, data_comunicazione_collegio: iso(r.data_comunicazione_collegio) || null,
+          data_prima_votazione: iso(r.data_prima_votazione) || null, data_seconda_votazione: iso(r.data_seconda_votazione) || null }, oggi);
+      cd.errori.forEach((e) => p.push('Date: ' + minuscola(e.msg)));
+      cd.avvisi.forEach((a) => p.push('Date: ' + minuscola(a)));
+    }
+    if (window.LemmiControlli && !vuoto(r.cellulare)) {
+      const t = window.LemmiControlli.telefono(r.cellulare);
+      if (t.errore || t.avviso) p.push('Telefono: ' + minuscola(t.errore || t.avviso));
+    }
+    return p;
+  }
+
   L.viste.completa = async function (v) {
     const [fr, bu] = await Promise.all([leggi('fratelli'), leggi('bussanti')]);
     const attivi = fr.filter((f) => String(f.stato || '').toLowerCase() === 'attivo');
@@ -80,12 +127,40 @@
       $('#dc-imp', v).addEventListener('change', disegna);
       disegna();
     }
+    // --- Dati da controllare: segnalazioni sui dati già inseriti (nessuna modifica automatica) ---
+    let L2 = null;
+    try { if (window.LemmiLuoghi) { await window.LemmiLuoghi.carica(); L2 = window.LemmiLuoghi; } } catch (_) { L2 = null; }
+    const oggiIso = L.oggi ? L.oggi() : new Date().toISOString().slice(0, 10);
+    const perCf = new Map();
+    attivi.map((f) => ({ tipo: 'Fratello', r: f })).concat(bu.map((b) => ({ tipo: 'Bussante', r: b }))).forEach((x) => {
+      const cf = String(x.r.codice_fiscale || '').replace(/\s/g, '').toUpperCase();
+      if (cf) { if (!perCf.has(cf)) perCf.set(cf, []); perCf.get(cf).push(x); }
+    });
+    const sosp = [];
+    const aggiungi = (tipo, riga, href) => {
+      const p = problemi(riga, tipo, L2, oggiIso);
+      const cf = String(riga.codice_fiscale || '').replace(/\s/g, '').toUpperCase();
+      const altri = (perCf.get(cf) || []).filter((x) => x.r !== riga);
+      if (altri.length) p.push('Codice fiscale uguale a: ' + altri.map((x) => x.tipo + ' ' + x.r.cognome + ' ' + x.r.nome).join('; '));
+      if (p.length) sosp.push({ tipo, href, nome: riga.cognome + ' ' + riga.nome, p });
+    };
+    attivi.forEach((f) => aggiungi('Fratello', f, '#/fratelli/' + f.id));
+    bu.forEach((b) => aggiungi('Bussante', b, '#/bussanti/' + b.id));
+    v.insertAdjacentHTML('beforeend', `<div id="dc-sosp" style="margin-top:26px"><div class="page-head"><div><h2>Dati da controllare</h2>
+      <p>Dati già inseriti che non tornano: codice fiscale, luoghi, CAP, date, telefono, codici doppi · ${sosp.length} ${sosp.length === 1 ? 'scheda' : 'schede'}</p></div></div>
+      ${sosp.length ? `<div class="table-wrap"><table><thead><tr><th>Nominativo</th><th>Tipo</th><th>Cosa controllare</th></tr></thead><tbody>
+        ${sosp.map((x) => `<tr class="click" data-go="${esc(x.href)}"><td><b>${esc(x.nome)}</b></td><td>${x.tipo}</td><td>${x.p.map((t) => esc(t)).join('<br>')}</td></tr>`).join('')}</tbody></table></div>
+        <div class="hint" style="margin-top:8px">Sono solo segnalazioni: il dato può essere corretto (per esempio un comune soppresso o un CAP aggiornato). Nulla viene modificato in automatico.${L2 ? '' : ' L’elenco dei comuni non si è caricato: i controlli sui luoghi e sul CAP sono stati saltati.'}</div>`
+      : '<div class="card"><div class="empty"><div>Nessun dato sospetto trovato. 🎉</div></div></div>'}</div>`);
+    $$('#dc-sosp [data-go]', v).forEach((r) => r.addEventListener('click', () => { location.hash = r.dataset.go; }));
     $('#dc-xls', v).addEventListener('click', async () => {
       try { await L.libreria('xlsx'); } catch (e) { toast(e.message, 'bad'); return; }
       try {
         const righe = (tutti.length ? filtrati() : []).map((x) => ({ Nominativo: x.nome, Tipo: x.tipo, 'Dati mancanti': x.m.map((c) => c.t).join(', ') }));
         const wb = window.XLSX.utils.book_new();
         window.XLSX.utils.book_append_sheet(wb, righe.length ? window.XLSX.utils.json_to_sheet(righe) : window.XLSX.utils.aoa_to_sheet([['(nessun dato da completare)']]), 'Da completare');
+        const rs = sosp.map((x) => ({ Nominativo: x.nome, Tipo: x.tipo, 'Da controllare': x.p.join(' | ') }));
+        window.XLSX.utils.book_append_sheet(wb, rs.length ? window.XLSX.utils.json_to_sheet(rs) : window.XLSX.utils.aoa_to_sheet([['(nessun dato sospetto)']]), 'Da controllare');
         const bytes = window.XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         const url = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
         const a = document.createElement('a'); a.href = url; a.download = 'Lemmi_dati_da_completare_' + window.Lemmi.oggi() + '.xlsx';

@@ -290,6 +290,17 @@
           const co = window.CodiceFiscale.controllaCoerenza(dati.codice_fiscale, { cognome: dati.cognome, nome: dati.nome, dataNascita: dati.data_nascita, codiceCatastale: window.LemmiLuoghi && window.LemmiLuoghi.catastale(fm, 'luogo_nascita') });
           if (!co.ok) co.avvisi.forEach((a) => avvisi.push('Codice fiscale: ' + a.charAt(0).toLowerCase() + a.slice(1)));
         }
+        // telefono, CAP e doppioni: si controllano solo se il dato è stato cambiato
+        if (window.LemmiControlli && dati.cellulare && dati.cellulare !== (riga.cellulare || '')) {
+          const tel = window.LemmiControlli.telefono(dati.cellulare);
+          if (tel.errore) return errore(tel.errore);
+          if (tel.avviso) avvisi.push(tel.avviso);
+        }
+        if (window.LemmiLuoghi && ((dati.cap || '') !== (riga.cap || '') || (dati.citta || '') !== (riga.citta || ''))) window.LemmiLuoghi.avvisi(fm).forEach((a) => avvisi.push(a));
+        if (window.LemmiControlli && dati.codice_fiscale && dati.codice_fiscale !== (riga.codice_fiscale || '')) {
+          const dop = await window.LemmiControlli.doppioni(state.sb, dati.codice_fiscale, { tabella: 'fratelli', id: riga.id });
+          if (dop.length) avvisi.push('Codice fiscale già presente in archivio: ' + dop.join('; ') + '.');
+        }
         if (avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
         if (dati.data_nascita && dati.data_iniziazione && dati.data_iniziazione < dati.data_nascita) return errore('L’iniziazione non può precedere la nascita.');
         if (dati.data_iniziazione && 'anno_iniziazione' in dati) dati.anno_iniziazione = Number(dati.data_iniziazione.slice(0, 4));
@@ -299,7 +310,7 @@
       },
     });
     const st = m.f.elements.stato; if (st) st.setAttribute('list', 'dl-stati');
-    if (window.LemmiLuoghi) window.LemmiLuoghi.collega(m.f, [{ comune: 'luogo_nascita', prov: 'provincia_nascita', estero: true }, { comune: 'citta', prov: 'provincia' }]);
+    if (window.LemmiLuoghi) window.LemmiLuoghi.collega(m.f, [{ comune: 'luogo_nascita', prov: 'provincia_nascita', estero: true }, { comune: 'citta', prov: 'provincia', cap: 'cap' }]);
   }
 
   /* ---------- uscita: Oriente Eterno o trasferimento ad altra Officina (script lemmi_aggiornamento_40.sql) ----------

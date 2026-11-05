@@ -692,7 +692,7 @@
         <a class="btn ghost" href="${id ? '#/bussanti/' + esc(id) : '#/bussanti'}">Annulla</a><span class="err" id="f-err"></span></div></form>`;
 
     const f = $('#f-b');
-    if (window.LemmiLuoghi) window.LemmiLuoghi.collega(f, [{ comune: 'luogo_nascita', prov: 'provincia_nascita', estero: true }, { comune: 'citta', prov: 'provincia' }, { comune: 'dcitta', prov: 'dprov' }]);
+    if (window.LemmiLuoghi) window.LemmiLuoghi.collega(f, [{ comune: 'luogo_nascita', prov: 'provincia_nascita', estero: true }, { comune: 'citta', prov: 'provincia', cap: 'cap' }, { comune: 'dcitta', prov: 'dprov', cap: 'dcap' }]);
     const aggiorna = () => {
       const t = f.elements.tipo_domanda.value;
       $$('[data-p]', f).forEach((el) => el.classList.toggle('hidden', el.dataset.p !== t));
@@ -744,7 +744,15 @@
       if (lv) return segnala(lv.campo, lv.msg);
       const cd = window.LemmiDate ? window.LemmiDate.bussante(dati, oggi()) : { errori: [], avvisi: [] };
       if (cd.errori.length) return segnala(f.elements[cd.errori[0].campo] || f.elements.data_domanda, cd.errori[0].msg);
+      const tel = window.LemmiControlli ? window.LemmiControlli.telefono(dati.cellulare) : {};
+      if (tel.errore) return segnala(f.elements.cellulare, tel.errore);
       const avvisi = cd.avvisi.slice();
+      if (tel.avviso) avvisi.push(tel.avviso);
+      if (window.LemmiLuoghi) window.LemmiLuoghi.avvisi(f).forEach((a) => avvisi.push(a));
+      if (dati.codice_fiscale && window.LemmiControlli) {
+        const dop = await window.LemmiControlli.doppioni(state.sb, dati.codice_fiscale, id ? { tabella: 'bussanti', id } : null);
+        if (dop.length) avvisi.push('Codice fiscale già presente in archivio: ' + dop.join('; ') + '.');
+      }
       if (dati.codice_fiscale && window.CodiceFiscale) {
         const co = window.CodiceFiscale.controllaCoerenza(dati.codice_fiscale, { cognome: dati.cognome, nome: dati.nome, dataNascita: dati.data_nascita, codiceCatastale: window.LemmiLuoghi && window.LemmiLuoghi.catastale(f, 'luogo_nascita') });
         co.avvisi.forEach((a) => { if (!co.ok) avvisi.push('Codice fiscale: ' + a.charAt(0).toLowerCase() + a.slice(1)); });

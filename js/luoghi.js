@@ -15,10 +15,11 @@
     if (DATI) return Promise.resolve(DATI);
     if (!caricamento) {
       caricamento = fetch('data/luoghi.json').then((r) => { if (!r.ok) throw new Error('luoghi.json'); return r.json(); }).then((j) => {
-        const comuni = j.comuni.map((c) => ({ nome: c[0], sigla: c[1], cat: c[2], n: norm(c[0]) }));
+        const comuni = j.comuni.map((c) => ({ nome: c[0], sigla: c[1], cat: c[2], cap: c[3] || '', n: norm(c[0]) }));
         const perNome = new Map();
         comuni.forEach((c) => { if (!perNome.has(c.n)) perNome.set(c.n, []); perNome.get(c.n).push(c); });
-        DATI = { province: j.province, comuni, perNome };
+        const stati = j.stati || [];
+        DATI = { province: j.province, comuni, perNome, stati, statiN: new Set(stati.map((x) => norm(x.replace(/ \(ex\)$/, '')))) };
         return DATI;
       }).catch((e) => { caricamento = null; throw e; });
     }
@@ -41,6 +42,12 @@
       dp.innerHTML = Object.entries(D.province).map(([s, n]) => '<option value="' + s + '">' + esc(n) + '</option>').join('');
       f.appendChild(dp);
     }
+    if (D.stati.length && !f.querySelector('#dl-stati-lemmi')) {
+      const ds = document.createElement('datalist');
+      ds.id = 'dl-stati-lemmi';
+      ds.innerHTML = D.stati.map((n) => '<option value="' + esc(n) + '"></option>').join('');
+      f.appendChild(ds);
+    }
     f.__luoghi = f.__luoghi || [];
     coppie.forEach((p) => {
       const ec = f.elements[p.comune], ep = f.elements[p.prov];
@@ -48,7 +55,7 @@
       const dlId = 'dl-com-' + p.comune;
       const dl = document.createElement('datalist'); dl.id = dlId; f.appendChild(dl);
       ec.setAttribute('autocomplete', 'off'); ep.setAttribute('autocomplete', 'off');
-      const voce = { comuneNome: p.comune, ec, ep, fuori: null };
+      const voce = { comuneNome: p.comune, ec, ep, fuori: null, cap: p.cap ? f.elements[p.cap] : null };
 
       const siglaOk = () => { const s = ep.value.trim().toUpperCase(); return D.province[s] ? s : ''; };
       const suggerisci = () => {
@@ -64,7 +71,7 @@
         if (m.length === 1) { ec.value = m[0].nome; ep.value = m[0].sigla; }   // nome scritto in modo uniforme + provincia compilata
       };
       const modoLibero = (libero, forza) => {
-        if (libero) { ec.removeAttribute('list'); ep.removeAttribute('list'); if (forza || !ep.value.trim()) ep.value = 'EE'; }
+        if (libero) { if (D.stati.length) ec.setAttribute('list', 'dl-stati-lemmi'); else ec.removeAttribute('list'); ep.removeAttribute('list'); if (forza || !ep.value.trim()) ep.value = 'EE'; }
         else { ec.setAttribute('list', dlId); ep.setAttribute('list', 'dl-prov-lemmi'); }
       };
 
@@ -113,6 +120,42 @@
     return null;
   }
 
+  // CAP in forma compatta "00118-00199,00060": vero se il CAP rientra
+  function capDentro(elenco, cap) {
+    const n = parseInt(cap, 10);
+    const parti = elenco.split(',');
+    const ok = parti.some((x) => {
+      const r = x.split('-').map((y) => parseInt(y, 10));
+      return r.length === 2 ? n >= r[0] && n <= r[1] : n === r[0];
+    });
+    if (ok) return true;
+    // città con più CAP: vale anche il CAP generico storico (00100 Roma, 20100 Milano, 10100 Torino…)
+    const multiplo = parti.length > 1 || parti[0].indexOf('-') > 0;
+    return multiplo && n % 1000 === 100 && parti.some((x) => Math.floor(parseInt(x, 10) / 1000) === Math.floor(n / 1000));
+  }
+
+  // Segnalazioni che non bloccano (si chiede conferma): CAP non coerente con il comune, Stato scritto in modo strano.
+  function avvisi(f) {
+    const out = [];
+    if (!DATI || !f.__luoghi) return out;
+    for (const v of f.__luoghi) {
+      if (v.ec.closest('.hidden')) continue;
+      const c = v.ec.value.trim(), s = v.ep.value.trim().toUpperCase();
+      if (v.fuori && v.fuori.checked) {
+        if (c && s === 'EE' && DATI.stati.length && !DATI.statiN.has(norm(c.replace(/ \(ex\)$/i, '')))) out.push('«' + c + '» non è nell’elenco degli Stati: controlla come è scritto.');
+        continue;
+      }
+      if (v.cap && /^\d{5}$/.test(v.cap.value.trim()) && c) {
+        const m = trova(c, DATI.province[s] ? s : '');
+        if (m.length === 1 && m[0].cap && !capDentro(m[0].cap, v.cap.value.trim())) {
+          const el = m[0].cap.length > 40 ? m[0].cap.slice(0, 40) + '…' : m[0].cap;
+          out.push('Il CAP ' + v.cap.value.trim() + ' non risulta tra quelli di ' + m[0].nome + ' (' + el + ').');
+        }
+      }
+    }
+    return out;
+  }
+
   function catastale(f, nomeCampoComune) {
     const v = (f.__luoghi || []).find((x) => x.comuneNome === nomeCampoComune);
     if (!v || !DATI || (v.fuori && v.fuori.checked)) return null;
@@ -121,5 +164,5 @@
     return m.length === 1 ? m[0].cat : null;
   }
 
-  window.LemmiLuoghi = { carica, collega, verifica, catastale, trova };
+  window.LemmiLuoghi = { carica, collega, verifica, avvisi, catastale, trova, capDentro };
 })();
