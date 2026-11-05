@@ -6,7 +6,9 @@
  *   (tipo, chi li invita, cellulare, risposta, incasso). I coperti sono: Fratelli presenti + ospiti indicati come numero +
  *   ospiti con nome confermati.
  * - Aggiornamento 44 (sql/lemmi_aggiornamento_44.sql): pagamenti per partecipante (bonifico o contanti), con il riquadro
- *   dei contanti da versare in banca e «Segna come versati». */
+ *   dei contanti da versare in banca e «Segna come versati».
+ * - Aggiornamento 45 (sql/lemmi_aggiornamento_45.sql): l'agape si collega a un evento del Conto di Loggia; entrate e uscite
+ *   in banca, bonifici da abbinare ai partecipanti, versamento dei contanti, margine e costo a coperto. */
 (function () {
   'use strict';
   const L = window.Lemmi;
@@ -19,6 +21,7 @@
   const MANCA_SQL = 'Per le adesioni alle agapi esegui prima lo script sql/lemmi_aggiornamento_42.sql nell’editor SQL di Supabase.';
   const mancaSql = (e) => /agape_adesioni|aderisci_agape|schema cache|does not exist|Could not find/i.test((e && e.message) || '');
   const num = (x) => Number(x || 0);
+  const MANCA_SQL45 = 'Per il collegamento con la Tesoreria esegui prima lo script sql/lemmi_aggiornamento_45.sql nell’editor SQL di Supabase.';
   const MANCA_SQL43 = 'Per obiettivo e ospiti con nome esegui prima lo script sql/lemmi_aggiornamento_43.sql nell’editor SQL di Supabase.';
   const mancaSql43 = (e) => /agape_ospiti|obiettivo_coperti/i.test((e && e.message) || '');
   const TIPO_OSP = { ospite: 'Ospite', visitatore: 'Visitatore (altra Loggia)', familiare: 'Familiare' };
@@ -63,6 +66,19 @@
     try { os = chk(await state.sb.from('agape_ospiti').select('*').eq('tornata_id', t.id).order('cognome').order('nome')); } catch (e) { ospOk = false; }
     let pag = [], pagOk = true;   // pagamenti (script 44)
     try { pag = chk(await state.sb.from('agape_pagamenti').select('*').eq('tornata_id', t.id).order('data').order('creato_il')); } catch (e) { pagOk = false; }
+    // Tesoreria (script 45): evento collegato e movimenti di banca; li vedono amministratore, Venerabile e Tesoriere
+    const ruolo = (state.profilo && state.profilo.ruolo) || '';
+    const scrive = ['amministratore', 'tesoriere'].includes(ruolo);
+    let bancaOk = pagOk && ['amministratore', 'venerabile', 'tesoriere'].includes(ruolo), tes45 = true, eventi = [], movs = [], evento = null;
+    const caricaBanca = async () => {
+      if (!bancaOk) return;
+      try {
+        eventi = chk(await state.sb.from('eventi_conto').select('id,nome,data_evento,tornata_id').order('nome'));
+        evento = eventi.find((e) => e.tornata_id === t.id) || null;
+        movs = evento ? chk(await state.sb.from('conto_movimenti').select('id,data_operazione,descrizione,importo,fratello_id').eq('evento_id', evento.id).order('data_operazione')) : [];
+      } catch (e) { if (/tornata_id/i.test((e && e.message) || '')) tes45 = false; else bancaOk = false; }
+    };
+    await caricaBanca();
     const per = {}; ad.forEach((a) => { per[a.fratello_id] = a; });
     // invitati: i Fratelli attivi, più chiunque abbia già una risposta registrata
     const elenco = fr.filter((f) => f.stato === 'attivo' || per[f.id]);
@@ -100,6 +116,7 @@
         <div class="ag-kpi" id="ag-kpi"></div>
         ${ospOk ? `<div class="ag-ob"><label for="ag-ob">Obiettivo coperti</label><input id="ag-ob" type="number" min="1" max="500" inputmode="numeric" value="${num(t.obiettivo_coperti) || ''}" placeholder="es. 25"><div class="ag-prog" id="ag-prog" hidden><i></i></div><span class="hint" id="ag-prog-t"></span></div>` : ''}
         <div class="ag-cassa" id="ag-cassa" hidden></div>
+        <div class="ag-banca" id="ag-banca" hidden></div>
         <div class="actions" style="margin-bottom:12px">
           <div class="searchbar" style="flex:1 1 220px">${L.IC.search}<input id="ag-q" type="search" placeholder="Cerca un Fratello…"></div>
           <select id="ag-f" style="width:auto"><option value="">Tutti</option><option value="si">Partecipano</option><option value="no">Non partecipano</option><option value="nr">Senza risposta</option></select>
@@ -129,7 +146,7 @@
         <div><span>Coperti</span><b>${coperti}</b></div>${ob ? `<div><span>Obiettivo</span><b>${ob}</b></div><div><span>Mancano</span><b style="color:${mancano ? 'var(--warn)' : 'var(--ok)'}">${mancano}</b></div>` : ''}
         <div><span>Assenti</span><b>${no.length}</b></div><div><span>Fratelli senza risposta</span><b>${nr}</b></div>${nomInv.length ? `<div><span>Ospiti da confermare</span><b>${nomInv.length}</b></div>` : ''}
         ${quota ? `<div><span>Da incassare</span><b>${eur(coperti * quota)}</b></div>` : ''}<div><span>Incassato</span><b style="color:${quota && incassato >= coperti * quota && coperti ? 'var(--ok)' : 'inherit'}">${eur(incassato)}</b></div>`;
-      cassa();
+      cassa(); banca();
       const prog = $('#ag-prog', ov), pt = $('#ag-prog-t', ov);
       if (prog && pt) {
         if (ob) {
@@ -362,7 +379,7 @@
           (dov ? `<div><span>${tot > dov ? 'In più' : 'Residuo'}</span><b>${esc(eur(Math.abs(dov - tot)))}</b></div>` : '');
         $('#pg-form', sub).elements.importo.placeholder = dov > tot ? String(Math.round((dov - tot) * 100) / 100).replace('.', ',') : 'Importo €';
         $('#pg-righe', sub).innerHTML = l.length ? l.map((p) => `<tr data-p="${esc(p.id)}"><td>${esc(fmtData(p.data))}</td><td>${p.metodo === 'contanti' ? 'Contanti' : 'Bonifico'}</td><td class="num">${esc(eur(p.importo))}</td>
-          <td>${esc(p.nota || '')}${p.metodo === 'contanti' ? (p.versato_il ? ` <span class="badge ok">versato il ${esc(fmtData(p.versato_il))}</span>` : ' <span class="badge warn">da versare</span>') : ''}</td>
+          <td>${esc(p.nota || '')}${p.metodo === 'contanti' ? (p.versato_il ? ` <span class="badge ok">versato il ${esc(fmtData(p.versato_il))}</span>` : ' <span class="badge warn">da versare</span>') : ''}${p.movimento_id || p.versamento_id ? ' <span class="badge info">in banca</span>' : ''}</td>
           <td>${p.versato_il ? `<button type="button" class="btn ghost small" data-rimetti="${esc(p.id)}">Rimetti da versare</button> ` : ''}<button type="button" class="btn danger small" data-pdel="${esc(p.id)}">Elimina</button></td></tr>`).join('')
           : '<tr><td colspan="5"><div class="empty">Nessun pagamento registrato.</div></td></tr>';
       };
@@ -374,7 +391,7 @@
       $('#pg-righe', sub).addEventListener('click', async (e) => {
         const d = e.target.closest('[data-pdel]'), rm = e.target.closest('[data-rimetti]');
         if (rm) {
-          try { const r = chk(await state.sb.from('agape_pagamenti').update({ versato_il: null }).eq('id', rm.dataset.rimetti).select().single()); pag = pag.map((p) => (p.id === r.id ? r : p)); rendi(); }
+          try { const r = chk(await state.sb.from('agape_pagamenti').update(tes45 ? { versato_il: null, versamento_id: null } : { versato_il: null }).eq('id', rm.dataset.rimetti).select().single()); pag = pag.map((p) => (p.id === r.id ? r : p)); rendi(); }
           catch (er) { toast(messaggioErrore(er), 'bad'); }
         } else if (d) {
           const p = pag.find((x) => x.id === d.dataset.pdel); if (!p) return;
@@ -397,6 +414,128 @@
       });
       rendi();
       $('#pg-form', sub).elements.importo.focus();
+    }
+
+    /* ---------- Tesoreria: evento, movimenti di banca, riepilogo ---------- */
+    const alloc = (m) => somma(pag.filter((p) => p.movimento_id === m.id || p.versamento_id === m.id));
+    const copertiTot = () => { const si = ad.filter((a) => a.partecipa); return si.length + si.reduce((x, a) => x + num(a.ospiti), 0) + os.filter((o) => o.stato === 'confermato').length; };
+    const banca = () => {
+      const box = $('#ag-banca', ov); if (!box) return;
+      if (!bancaOk) { box.hidden = true; box.innerHTML = ''; return; }
+      box.hidden = false;
+      if (!tes45) { box.innerHTML = 'Per collegare l’agape alla Tesoreria esegui prima lo script <b>sql/lemmi_aggiornamento_45.sql</b> nell’editor SQL di Supabase.'; return; }
+      const liberi = eventi.filter((e) => !e.tornata_id || e.tornata_id === t.id);
+      const sel = `<label for="ag-ev"><b>Evento in Tesoreria</b></label><select id="ag-ev" style="width:auto" ${scrive ? '' : 'disabled'}><option value="">— nessuno —</option>${liberi.map((e) => `<option value="${esc(e.id)}" ${evento && evento.id === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}${scrive ? '<option value="_nuovo">+ Crea un evento per questa agape…</option>' : ''}</select>`;
+      if (!evento) { box.innerHTML = sel + '<span class="hint">Collega l’agape a un evento del Conto di Loggia per vedere entrate e uscite in banca.</span>'; return; }
+      const ent = movs.filter((m) => num(m.importo) > 0), usc = movs.filter((m) => num(m.importo) < 0);
+      const entTot = ent.reduce((x, m) => x + num(m.importo), 0), abb = ent.reduce((x, m) => x + Math.min(alloc(m), num(m.importo)), 0);
+      const uscTot = -usc.reduce((x, m) => x + num(m.importo), 0), inc = somma(pag), cop = copertiTot();
+      const daAbb = entTot - abb, marg = inc - uscTot, nonVer = pag.filter((p) => p.metodo === 'bonifico' && !p.movimento_id).length;
+      box.innerHTML = sel + (scrive ? '<button type="button" class="btn small" id="ag-abbina">Abbina movimenti</button>' : '') +
+        `<div class="ag-kpi" style="flex:1 1 100%;margin:6px 0 0"><div><span>Entrate in banca</span><b>${esc(eur(entTot))}</b></div>
+          <div><span>Da abbinare</span><b style="color:${daAbb > 0.005 ? 'var(--warn)' : 'var(--ok)'}">${esc(eur(Math.max(0, daAbb)))}</b></div>
+          <div><span>Uscite (ristorante)</span><b>${esc(eur(uscTot))}</b></div><div><span>Incassato registrato</span><b>${esc(eur(inc))}</b></div>
+          <div><span>Margine</span><b style="color:${marg >= 0 ? 'var(--ok)' : 'var(--bad)'}">${esc(eur(marg))}</b></div>${cop && uscTot ? `<div><span>Costo a coperto</span><b>${esc(eur(uscTot / cop))}</b></div>` : ''}</div>
+        ${nonVer ? `<span class="hint" style="flex:1 1 100%">${nonVer} ${nonVer === 1 ? 'bonifico registrato' : 'bonifici registrati'} a mano non ancora verificati in banca.</span>` : ''}`;
+    };
+    $('#ag-banca', ov).addEventListener('change', async (e) => {
+      if (e.target.id !== 'ag-ev') return;
+      const v = e.target.value; let nome = null;
+      if (v === '_nuovo') {
+        nome = (window.prompt('Nome dell’evento in Tesoreria:', 'Agape ' + String(t.data).slice(0, 4)) || '').trim();
+        if (!nome) { banca(); return; }
+      }
+      try {
+        if (evento) chk(await state.sb.from('eventi_conto').update({ tornata_id: null }).eq('id', evento.id).select('id'));
+        if (nome) chk(await state.sb.from('eventi_conto').insert({ nome, data_evento: t.data, tornata_id: t.id }).select('id'));
+        else if (v) { const r = chk(await state.sb.from('eventi_conto').update({ tornata_id: t.id }).eq('id', v).select('id')); if (!r.length) throw new Error('Non hai i permessi per modificare gli eventi della Tesoreria.'); }
+        toast(v ? 'Agape collegata all’evento' : 'Collegamento tolto', 'ok');
+      } catch (er) { toast(/tornata_id/i.test((er && er.message) || '') ? MANCA_SQL45 : (er && er.code === '23505' ? 'Quell’evento è già collegato a un’altra agape.' : messaggioErrore(er)), 'bad'); }
+      await caricaBanca(); banca();
+    });
+    $('#ag-banca', ov).addEventListener('click', (e) => { if (e.target.closest('#ag-abbina')) apriAbbina(); });
+
+    // abbinamento dei movimenti di banca ai partecipanti
+    function apriAbbina() {
+      if (!evento) return;
+      const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const suggerisci = (m) => {
+        if (m.fratello_id && fr.some((f) => f.id === m.fratello_id)) return 'f:' + m.fratello_id;
+        const d = norm(m.descrizione);
+        for (const f of elenco) if (d.includes(norm(f.cognome)) && d.includes(norm(f.nome))) return 'f:' + f.id;
+        for (const o of os) if (d.includes(norm(o.cognome)) && d.includes(norm(o.nome))) return 'o:' + o.id;
+        return /contant|versamento/.test(d) ? 'c' : '';
+      };
+      const opzioniChi = (sel) => `<option value="">— scegli —</option><option value="c" ${sel === 'c' ? 'selected' : ''}>Versamento di contanti</option>
+        <optgroup label="Fratelli">${elenco.map((f) => `<option value="f:${esc(f.id)}" ${sel === 'f:' + f.id ? 'selected' : ''}>${esc(f.cognome + ' ' + f.nome)}</option>`).join('')}</optgroup>
+        ${os.length ? `<optgroup label="Ospiti con nome">${os.map((o) => `<option value="o:${esc(o.id)}" ${sel === 'o:' + o.id ? 'selected' : ''}>${esc(o.cognome + ' ' + o.nome)}</option>`).join('')}</optgroup>` : ''}`;
+      let extra = [];
+      const sub = document.createElement('div');
+      sub.className = 'modal-ov';
+      sub.innerHTML = `<div class="modal wide" role="dialog" aria-modal="true" aria-label="Abbina movimenti">
+        <div class="modal-h"><div><h2 style="margin:0">Abbina movimenti</h2><div class="hint">Entrate in banca di «${esc(evento.nome)}» non ancora attribuite a chi ha pagato</div></div><button class="btn ghost small" type="button" data-x2>Chiudi</button></div>
+        <div class="modal-b"><label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-bottom:10px"><input type="checkbox" id="ab-extra"> Mostra anche le entrate degli ultimi 120 giorni non collegate a nessun evento</label>
+          <div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrizione</th><th class="num">Importo</th><th class="num">Da abbinare</th><th>Chi ha pagato</th><th></th></tr></thead><tbody id="ab-righe"></tbody></table></div>
+          <p class="hint" style="margin-top:10px">Per un bonifico si registra un pagamento «Bonifico» alla persona scelta. Per un «Versamento di contanti» tutti i contanti ancora da versare risultano versati con la data del movimento. Se un bonifico copre più persone, abbinalo una volta per ciascuna cambiando l’importo.</p></div></div>`;
+      document.body.appendChild(sub);
+      const righeDa = () => [
+        ...movs.filter((m) => num(m.importo) > 0).map((m) => ({ m, dentro: true, res: num(m.importo) - alloc(m) })),
+        ...extra.filter((m) => !movs.some((x) => x.id === m.id)).map((m) => ({ m, dentro: false, res: num(m.importo) })),
+      ].filter((r) => r.res > 0.005);
+      const rendi = () => {
+        const l = righeDa();
+        $('#ab-righe', sub).innerHTML = l.length ? l.map(({ m, dentro, res }) => `<tr data-m="${esc(m.id)}"><td>${esc(fmtData(m.data_operazione))}</td><td>${esc(m.descrizione || '')}${dentro ? '' : ' <span class="badge warn">senza evento</span>'}</td>
+          <td class="num">${esc(eur(m.importo))}</td><td class="num"><input data-abi="${esc(m.id)}" inputmode="decimal" style="width:92px;text-align:right" value="${esc(String(Math.round(res * 100) / 100).replace('.', ','))}" aria-label="Importo da abbinare"></td>
+          <td><select data-abs="${esc(m.id)}" aria-label="Chi ha pagato">${opzioniChi(suggerisci(m))}</select></td><td><button type="button" class="btn small" data-abb="${esc(m.id)}">Abbina</button></td></tr>`).join('')
+          : '<tr><td colspan="6"><div class="empty">Tutte le entrate dell’evento sono già abbinate.</div></td></tr>';
+      };
+      const chiudiSub = () => { document.removeEventListener('keydown', escSub, true); sub.remove(); disegna(); disegnaOsp(); };
+      const escSub = (e) => { if (e.key === 'Escape') { e.stopPropagation(); chiudiSub(); } };
+      document.addEventListener('keydown', escSub, true);
+      $('[data-x2]', sub).onclick = chiudiSub;
+      sub.addEventListener('mousedown', (e) => { if (e.target === sub) chiudiSub(); });
+      $('#ab-extra', sub).addEventListener('change', async (e) => {
+        if (!e.target.checked) { extra = []; rendi(); return; }
+        const d = new Date(String(t.data) + 'T00:00:00'); d.setDate(d.getDate() - 120);
+        const da = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        try { extra = chk(await state.sb.from('conto_movimenti').select('id,data_operazione,descrizione,importo,fratello_id').is('evento_id', null).gt('importo', 0).gte('data_operazione', da).order('data_operazione')); }
+        catch (er) { toast(messaggioErrore(er), 'bad'); e.target.checked = false; return; }
+        rendi();
+      });
+      $('#ab-righe', sub).addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-abb]'); if (!b) return;
+        const id = b.dataset.abb, riga = righeDa().find((r) => r.m.id === id); if (!riga) return;
+        const { m, dentro, res } = riga;
+        const chi = $('[data-abs="' + id + '"]', sub).value, v = importo($('[data-abi="' + id + '"]', sub).value);
+        if (!chi) { toast('Scegli chi ha pagato.', 'bad'); return; }
+        if (chi !== 'c' && (v === null || !(v > 0) || v > res + 0.005)) { toast('Importo non valido: al massimo ' + eur(res) + '.', 'bad'); return; }
+        let dav = [];
+        if (chi === 'c') {
+          dav = pag.filter((p) => p.metodo === 'contanti' && !p.versato_il);
+          if (!dav.length) { toast('Non ci sono contanti da versare: registra prima i pagamenti in contanti.', 'bad'); return; }
+          if (Math.abs(somma(dav) - num(m.importo)) > 0.005 && !confirm('I contanti da versare sono ' + eur(somma(dav)) + ' ma il movimento è di ' + eur(m.importo) + '. Segnarli lo stesso come versati con questo movimento?')) return;
+        }
+        b.disabled = true;
+        try {
+          if (!dentro) {
+            const r = chk(await state.sb.from('conto_movimenti').update({ evento_id: evento.id }).eq('id', m.id).select('id'));
+            if (!r.length) throw new Error('Non hai i permessi per collegare il movimento all’evento.');
+            movs.push(m); extra = extra.filter((x) => x.id !== m.id);
+          }
+          if (chi === 'c') {
+            const r = chk(await state.sb.from('agape_pagamenti').update({ versato_il: m.data_operazione, versamento_id: m.id }).in('id', dav.map((p) => p.id)).select());
+            const mp = {}; r.forEach((x) => { mp[x.id] = x; }); pag = pag.map((p) => mp[p.id] || p);
+            toast('Contanti segnati come versati con questo movimento', 'ok');
+          } else {
+            const dati = { tornata_id: t.id, importo: v, metodo: 'bonifico', data: m.data_operazione, nota: 'Bonifico del ' + fmtData(m.data_operazione), movimento_id: m.id };
+            dati[chi[0] === 'f' ? 'fratello_id' : 'ospite_id'] = chi.slice(2);
+            pag.push(chk(await state.sb.from('agape_pagamenti').insert(dati).select().single()));
+            toast('Bonifico abbinato', 'ok');
+          }
+        } catch (er) { toast(/movimento_id|versamento_id/i.test((er && er.message) || '') ? MANCA_SQL45 : messaggioErrore(er), 'bad'); }
+        rendi(); kpi();
+      });
+      rendi();
     }
     disegna();
     disegnaOsp();

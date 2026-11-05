@@ -1,0 +1,11 @@
+AGGIORNAMENTO 45 - Agapi collegate alla Tesoreria
+
+PRIMA: Supabase > SQL Editor > New query, incolla sql/lemmi_aggiornamento_45.sql e premi Run. Poi Ctrl+F5 (versione 0.46.0).
+(Richiede gli aggiornamenti 42, 43, 44 e gli eventi del Conto di Loggia, lemmi_tesoreria_2.sql, gia' eseguiti.)
+
+ - Elenco dell'agape > «Evento in Tesoreria»: collega a un evento esistente o crea «Agape ...» (amministratore e Tesoriere).
+ - Riepilogo: entrate in banca, da abbinare, uscite (ristorante), incassato registrato, margine, costo a coperto.
+ - «Abbina movimenti»: entrate dell'evento da attribuire a un Fratello, a un ospite con nome o a un versamento di contanti.
+   Il versamento di contanti segna come versati i contanti in attesa, senza contarli due volte.
+ - Casella «Mostra anche le entrate degli ultimi 120 giorni non collegate a nessun evento»: le abbina e le collega all'evento.
+ - Il Venerabile vede il riepilogo; il Segretario non vede la parte di banca.

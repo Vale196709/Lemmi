@@ -160,7 +160,15 @@ vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file E
 - Il dovuto è: quota × (Fratello + ospiti indicati come numero) per i Fratelli che partecipano; quota per gli ospiti con nome confermati.
 - Il riquadro in alto riporta bonifici, contanti e **contanti da versare in banca**. Dopo il versamento, «Segna come versati» (con la data) chiude tutti i contanti in attesa; da un pagamento si può anche «Rimettere da versare».
 - I pagamenti li vedono solo amministratore, Venerabile, Segretario e Tesoriere. I vecchi campi «incassato» restano nel database ma non sono più usati.
-- Prossima tappa: collegare l'agape a un evento del Conto di Loggia, abbinare i bonifici dall'estratto conto e riepilogare le spese del ristorante.
+
+### Collegamento con la Tesoreria (aggiornamento 45)
+
+- Richiede anche `sql/lemmi_aggiornamento_45.sql` (Run; si può rieseguire) e gli eventi del Conto di Loggia (`lemmi_tesoreria_2.sql`).
+- Nell'elenco dell'agape il riquadro «Evento in Tesoreria» collega l'agape a un evento esistente oppure ne crea uno nuovo («+ Crea un evento per questa agape…»). Il collegamento si fa da amministratore o Tesoriere; il Venerabile vede il riepilogo ma non modifica; il Segretario non vede la parte di banca.
+- Riepilogo: entrate in banca, **da abbinare**, uscite (acconto e saldo del ristorante), incassato registrato, **margine** (incassato − uscite) e **costo a coperto**. Segnala anche i bonifici registrati a mano e non ancora verificati in banca.
+- «Abbina movimenti» elenca le entrate dell'evento non ancora attribuite e propone chi ha pagato (dal Fratello già indicato sul movimento o dal nome nella descrizione). «Abbina» crea il pagamento in bonifico con il collegamento al movimento. Per un bonifico che copre più persone si abbina più volte cambiando l'importo.
+- Con «Versamento di contanti» tutti i contanti ancora da versare risultano versati con la data del movimento, che non viene sommato una seconda volta ai pagamenti. Se gli importi non coincidono l'app chiede conferma.
+- Spuntando «Mostra anche le entrate degli ultimi 120 giorni non collegate a nessun evento» si possono abbinare anche bonifici arrivati prima di assegnare l'evento: il movimento viene collegato all'evento.
 
 ## Grafica (aggiornamento 42)
 
