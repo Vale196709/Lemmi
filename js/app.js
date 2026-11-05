@@ -742,10 +742,14 @@
       if (ko) return segnala(f.elements[ko[0]], ko[2]);
       const lv = window.LemmiLuoghi && window.LemmiLuoghi.verifica(f);
       if (lv) return segnala(lv.campo, lv.msg);
+      const cd = window.LemmiDate ? window.LemmiDate.bussante(dati, oggi()) : { errori: [], avvisi: [] };
+      if (cd.errori.length) return segnala(f.elements[cd.errori[0].campo] || f.elements.data_domanda, cd.errori[0].msg);
+      const avvisi = cd.avvisi.slice();
       if (dati.codice_fiscale && window.CodiceFiscale) {
         const co = window.CodiceFiscale.controllaCoerenza(dati.codice_fiscale, { cognome: dati.cognome, nome: dati.nome, dataNascita: dati.data_nascita, codiceCatastale: window.LemmiLuoghi && window.LemmiLuoghi.catastale(f, 'luogo_nascita') });
-        if (!co.ok && !window.confirm('Il codice fiscale non sembra coerente con gli altri dati:\n\n- ' + co.avvisi.join('\n- ') + '\n\nSalvare comunque?')) return segnala(f.elements.codice_fiscale, 'Controlla il codice fiscale e i dati anagrafici.');
+        co.avvisi.forEach((a) => { if (!co.ok) avvisi.push('Codice fiscale: ' + a.charAt(0).toLowerCase() + a.slice(1)); });
       }
+      if (avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
       const btn = $('button[type=submit]', f); btn.disabled = true;
       try {
         let rid = id;

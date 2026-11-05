@@ -214,6 +214,19 @@
         if (anno === null) return errore('Indica la data oppure almeno l’anno.');
         if (!Number.isInteger(anno) || anno < 1900 || anno > 2100) return errore('Anno non valido (4 cifre).');
         const dati = { fratello_id: fid, grado, anno, data: dt || null };
+        if (window.LemmiDate) {
+          let ctx = null;
+          try {   // se i dati di contorno non si leggono, il controllo si salta e il salvataggio prosegue
+            const fr = chk(await state.sb.from('fratelli').select('data_iniziazione,anno_iniziazione').eq('id', fid).maybeSingle());
+            const ps = chk(await state.sb.from('passaggi_grado').select('id,grado,data,anno').eq('fratello_id', fid)) || [];
+            ctx = { iniziazione: fr && fr.data_iniziazione, annoIniziazione: fr && fr.anno_iniziazione, passaggi: ps.filter((x) => !r || x.id !== r.id) };
+          } catch (_) { ctx = null; }
+          if (ctx) {
+            const cp = window.LemmiDate.passaggio({ grado, data: dt || null, anno }, ctx, L.oggi());
+            if (cp.errori.length) return errore(cp.errori[0].msg);
+            if (cp.avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + cp.avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
+          }
+        }
         if (r) chk(await state.sb.from('passaggi_grado').update(dati).eq('id', r.id));
         else chk(await state.sb.from('passaggi_grado').insert(dati));
         chiudi(); toast('Passaggio di grado salvato', 'ok'); L.route();
@@ -269,10 +282,15 @@
         if ('data_nascita' in dati && dati.data_nascita && dati.data_nascita >= window.Lemmi.oggi()) return errore('La data di nascita deve essere nel passato.');
         const lv = window.LemmiLuoghi && window.LemmiLuoghi.verifica(fm);
         if (lv) return errore(lv.msg);
+        const cd = window.LemmiDate ? window.LemmiDate.fratello(dati, L.oggi()) : { errori: [], avvisi: [] };
+        if (cd.errori.length) return errore(cd.errori[0].msg);
+        // gli avvisi sulle date compaiono solo se le date sono state cambiate: i dati già salvati non danno fastidio
+        const avvisi = ((dati.data_nascita || null) !== (riga.data_nascita || null) || (dati.data_iniziazione || null) !== (riga.data_iniziazione || null)) ? cd.avvisi.slice() : [];
         if (dati.codice_fiscale && dati.codice_fiscale !== (riga.codice_fiscale || '') && window.CodiceFiscale) {
           const co = window.CodiceFiscale.controllaCoerenza(dati.codice_fiscale, { cognome: dati.cognome, nome: dati.nome, dataNascita: dati.data_nascita, codiceCatastale: window.LemmiLuoghi && window.LemmiLuoghi.catastale(fm, 'luogo_nascita') });
-          if (!co.ok && !window.confirm('Il codice fiscale non sembra coerente con gli altri dati:\n\n- ' + co.avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
+          if (!co.ok) co.avvisi.forEach((a) => avvisi.push('Codice fiscale: ' + a.charAt(0).toLowerCase() + a.slice(1)));
         }
+        if (avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
         if (dati.data_nascita && dati.data_iniziazione && dati.data_iniziazione < dati.data_nascita) return errore('L’iniziazione non può precedere la nascita.');
         if (dati.data_iniziazione && 'anno_iniziazione' in dati) dati.anno_iniziazione = Number(dati.data_iniziazione.slice(0, 4));
         const r = chk(await state.sb.from('fratelli').update(dati).eq('id', f.id).select('id'));
@@ -352,6 +370,9 @@
         if (!cognome || !nome) return errore('Cognome e nome sono obbligatori.');
         const dn = itToIso(fm.elements.data_nascita.value.trim()), di = itToIso(fm.elements.data_iniziazione.value.trim());
         if (dn === 'ERR' || di === 'ERR') return errore('Date non valide: usa gg/mm/aaaa.');
+        const cdn = window.LemmiDate ? window.LemmiDate.fratello({ data_nascita: dn, data_iniziazione: di }, L.oggi()) : { errori: [], avvisi: [] };
+        if (cdn.errori.length) return errore(cdn.errori[0].msg);
+        if (cdn.avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + cdn.avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
         const u = leggiUscita(fm);
         if (u.err) return errore(u.err);
         const dati = { cognome, nome, data_nascita: dn || null, matricola: fm.elements.matricola.value.trim() || null, data_iniziazione: di || null, anno_iniziazione: di ? Number(di.slice(0, 4)) : null };
@@ -382,6 +403,10 @@
         if (ini) anno = Number(ini.slice(0, 4));   // se c'è la data, l'anno si ricava da lì
         if (anno !== null && (!Number.isInteger(anno) || anno < 1900 || anno > 2100)) return errore('Anno di iniziazione non valido (4 cifre).');
         if (nasc && ini && ini < nasc) return errore('L’iniziazione non può precedere la nascita.');
+        const cdd = window.LemmiDate ? window.LemmiDate.fratello({ data_nascita: nasc, data_iniziazione: ini }, L.oggi()) : { errori: [], avvisi: [] };
+        if (cdd.errori.length) return errore(cdd.errori[0].msg);
+        const cambiate = (nasc || null) !== (f.data_nascita || null) || (ini || null) !== (f.data_iniziazione || null);
+        if (cambiate && cdd.avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + cdd.avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
         chk(await state.sb.from('fratelli').update({ data_nascita: nasc, data_iniziazione: ini, anno_iniziazione: anno }).eq('id', f.id));
         chiudi(); toast('Date aggiornate', 'ok'); L.route();
       },
