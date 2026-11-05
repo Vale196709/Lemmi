@@ -1,9 +1,12 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.46.0',
-  data: '2026-11-04',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
+  numero: '0.49.0',
+  data: '2026-11-05',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.49.0', data: '2026-11-05', t: 'Dati da controllare (codice fiscale, luoghi, CAP, date, telefoni e codici doppi già in archivio, anche in Excel); CAP verificato sul comune; Stati esteri da elenco; avviso se il codice fiscale è già presente; controllo del telefono' },
+    { n: '0.48.0', data: '2026-11-05', t: 'Controlli sulle date: maggiore età del bussante, ordine di domanda, presa in considerazione, comunicazione e votazioni, preavviso di 60/30 giorni, seconda votazione in tornata diversa, passaggi di grado coerenti con l’iniziazione' },
+    { n: '0.47.0', data: '2026-11-05', t: 'Controllo del codice fiscale (formato, lettera finale, coerenza con nome, data e comune); province e comuni scelti da elenco ISTAT con casella per nati all’estero o in comuni soppressi (data/luoghi.json)' },
     { n: '0.46.0', data: '2026-11-04', t: 'Agapi collegate alla Tesoreria: evento del Conto di Loggia, bonifici abbinati ai partecipanti, versamento dei contanti, entrate e uscite in banca, margine e costo a coperto (sql/lemmi_aggiornamento_45.sql)' },
     { n: '0.45.0', data: '2026-11-04', t: 'Agapi: pagamenti per partecipante (bonifico o contanti), riquadro dei contanti da versare in banca con «Segna come versati» (sql/lemmi_aggiornamento_44.sql)' },
     { n: '0.44.0', data: '2026-11-04', t: 'Agapi: obiettivo di coperti con indicatore «18/25, mancano 7» e ospiti con nome (tipo, chi li invita, cellulare, invito su WhatsApp, incasso); elenco per il ristorante completo (sql/lemmi_aggiornamento_43.sql)' },
