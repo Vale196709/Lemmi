@@ -1,8 +1,11 @@
--- Lemmi - STRUTTURA COMPLETA DEL DATABASE (esportata da Supabase il 31/10/2026 con sql/esporta_schema.sql)
+-- Lemmi - STRUTTURA COMPLETA DEL DATABASE (esportata da Supabase il 06/11/2026 con sql/esporta_schema.sql)
 -- Solo struttura, nessun dato. Serve come documentazione e per ricostruire il database in caso di emergenza.
--- Ordine: tipi, sequenze, tabelle, indici, viste, funzioni, trigger, regole di sicurezza (RLS), archivi file, pianificazioni.
--- Per una ricostruzione: eseguire in un progetto Supabase nuovo; se una tabella dipende da un'altra non ancora creata,
--- rieseguire lo script (le istruzioni sono ripetibili) finché non restano errori.
+-- Ordine: tipi, sequenze, tabelle (in ordine di dipendenza), indici, funzioni di base, viste, altre funzioni, trigger,
+-- regole di sicurezza (RLS), poi, in fondo, i commenti con archivi file e pianificazioni da ricreare a mano.
+-- Si esegue UNA volta in un progetto Supabase nuovo (SQL Editor > New query > Run). E' ripetibile: indici, trigger e regole
+-- vengono prima cancellati e poi ricreati. Gli utenti di accesso (schema "auth") NON sono qui: vanno creati a parte,
+-- prima di caricare i dati (la tabella profili punta a loro).
+-- Verificato su PostgreSQL 16 con un ambiente di prova che imita Supabase: 0 errori, anche rieseguendolo.
 
 do $t$ begin create type public.categoria_messaggio as enum ('convocazione', 'comunicazione', 'sollecito'); exception when duplicate_object then null; end $t$;
 
@@ -41,6 +44,340 @@ create table if not exists public.backup_esecuzioni (
   constraint backup_esecuzioni_pkey PRIMARY KEY (id)
 );
 alter table public.backup_esecuzioni enable row level security;
+
+create table if not exists public.categorie_movimento (
+  id uuid not null default gen_random_uuid(),
+  nome text not null,
+  tipo text not null,
+  attiva boolean not null default true,
+  note text,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint categorie_movimento_tipo_check CHECK ((tipo = ANY (ARRAY['entrata'::text, 'uscita'::text, 'giroconto'::text]))),
+  constraint categorie_movimento_pkey PRIMARY KEY (id),
+  constraint categorie_movimento_nome_key UNIQUE (nome)
+);
+alter table public.categorie_movimento enable row level security;
+
+create table if not exists public.conto_saldi (
+  id uuid not null default gen_random_uuid(),
+  data date not null,
+  saldo numeric(12,2) not null,
+  fonte text,
+  created_at timestamp with time zone not null default now(),
+  conto text not null default 'BancoPosta'::text,
+  constraint conto_saldi_pkey PRIMARY KEY (id),
+  constraint conto_saldi_conto_data_key UNIQUE (conto, data)
+);
+alter table public.conto_saldi enable row level security;
+
+create table if not exists public.cronologia_modifiche (
+  id bigint not null generated always as identity,
+  quando timestamp with time zone not null default now(),
+  utente uuid,
+  tabella text not null,
+  operazione text not null,
+  riga_id text,
+  prima jsonb,
+  dopo jsonb,
+  constraint cronologia_modifiche_pkey PRIMARY KEY (id)
+);
+alter table public.cronologia_modifiche enable row level security;
+
+create table if not exists public.elenco_cariche (
+  nome text not null,
+  ordine integer not null default 100,
+  constraint elenco_cariche_pkey PRIMARY KEY (nome)
+);
+alter table public.elenco_cariche enable row level security;
+
+create table if not exists public.fasce_eta (
+  id uuid not null default gen_random_uuid(),
+  eta_da integer not null,
+  importo numeric(10,2) not null,
+  descrizione text,
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint fasce_eta_eta_da_check CHECK (((eta_da >= 0) AND (eta_da <= 120))),
+  constraint fasce_eta_importo_check CHECK ((importo >= (0)::numeric)),
+  constraint fasce_eta_pkey PRIMARY KEY (id),
+  constraint fasce_eta_eta_da_key UNIQUE (eta_da)
+);
+alter table public.fasce_eta enable row level security;
+
+create table if not exists public.fratelli (
+  id uuid not null default gen_random_uuid(),
+  cognome text not null,
+  nome text not null,
+  data_nascita date,
+  matricola text,
+  indirizzo text,
+  cap text,
+  citta text,
+  provincia character(2),
+  professione text,
+  cellulare text,
+  email text,
+  stato stato_fratello not null default 'attivo'::stato_fratello,
+  anno_iniziazione integer,
+  data_iniziazione date,
+  note_riservate text,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  luogo_nascita text,
+  provincia_nascita character(2),
+  codice_fiscale text,
+  data_uscita date,
+  loggia_destinazione text,
+  exeat_rif text,
+  note_uscita text,
+  constraint fratelli_pkey PRIMARY KEY (id),
+  constraint fratelli_matricola_key UNIQUE (matricola)
+);
+alter table public.fratelli enable row level security;
+
+create table if not exists public.import_estratti (
+  id uuid not null default gen_random_uuid(),
+  nome_file text not null,
+  periodo_dal date,
+  periodo_al date,
+  righe_totali integer,
+  righe_nuove integer,
+  note text,
+  caricato_da uuid default auth.uid(),
+  creato_il timestamp with time zone not null default now(),
+  constraint import_estratti_pkey PRIMARY KEY (id)
+);
+alter table public.import_estratti enable row level security;
+
+create table if not exists public.loggia (
+  id boolean not null default true,
+  nome text,
+  numero text,
+  oriente text,
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint loggia_id_check CHECK (id),
+  constraint loggia_pkey PRIMARY KEY (id)
+);
+alter table public.loggia enable row level security;
+
+create table if not exists public.modelli_loggia (
+  id uuid not null default gen_random_uuid(),
+  categoria text not null default 'altro'::text,
+  nome text not null,
+  descrizione text,
+  file_path text not null,
+  file_nome text,
+  mime text,
+  dimensione bigint,
+  creato_il timestamp with time zone not null default now(),
+  creato_da uuid default auth.uid(),
+  constraint modelli_loggia_pkey PRIMARY KEY (id)
+);
+alter table public.modelli_loggia enable row level security;
+
+create table if not exists public.modelli_messaggio (
+  id uuid not null default gen_random_uuid(),
+  codice text not null,
+  nome text not null,
+  categoria categoria_messaggio not null,
+  oggetto text not null,
+  corpo text not null,
+  campi jsonb not null default '[]'::jsonb,
+  attivo boolean not null default true,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint modelli_messaggio_pkey PRIMARY KEY (id),
+  constraint modelli_messaggio_codice_key UNIQUE (codice)
+);
+alter table public.modelli_messaggio enable row level security;
+
+create table if not exists public.parametri_quote (
+  id boolean not null default true,
+  eta_giorno integer not null default 1,
+  eta_mese integer not null default 1,
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint parametri_quote_eta_giorno_check CHECK (((eta_giorno >= 1) AND (eta_giorno <= 31))),
+  constraint parametri_quote_eta_mese_check CHECK (((eta_mese >= 1) AND (eta_mese <= 12))),
+  constraint parametri_quote_id_check CHECK (id),
+  constraint parametri_quote_pkey PRIMARY KEY (id)
+);
+alter table public.parametri_quote enable row level security;
+
+create table if not exists public.pratiche (
+  id uuid not null default gen_random_uuid(),
+  procedura text not null,
+  titolo text not null,
+  rif_tipo text,
+  rif_id text,
+  rif_nome text,
+  stato text not null default 'in_corso'::text,
+  creata_il timestamp with time zone not null default now(),
+  creata_da uuid default auth.uid(),
+  chiusa_il timestamp with time zone,
+  constraint pratiche_procedura_check CHECK ((procedura = ANY (ARRAY['bussante'::text, 'grado'::text, 'exeat'::text, 'consegne'::text]))),
+  constraint pratiche_rif_tipo_check CHECK ((rif_tipo = ANY (ARRAY['bussante'::text, 'fratello'::text]))),
+  constraint pratiche_stato_check CHECK ((stato = ANY (ARRAY['in_corso'::text, 'conclusa'::text, 'annullata'::text]))),
+  constraint pratiche_pkey PRIMARY KEY (id)
+);
+alter table public.pratiche enable row level security;
+
+create table if not exists public.push_chiavi (
+  id integer not null default 1,
+  pubblica text not null,
+  privata text not null,
+  creato_il timestamp with time zone not null default now(),
+  constraint push_chiavi_id_check CHECK ((id = 1)),
+  constraint push_chiavi_pkey PRIMARY KEY (id)
+);
+alter table public.push_chiavi enable row level security;
+
+create table if not exists public.push_inviati (
+  chiave text not null,
+  inviato_il timestamp with time zone not null default now(),
+  constraint push_inviati_pkey PRIMARY KEY (chiave)
+);
+alter table public.push_inviati enable row level security;
+
+create table if not exists public.push_iscrizioni (
+  endpoint text not null,
+  user_id uuid not null default auth.uid(),
+  chiavi jsonb not null,
+  dispositivo text,
+  creato_il timestamp with time zone not null default now(),
+  constraint push_iscrizioni_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  constraint push_iscrizioni_pkey PRIMARY KEY (endpoint)
+);
+alter table public.push_iscrizioni enable row level security;
+
+create table if not exists public.registro_attivita (
+  id bigint not null default nextval('registro_attivita_id_seq'::regclass),
+  quando timestamp with time zone not null default now(),
+  utente_id uuid,
+  utente_email text,
+  tabella text not null,
+  operazione text not null,
+  riga_id text,
+  prima jsonb,
+  dopo jsonb,
+  constraint registro_attivita_operazione_check CHECK ((operazione = ANY (ARRAY['inserimento'::text, 'modifica'::text, 'eliminazione'::text]))),
+  constraint registro_attivita_pkey PRIMARY KEY (id)
+);
+alter table public.registro_attivita enable row level security;
+
+create table if not exists public.tornate (
+  id uuid not null default gen_random_uuid(),
+  data date not null,
+  ora time without time zone,
+  tipo text not null,
+  grado text,
+  luogo text,
+  link_online text,
+  di_famiglia boolean not null default false,
+  formazione boolean not null default false,
+  solennita text,
+  ordine_del_giorno text,
+  relatore text,
+  stato text not null default 'programmata'::text,
+  note text,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
+  con_agape boolean not null default false,
+  quota_agape numeric(10,2),
+  adesioni_entro date,
+  obiettivo_coperti integer,
+  constraint tornate_grado_check CHECK ((grado = ANY (ARRAY['apprendista'::text, 'compagno'::text, 'maestro'::text]))),
+  constraint tornate_obiettivo_coperti_check CHECK (((obiettivo_coperti IS NULL) OR ((obiettivo_coperti >= 1) AND (obiettivo_coperti <= 500)))),
+  constraint tornate_quota_agape_check CHECK (((quota_agape IS NULL) OR (quota_agape >= (0)::numeric))),
+  constraint tornate_stato_check CHECK ((stato = ANY (ARRAY['programmata'::text, 'convocata'::text, 'svolta'::text, 'annullata'::text]))),
+  constraint tornate_tipo_check CHECK ((tipo = ANY (ARRAY['ordinaria'::text, 'informale'::text, 'straordinaria'::text, 'agape'::text]))),
+  constraint tornate_pkey PRIMARY KEY (id),
+  constraint tornate_data_tipo_key UNIQUE (data, tipo)
+);
+alter table public.tornate enable row level security;
+
+create table if not exists public.verbali (
+  id uuid not null default gen_random_uuid(),
+  data date not null,
+  grado text not null,
+  presenti integer not null default 0,
+  ospiti text,
+  testo text,
+  dati jsonb,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  creato_da uuid default auth.uid(),
+  constraint verbali_grado_check CHECK ((grado = ANY (ARRAY['apprendista'::text, 'compagno'::text, 'maestro'::text]))),
+  constraint verbali_pkey PRIMARY KEY (id),
+  constraint verbali_data_grado_key UNIQUE (data, grado)
+);
+alter table public.verbali enable row level security;
+
+create table if not exists public.voci_quota (
+  id uuid not null default gen_random_uuid(),
+  codice text not null,
+  nome text not null,
+  personale boolean not null default true,
+  tipo_importo text not null,
+  importo_fisso numeric(10,2),
+  gradi_applicabili text[],
+  attiva boolean not null default true,
+  note text,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  esenzione_eta_sotto integer,
+  esenzione_importo numeric(10,2),
+  constraint voce_fisso_ha_importo CHECK (((tipo_importo <> 'fisso'::text) OR (importo_fisso IS NOT NULL))),
+  constraint voci_quota_importo_fisso_check CHECK (((importo_fisso IS NULL) OR (importo_fisso >= (0)::numeric))),
+  constraint voci_quota_tipo_importo_check CHECK ((tipo_importo = ANY (ARRAY['fisso'::text, 'per_eta'::text, 'libero'::text]))),
+  constraint voci_quota_pkey PRIMARY KEY (id),
+  constraint voci_quota_codice_key UNIQUE (codice)
+);
+alter table public.voci_quota enable row level security;
+
+create table if not exists public.agape_adesioni (
+  id uuid not null default gen_random_uuid(),
+  tornata_id uuid not null,
+  fratello_id uuid not null,
+  partecipa boolean not null,
+  ospiti integer not null default 0,
+  note text,
+  incassato numeric(10,2),
+  risposta_da text not null default 'segreteria'::text,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint agape_adesioni_incassato_check CHECK (((incassato IS NULL) OR (incassato >= (0)::numeric))),
+  constraint agape_adesioni_ospiti_check CHECK (((ospiti >= 0) AND (ospiti <= 20))),
+  constraint agape_adesioni_risposta_da_check CHECK ((risposta_da = ANY (ARRAY['segreteria'::text, 'fratello'::text]))),
+  constraint agape_adesioni_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE CASCADE,
+  constraint agape_adesioni_tornata_id_fkey FOREIGN KEY (tornata_id) REFERENCES tornate(id) ON DELETE CASCADE,
+  constraint agape_adesioni_pkey PRIMARY KEY (id),
+  constraint agape_adesioni_tornata_id_fratello_id_key UNIQUE (tornata_id, fratello_id)
+);
+alter table public.agape_adesioni enable row level security;
+
+create table if not exists public.agape_ospiti (
+  id uuid not null default gen_random_uuid(),
+  tornata_id uuid not null,
+  cognome text not null,
+  nome text not null,
+  tipo text not null default 'ospite'::text,
+  invitato_da uuid,
+  contatto text,
+  stato text not null default 'invitato'::text,
+  note text,
+  incassato numeric(10,2),
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint agape_ospiti_cognome_check CHECK ((length(TRIM(BOTH FROM cognome)) > 0)),
+  constraint agape_ospiti_incassato_check CHECK (((incassato IS NULL) OR (incassato >= (0)::numeric))),
+  constraint agape_ospiti_nome_check CHECK ((length(TRIM(BOTH FROM nome)) > 0)),
+  constraint agape_ospiti_stato_check CHECK ((stato = ANY (ARRAY['invitato'::text, 'confermato'::text, 'rifiuta'::text]))),
+  constraint agape_ospiti_tipo_check CHECK ((tipo = ANY (ARRAY['ospite'::text, 'visitatore'::text, 'familiare'::text]))),
+  constraint agape_ospiti_invitato_da_fkey FOREIGN KEY (invitato_da) REFERENCES fratelli(id) ON DELETE SET NULL,
+  constraint agape_ospiti_tornata_id_fkey FOREIGN KEY (tornata_id) REFERENCES tornate(id) ON DELETE CASCADE,
+  constraint agape_ospiti_pkey PRIMARY KEY (id)
+);
+alter table public.agape_ospiti enable row level security;
 
 create table if not exists public.backup_righe (
   id bigint not null default nextval('backup_righe_id_seq'::regclass),
@@ -111,102 +448,6 @@ create table if not exists public.cariche_storico (
 );
 alter table public.cariche_storico enable row level security;
 
-create table if not exists public.categorie_movimento (
-  id uuid not null default gen_random_uuid(),
-  nome text not null,
-  tipo text not null,
-  attiva boolean not null default true,
-  note text,
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint categorie_movimento_tipo_check CHECK ((tipo = ANY (ARRAY['entrata'::text, 'uscita'::text]))),
-  constraint categorie_movimento_pkey PRIMARY KEY (id),
-  constraint categorie_movimento_nome_key UNIQUE (nome)
-);
-alter table public.categorie_movimento enable row level security;
-
-create table if not exists public.conto_movimenti (
-  id uuid not null default gen_random_uuid(),
-  import_id uuid,
-  data_operazione date not null,
-  data_valuta date,
-  descrizione text,
-  importo numeric(12,2) not null,
-  saldo numeric(12,2),
-  riferimento_banca text,
-  impronta text not null,
-  stato_riconciliazione text not null default 'da_riconciliare'::text,
-  note text,
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  categoria_id uuid,
-  fratello_id uuid,
-  origine text not null default 'banca'::text,
-  evento_id uuid,
-  bussante_id uuid,
-  constraint conto_movimenti_origine_check CHECK ((origine = ANY (ARRAY['banca'::text, 'manuale'::text]))),
-  constraint conto_movimenti_stato_riconciliazione_check CHECK ((stato_riconciliazione = ANY (ARRAY['da_riconciliare'::text, 'riconciliato'::text, 'ignorato'::text]))),
-  constraint conto_movimenti_bussante_id_fkey FOREIGN KEY (bussante_id) REFERENCES bussanti(id) ON DELETE SET NULL,
-  constraint conto_movimenti_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES categorie_movimento(id) ON DELETE SET NULL,
-  constraint conto_movimenti_evento_id_fkey FOREIGN KEY (evento_id) REFERENCES eventi_conto(id) ON DELETE SET NULL,
-  constraint conto_movimenti_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE SET NULL,
-  constraint conto_movimenti_import_id_fkey FOREIGN KEY (import_id) REFERENCES import_estratti(id) ON DELETE SET NULL,
-  constraint conto_movimenti_pkey PRIMARY KEY (id),
-  constraint conto_movimenti_impronta_key UNIQUE (impronta)
-);
-alter table public.conto_movimenti enable row level security;
-
-create table if not exists public.conto_saldi (
-  id uuid not null default gen_random_uuid(),
-  data date not null,
-  saldo numeric(12,2) not null,
-  fonte text,
-  created_at timestamp with time zone not null default now(),
-  constraint conto_saldi_pkey PRIMARY KEY (id),
-  constraint conto_saldi_data_key UNIQUE (data)
-);
-alter table public.conto_saldi enable row level security;
-
-create table if not exists public.cronologia_modifiche (
-  id bigint not null generated always as identity,
-  quando timestamp with time zone not null default now(),
-  utente uuid,
-  tabella text not null,
-  operazione text not null,
-  riga_id text,
-  prima jsonb,
-  dopo jsonb,
-  constraint cronologia_modifiche_pkey PRIMARY KEY (id)
-);
-alter table public.cronologia_modifiche enable row level security;
-
-create table if not exists public.documenti (
-  id uuid not null default gen_random_uuid(),
-  bussante_id uuid,
-  fratello_id uuid,
-  tipo tipo_documento not null,
-  nome_file text not null,
-  percorso text not null,
-  mime text,
-  dimensione bigint,
-  note text,
-  caricato_da uuid default auth.uid(),
-  creato_il timestamp with time zone not null default now(),
-  constraint documenti_check CHECK ((num_nonnulls(bussante_id, fratello_id) = 1)),
-  constraint documenti_bussante_id_fkey FOREIGN KEY (bussante_id) REFERENCES bussanti(id) ON DELETE CASCADE,
-  constraint documenti_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE CASCADE,
-  constraint documenti_pkey PRIMARY KEY (id),
-  constraint documenti_percorso_key UNIQUE (percorso)
-);
-alter table public.documenti enable row level security;
-
-create table if not exists public.elenco_cariche (
-  nome text not null,
-  ordine integer not null default 100,
-  constraint elenco_cariche_pkey PRIMARY KEY (nome)
-);
-alter table public.elenco_cariche enable row level security;
-
 create table if not exists public.elezioni (
   id uuid not null default gen_random_uuid(),
   anno_massonico integer not null,
@@ -230,63 +471,11 @@ create table if not exists public.eventi_conto (
   parole_chiave text,
   note text,
   created_at timestamp with time zone not null default now(),
+  tornata_id uuid,
+  constraint eventi_conto_tornata_id_fkey FOREIGN KEY (tornata_id) REFERENCES tornate(id) ON DELETE SET NULL,
   constraint eventi_conto_pkey PRIMARY KEY (id)
 );
 alter table public.eventi_conto enable row level security;
-
-create table if not exists public.fasce_eta (
-  id uuid not null default gen_random_uuid(),
-  eta_da integer not null,
-  importo numeric(10,2) not null,
-  descrizione text,
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint fasce_eta_eta_da_check CHECK (((eta_da >= 0) AND (eta_da <= 120))),
-  constraint fasce_eta_importo_check CHECK ((importo >= (0)::numeric)),
-  constraint fasce_eta_pkey PRIMARY KEY (id),
-  constraint fasce_eta_eta_da_key UNIQUE (eta_da)
-);
-alter table public.fasce_eta enable row level security;
-
-create table if not exists public.fratelli (
-  id uuid not null default gen_random_uuid(),
-  cognome text not null,
-  nome text not null,
-  data_nascita date,
-  matricola text,
-  indirizzo text,
-  cap text,
-  citta text,
-  provincia character(2),
-  professione text,
-  cellulare text,
-  email text,
-  stato stato_fratello not null default 'attivo'::stato_fratello,
-  anno_iniziazione integer,
-  data_iniziazione date,
-  note_riservate text,
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  luogo_nascita text,
-  provincia_nascita character(2),
-  codice_fiscale text,
-  constraint fratelli_pkey PRIMARY KEY (id),
-  constraint fratelli_matricola_key UNIQUE (matricola)
-);
-alter table public.fratelli enable row level security;
-
-create table if not exists public.import_estratti (
-  id uuid not null default gen_random_uuid(),
-  nome_file text not null,
-  periodo_dal date,
-  periodo_al date,
-  righe_totali integer,
-  righe_nuove integer,
-  note text,
-  caricato_da uuid default auth.uid(),
-  creato_il timestamp with time zone not null default now(),
-  constraint import_estratti_pkey PRIMARY KEY (id)
-);
-alter table public.import_estratti enable row level security;
 
 create table if not exists public.lavori (
   id uuid not null default gen_random_uuid(),
@@ -320,17 +509,6 @@ create table if not exists public.lavori (
 );
 alter table public.lavori enable row level security;
 
-create table if not exists public.loggia (
-  id boolean not null default true,
-  nome text,
-  numero text,
-  oriente text,
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint loggia_id_check CHECK (id),
-  constraint loggia_pkey PRIMARY KEY (id)
-);
-alter table public.loggia enable row level security;
-
 create table if not exists public.messaggi (
   id uuid not null default gen_random_uuid(),
   modello_id uuid,
@@ -350,62 +528,6 @@ create table if not exists public.messaggi (
   constraint messaggi_pkey PRIMARY KEY (id)
 );
 alter table public.messaggi enable row level security;
-
-create table if not exists public.messaggi_destinatari (
-  id uuid not null default gen_random_uuid(),
-  messaggio_id uuid not null,
-  fratello_id uuid,
-  email text not null,
-  esito text,
-  constraint messaggi_destinatari_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE SET NULL,
-  constraint messaggi_destinatari_messaggio_id_fkey FOREIGN KEY (messaggio_id) REFERENCES messaggi(id) ON DELETE CASCADE,
-  constraint messaggi_destinatari_pkey PRIMARY KEY (id),
-  constraint messaggi_destinatari_messaggio_id_fratello_id_key UNIQUE (messaggio_id, fratello_id)
-);
-alter table public.messaggi_destinatari enable row level security;
-
-create table if not exists public.modelli_loggia (
-  id uuid not null default gen_random_uuid(),
-  categoria text not null default 'altro'::text,
-  nome text not null,
-  descrizione text,
-  file_path text not null,
-  file_nome text,
-  mime text,
-  dimensione bigint,
-  creato_il timestamp with time zone not null default now(),
-  creato_da uuid default auth.uid(),
-  constraint modelli_loggia_pkey PRIMARY KEY (id)
-);
-alter table public.modelli_loggia enable row level security;
-
-create table if not exists public.modelli_messaggio (
-  id uuid not null default gen_random_uuid(),
-  codice text not null,
-  nome text not null,
-  categoria categoria_messaggio not null,
-  oggetto text not null,
-  corpo text not null,
-  campi jsonb not null default '[]'::jsonb,
-  attivo boolean not null default true,
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint modelli_messaggio_pkey PRIMARY KEY (id),
-  constraint modelli_messaggio_codice_key UNIQUE (codice)
-);
-alter table public.modelli_messaggio enable row level security;
-
-create table if not exists public.parametri_quote (
-  id boolean not null default true,
-  eta_giorno integer not null default 1,
-  eta_mese integer not null default 1,
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint parametri_quote_eta_giorno_check CHECK (((eta_giorno >= 1) AND (eta_giorno <= 31))),
-  constraint parametri_quote_eta_mese_check CHECK (((eta_mese >= 1) AND (eta_mese <= 12))),
-  constraint parametri_quote_id_check CHECK (id),
-  constraint parametri_quote_pkey PRIMARY KEY (id)
-);
-alter table public.parametri_quote enable row level security;
 
 create table if not exists public.passaggi_grado (
   id uuid not null default gen_random_uuid(),
@@ -436,24 +558,6 @@ create table if not exists public.piano_rate (
   constraint piano_rate_voce_id_modalita_rata_n_key UNIQUE (voce_id, modalita, rata_n)
 );
 alter table public.piano_rate enable row level security;
-
-create table if not exists public.pratiche (
-  id uuid not null default gen_random_uuid(),
-  procedura text not null,
-  titolo text not null,
-  rif_tipo text,
-  rif_id text,
-  rif_nome text,
-  stato text not null default 'in_corso'::text,
-  creata_il timestamp with time zone not null default now(),
-  creata_da uuid default auth.uid(),
-  chiusa_il timestamp with time zone,
-  constraint pratiche_procedura_check CHECK ((procedura = ANY (ARRAY['bussante'::text, 'grado'::text, 'exeat'::text, 'consegne'::text]))),
-  constraint pratiche_rif_tipo_check CHECK ((rif_tipo = ANY (ARRAY['bussante'::text, 'fratello'::text]))),
-  constraint pratiche_stato_check CHECK ((stato = ANY (ARRAY['in_corso'::text, 'conclusa'::text, 'annullata'::text]))),
-  constraint pratiche_pkey PRIMARY KEY (id)
-);
-alter table public.pratiche enable row level security;
 
 create table if not exists public.pratiche_date (
   pratica_id uuid not null,
@@ -497,49 +601,6 @@ create table if not exists public.profili (
 );
 alter table public.profili enable row level security;
 
-create table if not exists public.push_chiavi (
-  id integer not null default 1,
-  pubblica text not null,
-  privata text not null,
-  creato_il timestamp with time zone not null default now(),
-  constraint push_chiavi_id_check CHECK ((id = 1)),
-  constraint push_chiavi_pkey PRIMARY KEY (id)
-);
-alter table public.push_chiavi enable row level security;
-
-create table if not exists public.push_inviati (
-  chiave text not null,
-  inviato_il timestamp with time zone not null default now(),
-  constraint push_inviati_pkey PRIMARY KEY (chiave)
-);
-alter table public.push_inviati enable row level security;
-
-create table if not exists public.push_iscrizioni (
-  endpoint text not null,
-  user_id uuid not null default auth.uid(),
-  chiavi jsonb not null,
-  dispositivo text,
-  creato_il timestamp with time zone not null default now(),
-  constraint push_iscrizioni_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
-  constraint push_iscrizioni_pkey PRIMARY KEY (endpoint)
-);
-alter table public.push_iscrizioni enable row level security;
-
-create table if not exists public.registro_attivita (
-  id bigint not null default nextval('registro_attivita_id_seq'::regclass),
-  quando timestamp with time zone not null default now(),
-  utente_id uuid,
-  utente_email text,
-  tabella text not null,
-  operazione text not null,
-  riga_id text,
-  prima jsonb,
-  dopo jsonb,
-  constraint registro_attivita_operazione_check CHECK ((operazione = ANY (ARRAY['inserimento'::text, 'modifica'::text, 'eliminazione'::text]))),
-  constraint registro_attivita_pkey PRIMARY KEY (id)
-);
-alter table public.registro_attivita enable row level security;
-
 create table if not exists public.scadenze (
   id uuid not null default gen_random_uuid(),
   voce_id uuid not null,
@@ -570,47 +631,98 @@ create table if not exists public.scadenze (
 );
 alter table public.scadenze enable row level security;
 
-create table if not exists public.tornate (
+create table if not exists public.conto_movimenti (
   id uuid not null default gen_random_uuid(),
-  data date not null,
-  ora time without time zone,
-  tipo text not null,
-  grado text,
-  luogo text,
-  link_online text,
-  di_famiglia boolean not null default false,
-  formazione boolean not null default false,
-  solennita text,
-  ordine_del_giorno text,
-  relatore text,
-  stato text not null default 'programmata'::text,
+  import_id uuid,
+  data_operazione date not null,
+  data_valuta date,
+  descrizione text,
+  importo numeric(12,2) not null,
+  saldo numeric(12,2),
+  riferimento_banca text,
+  impronta text not null,
+  stato_riconciliazione text not null default 'da_riconciliare'::text,
   note text,
-  created_at timestamp with time zone not null default now(),
-  updated_at timestamp with time zone not null default now(),
-  constraint tornate_grado_check CHECK ((grado = ANY (ARRAY['apprendista'::text, 'compagno'::text, 'maestro'::text]))),
-  constraint tornate_stato_check CHECK ((stato = ANY (ARRAY['programmata'::text, 'convocata'::text, 'svolta'::text, 'annullata'::text]))),
-  constraint tornate_tipo_check CHECK ((tipo = ANY (ARRAY['ordinaria'::text, 'informale'::text, 'straordinaria'::text, 'agape'::text]))),
-  constraint tornate_pkey PRIMARY KEY (id),
-  constraint tornate_data_tipo_key UNIQUE (data, tipo)
-);
-alter table public.tornate enable row level security;
-
-create table if not exists public.verbali (
-  id uuid not null default gen_random_uuid(),
-  data date not null,
-  grado text not null,
-  presenti integer not null default 0,
-  ospiti text,
-  testo text,
-  dati jsonb,
   creato_il timestamp with time zone not null default now(),
   aggiornato_il timestamp with time zone not null default now(),
-  creato_da uuid default auth.uid(),
-  constraint verbali_grado_check CHECK ((grado = ANY (ARRAY['apprendista'::text, 'compagno'::text, 'maestro'::text]))),
-  constraint verbali_pkey PRIMARY KEY (id),
-  constraint verbali_data_grado_key UNIQUE (data, grado)
+  categoria_id uuid,
+  fratello_id uuid,
+  origine text not null default 'banca'::text,
+  evento_id uuid,
+  bussante_id uuid,
+  conto text not null default 'BancoPosta'::text,
+  constraint conto_movimenti_origine_check CHECK ((origine = ANY (ARRAY['banca'::text, 'manuale'::text]))),
+  constraint conto_movimenti_stato_riconciliazione_check CHECK ((stato_riconciliazione = ANY (ARRAY['da_riconciliare'::text, 'riconciliato'::text, 'ignorato'::text]))),
+  constraint conto_movimenti_bussante_id_fkey FOREIGN KEY (bussante_id) REFERENCES bussanti(id) ON DELETE SET NULL,
+  constraint conto_movimenti_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES categorie_movimento(id) ON DELETE SET NULL,
+  constraint conto_movimenti_evento_id_fkey FOREIGN KEY (evento_id) REFERENCES eventi_conto(id) ON DELETE SET NULL,
+  constraint conto_movimenti_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE SET NULL,
+  constraint conto_movimenti_import_id_fkey FOREIGN KEY (import_id) REFERENCES import_estratti(id) ON DELETE SET NULL,
+  constraint conto_movimenti_pkey PRIMARY KEY (id),
+  constraint conto_movimenti_impronta_key UNIQUE (impronta)
 );
-alter table public.verbali enable row level security;
+alter table public.conto_movimenti enable row level security;
+
+create table if not exists public.documenti (
+  id uuid not null default gen_random_uuid(),
+  bussante_id uuid,
+  fratello_id uuid,
+  tipo tipo_documento not null,
+  nome_file text not null,
+  percorso text not null,
+  mime text,
+  dimensione bigint,
+  note text,
+  caricato_da uuid default auth.uid(),
+  creato_il timestamp with time zone not null default now(),
+  constraint documenti_check CHECK ((num_nonnulls(bussante_id, fratello_id) = 1)),
+  constraint documenti_bussante_id_fkey FOREIGN KEY (bussante_id) REFERENCES bussanti(id) ON DELETE CASCADE,
+  constraint documenti_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE CASCADE,
+  constraint documenti_pkey PRIMARY KEY (id),
+  constraint documenti_percorso_key UNIQUE (percorso)
+);
+alter table public.documenti enable row level security;
+
+create table if not exists public.messaggi_destinatari (
+  id uuid not null default gen_random_uuid(),
+  messaggio_id uuid not null,
+  fratello_id uuid,
+  email text not null,
+  esito text,
+  constraint messaggi_destinatari_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE SET NULL,
+  constraint messaggi_destinatari_messaggio_id_fkey FOREIGN KEY (messaggio_id) REFERENCES messaggi(id) ON DELETE CASCADE,
+  constraint messaggi_destinatari_pkey PRIMARY KEY (id),
+  constraint messaggi_destinatari_messaggio_id_fratello_id_key UNIQUE (messaggio_id, fratello_id)
+);
+alter table public.messaggi_destinatari enable row level security;
+
+create table if not exists public.agape_pagamenti (
+  id uuid not null default gen_random_uuid(),
+  tornata_id uuid not null,
+  fratello_id uuid,
+  ospite_id uuid,
+  importo numeric(10,2) not null,
+  metodo text not null,
+  data date not null default CURRENT_DATE,
+  nota text,
+  versato_il date,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  movimento_id uuid,
+  versamento_id uuid,
+  constraint agape_pagamenti_banca_check CHECK ((((movimento_id IS NULL) OR (metodo = 'bonifico'::text)) AND ((versamento_id IS NULL) OR (metodo = 'contanti'::text)))),
+  constraint agape_pagamenti_check CHECK ((num_nonnulls(fratello_id, ospite_id) = 1)),
+  constraint agape_pagamenti_check1 CHECK (((versato_il IS NULL) OR (metodo = 'contanti'::text))),
+  constraint agape_pagamenti_importo_check CHECK ((importo > (0)::numeric)),
+  constraint agape_pagamenti_metodo_check CHECK ((metodo = ANY (ARRAY['bonifico'::text, 'contanti'::text]))),
+  constraint agape_pagamenti_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE RESTRICT,
+  constraint agape_pagamenti_movimento_id_fkey FOREIGN KEY (movimento_id) REFERENCES conto_movimenti(id) ON DELETE SET NULL,
+  constraint agape_pagamenti_ospite_id_fkey FOREIGN KEY (ospite_id) REFERENCES agape_ospiti(id) ON DELETE CASCADE,
+  constraint agape_pagamenti_tornata_id_fkey FOREIGN KEY (tornata_id) REFERENCES tornate(id) ON DELETE CASCADE,
+  constraint agape_pagamenti_versamento_id_fkey FOREIGN KEY (versamento_id) REFERENCES conto_movimenti(id) ON DELETE SET NULL,
+  constraint agape_pagamenti_pkey PRIMARY KEY (id)
+);
+alter table public.agape_pagamenti enable row level security;
 
 create table if not exists public.versamenti (
   id uuid not null default gen_random_uuid(),
@@ -638,77 +750,116 @@ create table if not exists public.versamenti (
 );
 alter table public.versamenti enable row level security;
 
-create table if not exists public.voci_quota (
-  id uuid not null default gen_random_uuid(),
-  codice text not null,
-  nome text not null,
-  personale boolean not null default true,
-  tipo_importo text not null,
-  importo_fisso numeric(10,2),
-  gradi_applicabili text[],
-  attiva boolean not null default true,
-  note text,
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  esenzione_eta_sotto integer,
-  esenzione_importo numeric(10,2),
-  constraint voce_fisso_ha_importo CHECK (((tipo_importo <> 'fisso'::text) OR (importo_fisso IS NOT NULL))),
-  constraint voci_quota_importo_fisso_check CHECK (((importo_fisso IS NULL) OR (importo_fisso >= (0)::numeric))),
-  constraint voci_quota_tipo_importo_check CHECK ((tipo_importo = ANY (ARRAY['fisso'::text, 'per_eta'::text, 'libero'::text]))),
-  constraint voci_quota_pkey PRIMARY KEY (id),
-  constraint voci_quota_codice_key UNIQUE (codice)
-);
-alter table public.voci_quota enable row level security;
+CREATE INDEX IF NOT EXISTS agape_adesioni_tornata_idx ON public.agape_adesioni USING btree (tornata_id);
 
-CREATE INDEX backup_righe_esec_idx ON public.backup_righe USING btree (esecuzione_id, tabella);
+CREATE INDEX IF NOT EXISTS agape_ospiti_tornata_idx ON public.agape_ospiti USING btree (tornata_id);
 
-CREATE INDEX backup_righe_hash_idx ON public.backup_righe USING btree (tabella, hash);
+CREATE INDEX IF NOT EXISTS agape_pagamenti_movimento_idx ON public.agape_pagamenti USING btree (movimento_id);
 
-CREATE INDEX bussanti_cf_idx ON public.bussanti USING btree (codice_fiscale);
+CREATE INDEX IF NOT EXISTS agape_pagamenti_tornata_idx ON public.agape_pagamenti USING btree (tornata_id);
 
-CREATE INDEX bussanti_cognome_idx ON public.bussanti USING btree (cognome, nome);
+CREATE INDEX IF NOT EXISTS agape_pagamenti_versamento_idx ON public.agape_pagamenti USING btree (versamento_id);
 
-CREATE INDEX cariche_storico_fratello_id_idx ON public.cariche_storico USING btree (fratello_id);
+CREATE INDEX IF NOT EXISTS backup_righe_esec_idx ON public.backup_righe USING btree (esecuzione_id, tabella);
 
-CREATE INDEX conto_movimenti_bussante_idx ON public.conto_movimenti USING btree (bussante_id);
+CREATE INDEX IF NOT EXISTS backup_righe_hash_idx ON public.backup_righe USING btree (tabella, hash);
 
-CREATE INDEX conto_movimenti_categoria_idx ON public.conto_movimenti USING btree (categoria_id);
+CREATE INDEX IF NOT EXISTS bussanti_cf_idx ON public.bussanti USING btree (codice_fiscale);
 
-CREATE INDEX conto_movimenti_data_idx ON public.conto_movimenti USING btree (data_operazione);
+CREATE INDEX IF NOT EXISTS bussanti_cognome_idx ON public.bussanti USING btree (cognome, nome);
 
-CREATE INDEX conto_movimenti_evento_idx ON public.conto_movimenti USING btree (evento_id);
+CREATE INDEX IF NOT EXISTS cariche_storico_fratello_id_idx ON public.cariche_storico USING btree (fratello_id);
 
-CREATE INDEX documenti_bussante_idx ON public.documenti USING btree (bussante_id);
+CREATE INDEX IF NOT EXISTS conto_movimenti_bussante_idx ON public.conto_movimenti USING btree (bussante_id);
 
-CREATE INDEX documenti_fratello_idx ON public.documenti USING btree (fratello_id);
+CREATE INDEX IF NOT EXISTS conto_movimenti_categoria_idx ON public.conto_movimenti USING btree (categoria_id);
 
-CREATE INDEX lavori_fratello_idx ON public.lavori USING btree (fratello_id);
+CREATE INDEX IF NOT EXISTS conto_movimenti_conto_idx ON public.conto_movimenti USING btree (conto, data_operazione);
 
-CREATE INDEX lavori_stato_idx ON public.lavori USING btree (stato);
+CREATE INDEX IF NOT EXISTS conto_movimenti_data_idx ON public.conto_movimenti USING btree (data_operazione);
 
-CREATE INDEX lavori_tornata_idx ON public.lavori USING btree (tornata_id);
+CREATE INDEX IF NOT EXISTS conto_movimenti_evento_idx ON public.conto_movimenti USING btree (evento_id);
 
-CREATE INDEX messaggi_destinatari_messaggio_id_idx ON public.messaggi_destinatari USING btree (messaggio_id);
+CREATE INDEX IF NOT EXISTS documenti_bussante_idx ON public.documenti USING btree (bussante_id);
 
-CREATE INDEX passaggi_grado_fratello_id_idx ON public.passaggi_grado USING btree (fratello_id);
+CREATE INDEX IF NOT EXISTS documenti_fratello_idx ON public.documenti USING btree (fratello_id);
 
-CREATE INDEX pratiche_rif_idx ON public.pratiche USING btree (rif_tipo, rif_id);
+CREATE UNIQUE INDEX IF NOT EXISTS eventi_conto_tornata_uq ON public.eventi_conto USING btree (tornata_id) WHERE (tornata_id IS NOT NULL);
 
-CREATE INDEX pratiche_stato_idx ON public.pratiche USING btree (stato);
+CREATE INDEX IF NOT EXISTS lavori_fratello_idx ON public.lavori USING btree (fratello_id);
 
-CREATE INDEX presenze_verbale_fratello_idx ON public.presenze_verbale USING btree (fratello_id);
+CREATE INDEX IF NOT EXISTS lavori_stato_idx ON public.lavori USING btree (stato);
 
-CREATE INDEX registro_attivita_quando_idx ON public.registro_attivita USING btree (quando DESC);
+CREATE INDEX IF NOT EXISTS lavori_tornata_idx ON public.lavori USING btree (tornata_id);
 
-CREATE INDEX registro_attivita_tabella_idx ON public.registro_attivita USING btree (tabella, quando DESC);
+CREATE INDEX IF NOT EXISTS messaggi_destinatari_messaggio_id_idx ON public.messaggi_destinatari USING btree (messaggio_id);
 
-CREATE INDEX scadenze_fratello_idx ON public.scadenze USING btree (fratello_id, anno);
+CREATE INDEX IF NOT EXISTS passaggi_grado_fratello_id_idx ON public.passaggi_grado USING btree (fratello_id);
 
-CREATE INDEX tornate_data_idx ON public.tornate USING btree (data);
+CREATE INDEX IF NOT EXISTS pratiche_rif_idx ON public.pratiche USING btree (rif_tipo, rif_id);
 
-CREATE INDEX versamenti_fratello_idx ON public.versamenti USING btree (fratello_id, anno);
+CREATE INDEX IF NOT EXISTS pratiche_stato_idx ON public.pratiche USING btree (stato);
 
-CREATE INDEX versamenti_scadenza_idx ON public.versamenti USING btree (scadenza_id);
+CREATE INDEX IF NOT EXISTS presenze_verbale_fratello_idx ON public.presenze_verbale USING btree (fratello_id);
+
+CREATE INDEX IF NOT EXISTS registro_attivita_quando_idx ON public.registro_attivita USING btree (quando DESC);
+
+CREATE INDEX IF NOT EXISTS registro_attivita_tabella_idx ON public.registro_attivita USING btree (tabella, quando DESC);
+
+CREATE INDEX IF NOT EXISTS scadenze_fratello_idx ON public.scadenze USING btree (fratello_id, anno);
+
+CREATE INDEX IF NOT EXISTS tornate_data_idx ON public.tornate USING btree (data);
+
+CREATE INDEX IF NOT EXISTS versamenti_fratello_idx ON public.versamenti USING btree (fratello_id, anno);
+
+CREATE INDEX IF NOT EXISTS versamenti_scadenza_idx ON public.versamenti USING btree (scadenza_id);
+
+CREATE OR REPLACE FUNCTION public.ruolo_corrente()
+ RETURNS ruolo_app
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select ruolo from profili where user_id = auth.uid()
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.lemmi_e_admin()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (
+    select 1 from public.profili p
+    where p.user_id = auth.uid() and p.ruolo::text = 'amministratore'
+  );
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.lemmi_ruolo_in(VARIADIC r text[])
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select exists (select 1 from public.profili p where p.user_id = auth.uid() and p.ruolo::text = any (r));
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.fratello_mio()
+ RETURNS uuid
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- collegamento salvato nel profilo oppure, se manca, il Fratello con la stessa e-mail dell'utente (solo se è uno)
+  select coalesce(p.fratello_id,
+           (select min(f.id::text)::uuid from public.fratelli f join auth.users u on lower(u.email) = lower(f.email)
+             where u.id = auth.uid() having count(*) = 1))
+  from public.profili p where p.user_id = auth.uid() and p.ruolo::text = 'fratello'
+$function$
+;
 
 create or replace view public.v_conto_movimenti as
  SELECT m.id,
@@ -728,7 +879,9 @@ create or replace view public.v_conto_movimenti as
             ELSE (f.cognome || ' '::text) || f.nome
         END AS fratello,
     m.note,
-    m.import_id
+    m.import_id,
+    m.conto,
+    COALESCE(c.tipo = 'giroconto'::text, false) AS giroconto
    FROM conto_movimenti m
      LEFT JOIN categorie_movimento c ON c.id = m.categoria_id
      LEFT JOIN fratelli f ON f.id = m.fratello_id
@@ -783,17 +936,6 @@ create or replace view public.v_incassi_collettivi as
      JOIN voci_quota q ON q.id = v.voce_id
   WHERE NOT q.personale AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]))
   GROUP BY v.anno, q.codice, q.nome;
-
-create or replace view public.v_riepilogo_fratello as
- SELECT anno,
-    fratello_id,
-    fratello,
-    sum(importo_dovuto) AS dovuto,
-    sum(versato) AS versato,
-    sum(residuo) AS residuo,
-    count(*) FILTER (WHERE stato = 'Scaduto'::text) AS scadenze_scadute
-   FROM v_scadenze_stato
-  GROUP BY anno, fratello_id, fratello;
 
 create or replace view public.v_scadenze_stato as
  SELECT s.id,
@@ -852,6 +994,17 @@ create or replace view public.v_versamenti_elenco as
      JOIN voci_quota q ON q.id = v.voce_id
      LEFT JOIN fratelli f ON f.id = v.fratello_id
   WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]);
+
+create or replace view public.v_riepilogo_fratello as
+ SELECT anno,
+    fratello_id,
+    fratello,
+    sum(importo_dovuto) AS dovuto,
+    sum(versato) AS versato,
+    sum(residuo) AS residuo,
+    count(*) FILTER (WHERE stato = 'Scaduto'::text) AS scadenze_scadute
+   FROM v_scadenze_stato
+  GROUP BY anno, fratello_id, fratello;
 
 CREATE OR REPLACE FUNCTION public._ripristino_confronta(p_esec bigint, p_tabella text, p_campioni boolean)
  RETURNS jsonb
@@ -951,6 +1104,57 @@ end;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.aderisci_agape(p_tornata uuid, p_partecipa boolean, p_ospiti integer DEFAULT 0, p_note text DEFAULT NULL::text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fr uuid := public.fratello_mio();
+  t public.tornate%rowtype;
+begin
+  if v_fr is null then raise exception 'Il tuo accesso non è collegato a una scheda di Fratello'; end if;
+  select * into t from public.tornate where id = p_tornata;
+  if not found then raise exception 'Tornata non trovata'; end if;
+  if not (t.tipo = 'agape' or t.con_agape) then raise exception 'Per questa tornata non è prevista un''agape'; end if;
+  if t.stato = 'annullata' then raise exception 'La tornata è stata annullata'; end if;
+  if t.data < current_date then raise exception 'L''agape si è già svolta'; end if;
+  if t.adesioni_entro is not null and current_date > t.adesioni_entro then
+    raise exception 'Le adesioni si sono chiuse il %: rivolgiti al Segretario', to_char(t.adesioni_entro, 'DD/MM/YYYY');
+  end if;
+  insert into public.agape_adesioni (tornata_id, fratello_id, partecipa, ospiti, note, risposta_da)
+  values (p_tornata, v_fr, p_partecipa, case when p_partecipa then greatest(0, least(coalesce(p_ospiti, 0), 20)) else 0 end,
+          nullif(trim(coalesce(p_note, '')), ''), 'fratello')
+  on conflict (tornata_id, fratello_id) do update
+    set partecipa = excluded.partecipa, ospiti = excluded.ospiti, note = excluded.note, risposta_da = 'fratello';
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.agape_aggiornato()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin new.aggiornato_il := now(); return new; end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.agape_ospiti_aggiornato()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin new.aggiornato_il := now(); return new; end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.agape_pagamenti_aggiornato()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin new.aggiornato_il := now(); return new; end $function$
+;
+
 CREATE OR REPLACE FUNCTION public.anteprima_ripristino(p_esec bigint, p_tabella text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -975,6 +1179,33 @@ begin
   return r;
 end;
 $function$
+;
+
+CREATE OR REPLACE FUNCTION public.applica_uscita_fratello(p_fratello uuid)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  f public.fratelli%rowtype;
+  motivo text;
+  n integer;
+begin
+  select * into f from public.fratelli where id = p_fratello;
+  if not found or f.data_uscita is null or f.stato::text not in ('oriente_eterno', 'trasferito') then return 0; end if;
+  motivo := case f.stato::text when 'oriente_eterno' then 'Passato all''Oriente Eterno il ' else 'Trasferito ad altra Loggia il ' end
+            || to_char(f.data_uscita, 'DD/MM/YYYY');
+  update public.scadenze s
+     set sconto = s.importo_base, motivo_eccezione = motivo
+   where s.fratello_id = f.id
+     and (s.anno > extract(year from f.data_uscita)::int
+          or (f.stato::text = 'oriente_eterno' and s.anno = extract(year from f.data_uscita)::int
+              and s.data_scadenza is not null and s.data_scadenza > f.data_uscita))
+     and (s.sconto <> s.importo_base or s.motivo_eccezione is distinct from motivo);
+  get diagnostics n = row_count;
+  return n;
+end $function$
 ;
 
 CREATE OR REPLACE FUNCTION public.approva_messaggio(p_id uuid)
@@ -1142,6 +1373,8 @@ begin
   for r in
     select f.id, f.data_nascita from public.fratelli f
     where lower(f.stato::text) = any (select lower(x) from unnest(p_stati) as x)
+       -- usciti nel corso dell'anno (Oriente Eterno, trasferiti): la quota dell'anno resta dovuta secondo le regole d'uscita
+       or (f.stato::text in ('oriente_eterno', 'trasferito') and f.data_uscita >= make_date(p_anno, 1, 1))
   loop
     if r.data_nascita is null then senza_data := senza_data + 1; continue; end if;
     if exists (select 1 from public.scadenze s
@@ -1164,6 +1397,10 @@ begin
       creati := creati + nrow;
     end loop;
   end loop;
+
+  -- regole d'uscita: per l'Oriente Eterno si annullano le rate successive alla data
+  perform public.applica_uscita_fratello(x.id) from public.fratelli x
+   where x.stato::text in ('oriente_eterno', 'trasferito') and x.data_uscita is not null;
 
   return jsonb_build_object('scadenze_create', creati, 'senza_data_nascita', senza_data,
                             'senza_fascia', senza_fascia, 'con_altro_piano_rate', altro_piano);
@@ -1277,20 +1514,6 @@ end;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.fratello_mio()
- RETURNS uuid
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  -- collegamento salvato nel profilo oppure, se manca, il Fratello con la stessa e-mail dell'utente (solo se è uno)
-  select coalesce(p.fratello_id,
-           (select min(f.id::text)::uuid from public.fratelli f join auth.users u on lower(u.email) = lower(f.email)
-             where u.id = auth.uid() having count(*) = 1))
-  from public.profili p where p.user_id = auth.uid() and p.ruolo::text = 'fratello'
-$function$
-;
-
 CREATE OR REPLACE FUNCTION public.genera_calendario(p_anno integer, p_ora_ordinaria time without time zone DEFAULT NULL::time without time zone, p_ora_informale time without time zone DEFAULT NULL::time without time zone, p_estate_dal date DEFAULT NULL::date, p_estate_al date DEFAULT NULL::date, p_inverno_dal date DEFAULT NULL::date, p_inverno_al_gen date DEFAULT NULL::date)
  RETURNS integer
  LANGUAGE plpgsql
@@ -1401,7 +1624,7 @@ begin
   with ins as (
     insert into public.conto_movimenti
       (import_id, data_operazione, data_valuta, descrizione, importo, saldo, riferimento_banca,
-       impronta, categoria_id, stato_riconciliazione, origine)
+       impronta, categoria_id, stato_riconciliazione, origine, conto)
     select v_imp,
            (x ->> 'data_operazione')::date,
            nullif(x ->> 'data_valuta', '')::date,
@@ -1411,7 +1634,8 @@ begin
            nullif(x ->> 'riferimento_banca', ''),
            x ->> 'impronta',
            nullif(x ->> 'categoria_id', '')::uuid,
-           case when nullif(x ->> 'categoria_id', '') is null then 'da_riconciliare' else 'riconciliato' end, 'banca'
+           case when nullif(x ->> 'categoria_id', '') is null then 'da_riconciliare' else 'riconciliato' end, 'banca',
+           coalesce(nullif(trim(x ->> 'conto'), ''), 'BancoPosta')
     from jsonb_array_elements(p_righe) as x
     on conflict (impronta) do nothing
     returning 1
@@ -1569,29 +1793,6 @@ end;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.lemmi_e_admin()
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select exists (
-    select 1 from public.profili p
-    where p.user_id = auth.uid() and p.ruolo::text = 'amministratore'
-  );
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.lemmi_ruolo_in(VARIADIC r text[])
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  select exists (select 1 from public.profili p where p.user_id = auth.uid() and p.ruolo::text = any (r));
-$function$
-;
-
 CREATE OR REPLACE FUNCTION public.mie_quote()
  RETURNS TABLE(id uuid, anno integer, voce text, rata_n integer, rate_totali integer, importo_dovuto numeric, data_scadenza date, versato numeric, residuo numeric, stato text)
  LANGUAGE sql
@@ -1676,6 +1877,42 @@ begin
 end $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.registra_uscita_fratello(p_fratello uuid, p_stato text, p_data date, p_loggia text DEFAULT NULL::text, p_exeat text DEFAULT NULL::text, p_note text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  n_rip integer := 0;
+  n_ann integer := 0;
+begin
+  if coalesce(public.ruolo_corrente()::text, '') not in ('amministratore', 'segretario') then
+    raise exception 'Operazione riservata ad amministratore e Segretario.';
+  end if;
+  if p_stato not in ('oriente_eterno', 'trasferito', 'attivo') then raise exception 'Stato non valido.'; end if;
+  if p_stato <> 'attivo' and p_data is null then raise exception 'Indica la data.'; end if;
+  if not exists (select 1 from public.fratelli where id = p_fratello) then raise exception 'Fratello non trovato.'; end if;
+
+  -- ripristina le quote annullate da una registrazione precedente (data o stato cambiati)
+  update public.scadenze set sconto = 0, motivo_eccezione = null
+   where fratello_id = p_fratello
+     and (motivo_eccezione like 'Passato all''Oriente Eterno il %' or motivo_eccezione like 'Trasferito ad altra Loggia il %');
+  get diagnostics n_rip = row_count;
+
+  update public.fratelli
+     set stato = p_stato::stato_fratello,
+         data_uscita = case when p_stato = 'attivo' then null else p_data end,
+         loggia_destinazione = case when p_stato = 'trasferito' then nullif(trim(p_loggia), '') end,
+         exeat_rif = case when p_stato = 'trasferito' then nullif(trim(p_exeat), '') end,
+         note_uscita = case when p_stato = 'attivo' then null else nullif(trim(p_note), '') end
+   where id = p_fratello;
+
+  n_ann := public.applica_uscita_fratello(p_fratello);
+  return jsonb_build_object('quote_annullate', n_ann, 'quote_ripristinate', n_rip);
+end $function$
+;
+
 CREATE OR REPLACE FUNCTION public.riconcilia_con_versamento(p_movimento uuid, p_voce uuid, p_fratello uuid, p_anno integer, p_scadenza uuid DEFAULT NULL::uuid, p_note text DEFAULT NULL::text)
  RETURNS uuid
  LANGUAGE plpgsql
@@ -1705,6 +1942,56 @@ begin
          categoria_id = coalesce(categoria_id, (select id from public.categorie_movimento where nome = 'Versamenti dei Fratelli'))
    where id = m.id;
   return nuovo;
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.riconcilia_ripartito(p_movimento uuid, p_voce uuid, p_fratello uuid, p_anno integer, p_scadenze uuid[] DEFAULT '{}'::uuid[], p_note text DEFAULT NULL::text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  m public.conto_movimenti%rowtype;
+  resto numeric(12,2);
+  sc uuid;
+  res numeric(12,2);
+  quota numeric(12,2);
+  n integer := 0;
+begin
+  if coalesce(public.ruolo_corrente()::text, '') not in ('amministratore', 'tesoriere') then
+    raise exception 'Operazione riservata ad amministratore e Tesoriere.';
+  end if;
+  select * into m from public.conto_movimenti where id = p_movimento for update;
+  if not found then raise exception 'Movimento non trovato.'; end if;
+  if m.importo <= 0 then raise exception 'Solo le entrate si collegano a un versamento.'; end if;
+  if m.stato_riconciliazione = 'riconciliato' then raise exception 'Il movimento è già riconciliato.'; end if;
+  if p_fratello is null then raise exception 'Manca il Fratello.'; end if;
+
+  resto := m.importo;
+  foreach sc in array coalesce(p_scadenze, '{}'::uuid[]) loop
+    exit when resto <= 0;
+    select s.importo_dovuto - coalesce((select sum(v.importo) from public.versamenti v where v.scadenza_id = s.id), 0)
+      into res from public.scadenze s
+     where s.id = sc and s.fratello_id = p_fratello and s.voce_id = p_voce;
+    continue when res is null or res <= 0;
+    quota := least(resto, res);
+    insert into public.versamenti (data_versamento, voce_id, fratello_id, anno, importo, scadenza_id, modalita, riferimento, movimento_id, note)
+    values (m.data_operazione, p_voce, p_fratello, p_anno, quota, sc, 'bonifico', m.riferimento_banca, m.id, p_note);
+    resto := resto - quota; n := n + 1;
+  end loop;
+  if resto > 0 then   -- eccedenza (o nessuna scadenza aperta): acconto non collegato
+    insert into public.versamenti (data_versamento, voce_id, fratello_id, anno, importo, scadenza_id, modalita, riferimento, movimento_id, note)
+    values (m.data_operazione, p_voce, p_fratello, p_anno, resto, null, 'bonifico', m.riferimento_banca, m.id, p_note);
+    n := n + 1;
+  end if;
+
+  update public.conto_movimenti
+     set stato_riconciliazione = 'riconciliato',
+         fratello_id = p_fratello,
+         categoria_id = coalesce(categoria_id, (select id from public.categorie_movimento where nome = 'Versamenti dei Fratelli'))
+   where id = m.id;
+  return n;
 end $function$
 ;
 
@@ -1767,16 +2054,6 @@ begin
 
   return jsonb_build_object('ok', true, 'tabella', p_tabella, 'modo', p_modo, 'righe', v_n, 'backup_sicurezza', v_sic->'id');
 end;
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.ruolo_corrente()
- RETURNS ruolo_app
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  select ruolo from profili where user_id = auth.uid()
 $function$
 ;
 
@@ -1844,383 +2121,559 @@ begin
 end $function$
 ;
 
+DROP TRIGGER IF EXISTS agape_aggiornato ON public.agape_adesioni;
+CREATE TRIGGER agape_aggiornato BEFORE UPDATE ON public.agape_adesioni FOR EACH ROW EXECUTE FUNCTION agape_aggiornato();
+
+DROP TRIGGER IF EXISTS agape_ospiti_aggiornato ON public.agape_ospiti;
+CREATE TRIGGER agape_ospiti_aggiornato BEFORE UPDATE ON public.agape_ospiti FOR EACH ROW EXECUTE FUNCTION agape_ospiti_aggiornato();
+
+DROP TRIGGER IF EXISTS agape_pagamenti_aggiornato ON public.agape_pagamenti;
+CREATE TRIGGER agape_pagamenti_aggiornato BEFORE UPDATE ON public.agape_pagamenti FOR EACH ROW EXECUTE FUNCTION agape_pagamenti_aggiornato();
+
+DROP TRIGGER IF EXISTS elezioni_updated_at ON public.elezioni;
 CREATE TRIGGER elezioni_updated_at BEFORE UPDATE ON public.elezioni FOR EACH ROW EXECUTE FUNCTION tornate_set_updated_at();
 
+DROP TRIGGER IF EXISTS lavori_updated_at ON public.lavori;
 CREATE TRIGGER lavori_updated_at BEFORE UPDATE ON public.lavori FOR EACH ROW EXECUTE FUNCTION tornate_set_updated_at();
 
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.pratiche_date FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.fratelli FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.passaggi_grado FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
+DROP TRIGGER IF EXISTS lemmi_audit ON public.cariche_storico;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.cariche_storico FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
+DROP TRIGGER IF EXISTS lemmi_audit ON public.modelli_messaggio;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.modelli_messaggio FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.messaggi FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+DROP TRIGGER IF EXISTS lemmi_audit ON public.fratelli;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.fratelli FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.messaggi_destinatari FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+DROP TRIGGER IF EXISTS lemmi_audit ON public.agape_pagamenti;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.agape_pagamenti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.bussanti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.documenti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.loggia FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.fasce_eta FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.parametri_quote FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.piano_rate FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.scadenze FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.import_estratti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.versamenti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.categorie_movimento FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.tornate FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.voci_quota FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.lavori FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.conto_movimenti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.elezioni FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.eventi_conto FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.conto_saldi FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.modelli_loggia FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.verbali FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.presenze_verbale FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.pratiche FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.pratiche_passi FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
+DROP TRIGGER IF EXISTS lemmi_audit ON public.profili;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.profili FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
+DROP TRIGGER IF EXISTS lemmi_audit ON public.elenco_cariche;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.elenco_cariche FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
+DROP TRIGGER IF EXISTS lemmi_audit ON public.passaggi_grado;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.passaggi_grado FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.messaggi;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.messaggi FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.messaggi_destinatari;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.messaggi_destinatari FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.bussanti;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.bussanti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.documenti;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.documenti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.loggia;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.loggia FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.fasce_eta;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.fasce_eta FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.parametri_quote;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.parametri_quote FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.piano_rate;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.piano_rate FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.scadenze;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.scadenze FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.import_estratti;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.import_estratti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.versamenti;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.versamenti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.conto_movimenti;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.conto_movimenti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.tornate;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.tornate FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.voci_quota;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.voci_quota FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.categorie_movimento;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.categorie_movimento FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.lavori;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.lavori FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.elezioni;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.elezioni FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.eventi_conto;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.eventi_conto FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.modelli_loggia;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.modelli_loggia FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.conto_saldi;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.conto_saldi FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.verbali;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.verbali FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.agape_adesioni;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.agape_adesioni FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.presenze_verbale;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.presenze_verbale FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.pratiche;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.pratiche FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.pratiche_passi;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.pratiche_passi FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.pratiche_date;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.pratiche_date FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.agape_ospiti;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.agape_ospiti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS tornate_updated_at ON public.tornate;
 CREATE TRIGGER tornate_updated_at BEFORE UPDATE ON public.tornate FOR EACH ROW EXECUTE FUNCTION tornate_set_updated_at();
 
+DROP TRIGGER IF EXISTS trg_bussanti_aggiornato ON public.bussanti;
 CREATE TRIGGER trg_bussanti_aggiornato BEFORE UPDATE ON public.bussanti FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_bussanti_cronologia ON public.bussanti;
 CREATE TRIGGER trg_bussanti_cronologia AFTER INSERT OR DELETE OR UPDATE ON public.bussanti FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_categorie_movimento_aggiornato ON public.categorie_movimento;
 CREATE TRIGGER trg_categorie_movimento_aggiornato BEFORE UPDATE ON public.categorie_movimento FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_categorie_movimento_cronologia ON public.categorie_movimento;
 CREATE TRIGGER trg_categorie_movimento_cronologia AFTER INSERT OR DELETE OR UPDATE ON public.categorie_movimento FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_conto_movimenti_aggiornato ON public.conto_movimenti;
 CREATE TRIGGER trg_conto_movimenti_aggiornato BEFORE UPDATE ON public.conto_movimenti FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_conto_movimenti_cronologia ON public.conto_movimenti;
 CREATE TRIGGER trg_conto_movimenti_cronologia AFTER INSERT OR DELETE OR UPDATE ON public.conto_movimenti FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_documenti_cronologia ON public.documenti;
 CREATE TRIGGER trg_documenti_cronologia AFTER INSERT OR DELETE OR UPDATE ON public.documenti FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_fasce_eta_aggiornato ON public.fasce_eta;
 CREATE TRIGGER trg_fasce_eta_aggiornato BEFORE UPDATE ON public.fasce_eta FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_fasce_eta_cronologia ON public.fasce_eta;
 CREATE TRIGGER trg_fasce_eta_cronologia AFTER INSERT OR DELETE OR UPDATE ON public.fasce_eta FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_fratelli_aggiornato ON public.fratelli;
 CREATE TRIGGER trg_fratelli_aggiornato BEFORE UPDATE ON public.fratelli FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_log_cariche ON public.cariche_storico;
 CREATE TRIGGER trg_log_cariche AFTER INSERT OR DELETE OR UPDATE ON public.cariche_storico FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_log_destinatari ON public.messaggi_destinatari;
 CREATE TRIGGER trg_log_destinatari AFTER INSERT OR DELETE OR UPDATE ON public.messaggi_destinatari FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_log_fratelli ON public.fratelli;
 CREATE TRIGGER trg_log_fratelli AFTER INSERT OR DELETE OR UPDATE ON public.fratelli FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_log_messaggi ON public.messaggi;
 CREATE TRIGGER trg_log_messaggi AFTER INSERT OR DELETE OR UPDATE ON public.messaggi FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_log_modelli ON public.modelli_messaggio;
 CREATE TRIGGER trg_log_modelli AFTER INSERT OR DELETE OR UPDATE ON public.modelli_messaggio FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_log_passaggi ON public.passaggi_grado;
 CREATE TRIGGER trg_log_passaggi AFTER INSERT OR DELETE OR UPDATE ON public.passaggi_grado FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_loggia_aggiornato ON public.loggia;
 CREATE TRIGGER trg_loggia_aggiornato BEFORE UPDATE ON public.loggia FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_messaggi_aggiornato ON public.messaggi;
 CREATE TRIGGER trg_messaggi_aggiornato BEFORE UPDATE ON public.messaggi FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_modelli_aggiornato ON public.modelli_messaggio;
 CREATE TRIGGER trg_modelli_aggiornato BEFORE UPDATE ON public.modelli_messaggio FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_parametri_quote_aggiornato ON public.parametri_quote;
 CREATE TRIGGER trg_parametri_quote_aggiornato BEFORE UPDATE ON public.parametri_quote FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_scadenze_aggiornato ON public.scadenze;
 CREATE TRIGGER trg_scadenze_aggiornato BEFORE UPDATE ON public.scadenze FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_scadenze_cronologia ON public.scadenze;
 CREATE TRIGGER trg_scadenze_cronologia AFTER INSERT OR DELETE OR UPDATE ON public.scadenze FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_versamenti_aggiornato ON public.versamenti;
 CREATE TRIGGER trg_versamenti_aggiornato BEFORE UPDATE ON public.versamenti FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_versamenti_controllo ON public.versamenti;
 CREATE TRIGGER trg_versamenti_controllo BEFORE INSERT OR UPDATE ON public.versamenti FOR EACH ROW EXECUTE FUNCTION controlla_versamento();
 
+DROP TRIGGER IF EXISTS trg_versamenti_cronologia ON public.versamenti;
 CREATE TRIGGER trg_versamenti_cronologia AFTER INSERT OR DELETE OR UPDATE ON public.versamenti FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+DROP TRIGGER IF EXISTS trg_voci_quota_aggiornato ON public.voci_quota;
 CREATE TRIGGER trg_voci_quota_aggiornato BEFORE UPDATE ON public.voci_quota FOR EACH ROW EXECUTE FUNCTION imposta_aggiornato_il();
 
+DROP TRIGGER IF EXISTS trg_voci_quota_cronologia ON public.voci_quota;
 CREATE TRIGGER trg_voci_quota_cronologia AFTER INSERT OR DELETE OR UPDATE ON public.voci_quota FOR EACH ROW EXECUTE FUNCTION registra_modifica();
 
+drop policy if exists agape_gestione on public.agape_adesioni;
+create policy agape_gestione on public.agape_adesioni as PERMISSIVE for ALL to authenticated
+  using (((ruolo_corrente())::text = ANY (ARRAY['amministratore'::text, 'venerabile'::text, 'segretario'::text, 'tesoriere'::text])))
+  with check (((ruolo_corrente())::text = ANY (ARRAY['amministratore'::text, 'venerabile'::text, 'segretario'::text, 'tesoriere'::text])));
+
+drop policy if exists agape_propria_lettura on public.agape_adesioni;
+create policy agape_propria_lettura on public.agape_adesioni as PERMISSIVE for SELECT to authenticated
+  using ((fratello_id = fratello_mio()));
+
+drop policy if exists agape_ospiti_gestione on public.agape_ospiti;
+create policy agape_ospiti_gestione on public.agape_ospiti as PERMISSIVE for ALL to authenticated
+  using (((ruolo_corrente())::text = ANY (ARRAY['amministratore'::text, 'venerabile'::text, 'segretario'::text, 'tesoriere'::text])))
+  with check (((ruolo_corrente())::text = ANY (ARRAY['amministratore'::text, 'venerabile'::text, 'segretario'::text, 'tesoriere'::text])));
+
+drop policy if exists agape_pagamenti_gestione on public.agape_pagamenti;
+create policy agape_pagamenti_gestione on public.agape_pagamenti as PERMISSIVE for ALL to authenticated
+  using (((ruolo_corrente())::text = ANY (ARRAY['amministratore'::text, 'venerabile'::text, 'segretario'::text, 'tesoriere'::text])))
+  with check (((ruolo_corrente())::text = ANY (ARRAY['amministratore'::text, 'venerabile'::text, 'segretario'::text, 'tesoriere'::text])));
+
+drop policy if exists backup_esecuzioni_admin on public.backup_esecuzioni;
 create policy backup_esecuzioni_admin on public.backup_esecuzioni as PERMISSIVE for SELECT to authenticated
   using (lemmi_e_admin());
 
+drop policy if exists backup_righe_admin on public.backup_righe;
 create policy backup_righe_admin on public.backup_righe as PERMISSIVE for SELECT to authenticated
   using (lemmi_e_admin());
 
+drop policy if exists bussanti_cancellazione on public.bussanti;
 create policy bussanti_cancellazione on public.bussanti as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists bussanti_inserimento on public.bussanti;
 create policy bussanti_inserimento on public.bussanti as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists bussanti_lettura on public.bussanti;
 create policy bussanti_lettura on public.bussanti as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists bussanti_modifica on public.bussanti;
 create policy bussanti_modifica on public.bussanti as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists cariche_storico_cancellazione on public.cariche_storico;
 create policy cariche_storico_cancellazione on public.cariche_storico as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists cariche_storico_inserimento on public.cariche_storico;
 create policy cariche_storico_inserimento on public.cariche_storico as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists cariche_storico_lettura on public.cariche_storico;
 create policy cariche_storico_lettura on public.cariche_storico as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists cariche_storico_modifica on public.cariche_storico;
 create policy cariche_storico_modifica on public.cariche_storico as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists fratello_proprie_cariche on public.cariche_storico;
 create policy fratello_proprie_cariche on public.cariche_storico as PERMISSIVE for SELECT to authenticated
   using ((fratello_id = fratello_mio()));
 
+drop policy if exists categorie_movimento_cancellazione on public.categorie_movimento;
 create policy categorie_movimento_cancellazione on public.categorie_movimento as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists categorie_movimento_inserimento on public.categorie_movimento;
 create policy categorie_movimento_inserimento on public.categorie_movimento as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists categorie_movimento_lettura on public.categorie_movimento;
 create policy categorie_movimento_lettura on public.categorie_movimento as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists categorie_movimento_modifica on public.categorie_movimento;
 create policy categorie_movimento_modifica on public.categorie_movimento as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists conto_movimenti_cancellazione on public.conto_movimenti;
 create policy conto_movimenti_cancellazione on public.conto_movimenti as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists conto_movimenti_inserimento on public.conto_movimenti;
 create policy conto_movimenti_inserimento on public.conto_movimenti as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists conto_movimenti_lettura on public.conto_movimenti;
 create policy conto_movimenti_lettura on public.conto_movimenti as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists conto_movimenti_modifica on public.conto_movimenti;
 create policy conto_movimenti_modifica on public.conto_movimenti as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists conto_saldi_lettura on public.conto_saldi;
 create policy conto_saldi_lettura on public.conto_saldi as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists conto_saldi_scrittura on public.conto_saldi;
 create policy conto_saldi_scrittura on public.conto_saldi as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists cronologia_lettura on public.cronologia_modifiche;
 create policy cronologia_lettura on public.cronologia_modifiche as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists documenti_cancellazione on public.documenti;
 create policy documenti_cancellazione on public.documenti as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists documenti_inserimento on public.documenti;
 create policy documenti_inserimento on public.documenti as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists documenti_lettura on public.documenti;
 create policy documenti_lettura on public.documenti as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists documenti_modifica on public.documenti;
 create policy documenti_modifica on public.documenti as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists cariche_elenco_admin on public.elenco_cariche;
 create policy cariche_elenco_admin on public.elenco_cariche as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app))
   with check ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists cariche_elenco_lettura on public.elenco_cariche;
 create policy cariche_elenco_lettura on public.elenco_cariche as PERMISSIVE for SELECT to public
   using ((auth.uid() IS NOT NULL));
 
+drop policy if exists elezioni_cancellazione on public.elezioni;
 create policy elezioni_cancellazione on public.elezioni as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists elezioni_inserimento on public.elezioni;
 create policy elezioni_inserimento on public.elezioni as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists elezioni_lettura on public.elezioni;
 create policy elezioni_lettura on public.elezioni as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists elezioni_modifica on public.elezioni;
 create policy elezioni_modifica on public.elezioni as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists eventi_conto_lettura on public.eventi_conto;
 create policy eventi_conto_lettura on public.eventi_conto as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists eventi_conto_scrittura on public.eventi_conto;
 create policy eventi_conto_scrittura on public.eventi_conto as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists fasce_eta_admin on public.fasce_eta;
 create policy fasce_eta_admin on public.fasce_eta as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app))
   with check ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists fasce_eta_lettura on public.fasce_eta;
 create policy fasce_eta_lettura on public.fasce_eta as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists fratelli_cancellazione on public.fratelli;
 create policy fratelli_cancellazione on public.fratelli as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists fratelli_inserimento on public.fratelli;
 create policy fratelli_inserimento on public.fratelli as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists fratelli_lettura on public.fratelli;
 create policy fratelli_lettura on public.fratelli as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists fratelli_modifica on public.fratelli;
 create policy fratelli_modifica on public.fratelli as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists fratelli_modifica_ammin_segretario on public.fratelli;
 create policy fratelli_modifica_ammin_segretario on public.fratelli as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists fratello_propria_scheda on public.fratelli;
 create policy fratello_propria_scheda on public.fratelli as PERMISSIVE for SELECT to authenticated
   using ((id = fratello_mio()));
 
+drop policy if exists import_estratti_cancellazione on public.import_estratti;
 create policy import_estratti_cancellazione on public.import_estratti as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists import_estratti_inserimento on public.import_estratti;
 create policy import_estratti_inserimento on public.import_estratti as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists import_estratti_lettura on public.import_estratti;
 create policy import_estratti_lettura on public.import_estratti as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists import_estratti_modifica on public.import_estratti;
 create policy import_estratti_modifica on public.import_estratti as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists fratello_propri_lavori on public.lavori;
 create policy fratello_propri_lavori on public.lavori as PERMISSIVE for SELECT to authenticated
   using ((fratello_id = fratello_mio()));
 
+drop policy if exists lavori_cancellazione on public.lavori;
 create policy lavori_cancellazione on public.lavori as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists lavori_inserimento on public.lavori;
 create policy lavori_inserimento on public.lavori as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists lavori_lettura on public.lavori;
 create policy lavori_lettura on public.lavori as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists lavori_modifica on public.lavori;
 create policy lavori_modifica on public.lavori as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists loggia_admin on public.loggia;
 create policy loggia_admin on public.loggia as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app))
   with check ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists loggia_lettura on public.loggia;
 create policy loggia_lettura on public.loggia as PERMISSIVE for SELECT to public
   using ((auth.uid() IS NOT NULL));
 
+drop policy if exists messaggi_cancellazione on public.messaggi;
 create policy messaggi_cancellazione on public.messaggi as PERMISSIVE for DELETE to public
   using (((ruolo_corrente() = 'amministratore'::ruolo_app) OR ((stato = 'bozza'::stato_messaggio) AND ((ruolo_corrente() = 'segretario'::ruolo_app) OR ((ruolo_corrente() = 'tesoriere'::ruolo_app) AND (categoria = 'sollecito'::categoria_messaggio))))));
 
+drop policy if exists messaggi_inserimento on public.messaggi;
 create policy messaggi_inserimento on public.messaggi as PERMISSIVE for INSERT to public
   with check (((stato = 'bozza'::stato_messaggio) AND ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])) OR ((ruolo_corrente() = 'tesoriere'::ruolo_app) AND (categoria = 'sollecito'::categoria_messaggio)))));
 
+drop policy if exists messaggi_lettura on public.messaggi;
 create policy messaggi_lettura on public.messaggi as PERMISSIVE for SELECT to public
   using (((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])) OR ((ruolo_corrente() = 'tesoriere'::ruolo_app) AND (categoria = 'sollecito'::categoria_messaggio))));
 
+drop policy if exists messaggi_modifica on public.messaggi;
 create policy messaggi_modifica on public.messaggi as PERMISSIVE for UPDATE to public
   using (((ruolo_corrente() = 'amministratore'::ruolo_app) OR ((stato = ANY (ARRAY['bozza'::stato_messaggio, 'in_approvazione'::stato_messaggio])) AND ((ruolo_corrente() = 'segretario'::ruolo_app) OR ((ruolo_corrente() = 'tesoriere'::ruolo_app) AND (categoria = 'sollecito'::categoria_messaggio))))))
   with check (((ruolo_corrente() = 'amministratore'::ruolo_app) OR ((stato = ANY (ARRAY['bozza'::stato_messaggio, 'in_approvazione'::stato_messaggio])) AND ((ruolo_corrente() = 'segretario'::ruolo_app) OR ((ruolo_corrente() = 'tesoriere'::ruolo_app) AND (categoria = 'sollecito'::categoria_messaggio))))));
 
+drop policy if exists destinatari_cancellazione on public.messaggi_destinatari;
 create policy destinatari_cancellazione on public.messaggi_destinatari as PERMISSIVE for DELETE to public
   using (puo_modificare_messaggio(messaggio_id));
 
+drop policy if exists destinatari_inserimento on public.messaggi_destinatari;
 create policy destinatari_inserimento on public.messaggi_destinatari as PERMISSIVE for INSERT to public
   with check (puo_modificare_messaggio(messaggio_id));
 
+drop policy if exists destinatari_lettura on public.messaggi_destinatari;
 create policy destinatari_lettura on public.messaggi_destinatari as PERMISSIVE for SELECT to public
   using (puo_vedere_messaggio(messaggio_id));
 
+drop policy if exists destinatari_modifica on public.messaggi_destinatari;
 create policy destinatari_modifica on public.messaggi_destinatari as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app))
   with check ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists modelli_cancellazione on public.modelli_loggia;
 create policy modelli_cancellazione on public.modelli_loggia as PERMISSIVE for DELETE to authenticated
   using (lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text, 'segretario'::text]));
 
+drop policy if exists modelli_inserimento on public.modelli_loggia;
 create policy modelli_inserimento on public.modelli_loggia as PERMISSIVE for INSERT to authenticated
   with check (lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text, 'segretario'::text]));
 
+drop policy if exists modelli_lettura on public.modelli_loggia;
 create policy modelli_lettura on public.modelli_loggia as PERMISSIVE for SELECT to authenticated
   using (lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text, 'venerabile'::text, 'segretario'::text]));
 
+drop policy if exists modelli_modifica on public.modelli_loggia;
 create policy modelli_modifica on public.modelli_loggia as PERMISSIVE for UPDATE to authenticated
   using (lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text, 'segretario'::text]))
   with check (lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text, 'segretario'::text]));
 
+drop policy if exists modelli_lettura on public.modelli_messaggio;
 create policy modelli_lettura on public.modelli_messaggio as PERMISSIVE for SELECT to public
   using (((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])) OR ((ruolo_corrente() = 'tesoriere'::ruolo_app) AND (categoria = 'sollecito'::categoria_messaggio))));
 
+drop policy if exists modelli_scrittura on public.modelli_messaggio;
 create policy modelli_scrittura on public.modelli_messaggio as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists parametri_quote_admin on public.parametri_quote;
 create policy parametri_quote_admin on public.parametri_quote as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app))
   with check ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists parametri_quote_lettura on public.parametri_quote;
 create policy parametri_quote_lettura on public.parametri_quote as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists fratello_propri_passaggi on public.passaggi_grado;
 create policy fratello_propri_passaggi on public.passaggi_grado as PERMISSIVE for SELECT to authenticated
   using ((fratello_id = fratello_mio()));
 
+drop policy if exists passaggi_cancellazione on public.passaggi_grado;
 create policy passaggi_cancellazione on public.passaggi_grado as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists passaggi_inserimento on public.passaggi_grado;
 create policy passaggi_inserimento on public.passaggi_grado as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists passaggi_lettura on public.passaggi_grado;
 create policy passaggi_lettura on public.passaggi_grado as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists passaggi_modifica on public.passaggi_grado;
 create policy passaggi_modifica on public.passaggi_grado as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists piano_rate_admin on public.piano_rate;
 create policy piano_rate_admin on public.piano_rate as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app))
   with check ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists piano_rate_lettura on public.piano_rate;
 create policy piano_rate_lettura on public.piano_rate as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists pratiche_lettura on public.pratiche;
 create policy pratiche_lettura on public.pratiche as PERMISSIVE for SELECT to authenticated
   using ((EXISTS ( SELECT 1
    FROM profili p
   WHERE ((p.user_id = auth.uid()) AND (p.ruolo = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app, 'venerabile'::ruolo_app]))))));
 
+drop policy if exists pratiche_scrittura on public.pratiche;
 create policy pratiche_scrittura on public.pratiche as PERMISSIVE for ALL to authenticated
   using ((EXISTS ( SELECT 1
    FROM profili p
@@ -2229,11 +2682,13 @@ create policy pratiche_scrittura on public.pratiche as PERMISSIVE for ALL to aut
    FROM profili p
   WHERE ((p.user_id = auth.uid()) AND (p.ruolo = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app]))))));
 
+drop policy if exists pratiche_date_lettura on public.pratiche_date;
 create policy pratiche_date_lettura on public.pratiche_date as PERMISSIVE for SELECT to authenticated
   using ((EXISTS ( SELECT 1
    FROM profili p
   WHERE ((p.user_id = auth.uid()) AND (p.ruolo = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app, 'venerabile'::ruolo_app]))))));
 
+drop policy if exists pratiche_date_scrittura on public.pratiche_date;
 create policy pratiche_date_scrittura on public.pratiche_date as PERMISSIVE for ALL to authenticated
   using ((EXISTS ( SELECT 1
    FROM profili p
@@ -2242,11 +2697,13 @@ create policy pratiche_date_scrittura on public.pratiche_date as PERMISSIVE for 
    FROM profili p
   WHERE ((p.user_id = auth.uid()) AND (p.ruolo = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app]))))));
 
+drop policy if exists pratiche_passi_lettura on public.pratiche_passi;
 create policy pratiche_passi_lettura on public.pratiche_passi as PERMISSIVE for SELECT to authenticated
   using ((EXISTS ( SELECT 1
    FROM profili p
   WHERE ((p.user_id = auth.uid()) AND (p.ruolo = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app, 'venerabile'::ruolo_app]))))));
 
+drop policy if exists pratiche_passi_scrittura on public.pratiche_passi;
 create policy pratiche_passi_scrittura on public.pratiche_passi as PERMISSIVE for ALL to authenticated
   using ((EXISTS ( SELECT 1
    FROM profili p
@@ -2255,11 +2712,13 @@ create policy pratiche_passi_scrittura on public.pratiche_passi as PERMISSIVE fo
    FROM profili p
   WHERE ((p.user_id = auth.uid()) AND (p.ruolo = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app]))))));
 
+drop policy if exists presenze_lettura on public.presenze_verbale;
 create policy presenze_lettura on public.presenze_verbale as PERMISSIVE for SELECT to authenticated
   using ((EXISTS ( SELECT 1
    FROM profili p
   WHERE ((p.user_id = auth.uid()) AND (p.ruolo = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))))));
 
+drop policy if exists presenze_scrittura on public.presenze_verbale;
 create policy presenze_scrittura on public.presenze_verbale as PERMISSIVE for ALL to authenticated
   using ((EXISTS ( SELECT 1
    FROM profili p
@@ -2268,56 +2727,72 @@ create policy presenze_scrittura on public.presenze_verbale as PERMISSIVE for AL
    FROM profili p
   WHERE ((p.user_id = auth.uid()) AND (p.ruolo = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app]))))));
 
+drop policy if exists profili_admin on public.profili;
 create policy profili_admin on public.profili as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app))
   with check ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists profili_lettura on public.profili;
 create policy profili_lettura on public.profili as PERMISSIVE for SELECT to public
   using (((user_id = auth.uid()) OR (ruolo_corrente() = 'amministratore'::ruolo_app)));
 
+drop policy if exists push_proprie_cancellazione on public.push_iscrizioni;
 create policy push_proprie_cancellazione on public.push_iscrizioni as PERMISSIVE for DELETE to authenticated
   using ((user_id = auth.uid()));
 
+drop policy if exists push_proprie_inserimento on public.push_iscrizioni;
 create policy push_proprie_inserimento on public.push_iscrizioni as PERMISSIVE for INSERT to authenticated
   with check ((user_id = auth.uid()));
 
+drop policy if exists push_proprie_lettura on public.push_iscrizioni;
 create policy push_proprie_lettura on public.push_iscrizioni as PERMISSIVE for SELECT to authenticated
   using ((user_id = auth.uid()));
 
+drop policy if exists registro_attivita_admin on public.registro_attivita;
 create policy registro_attivita_admin on public.registro_attivita as PERMISSIVE for SELECT to authenticated
   using (lemmi_e_admin());
 
+drop policy if exists scadenze_cancellazione on public.scadenze;
 create policy scadenze_cancellazione on public.scadenze as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists scadenze_inserimento on public.scadenze;
 create policy scadenze_inserimento on public.scadenze as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists scadenze_lettura on public.scadenze;
 create policy scadenze_lettura on public.scadenze as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists scadenze_modifica on public.scadenze;
 create policy scadenze_modifica on public.scadenze as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists tornate_cancellazione on public.tornate;
 create policy tornate_cancellazione on public.tornate as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists tornate_inserimento on public.tornate;
 create policy tornate_inserimento on public.tornate as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists tornate_lettura on public.tornate;
 create policy tornate_lettura on public.tornate as PERMISSIVE for SELECT to public
   using ((auth.uid() IS NOT NULL));
 
+drop policy if exists tornate_modifica on public.tornate;
 create policy tornate_modifica on public.tornate as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists verbali_lettura on public.verbali;
 create policy verbali_lettura on public.verbali as PERMISSIVE for SELECT to authenticated
   using ((EXISTS ( SELECT 1
    FROM profili p
   WHERE ((p.user_id = auth.uid()) AND (p.ruolo = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))))));
 
+drop policy if exists verbali_scrittura on public.verbali;
 create policy verbali_scrittura on public.verbali as PERMISSIVE for ALL to authenticated
   using ((EXISTS ( SELECT 1
    FROM profili p
@@ -2326,53 +2801,69 @@ create policy verbali_scrittura on public.verbali as PERMISSIVE for ALL to authe
    FROM profili p
   WHERE ((p.user_id = auth.uid()) AND (p.ruolo = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app]))))));
 
+drop policy if exists versamenti_cancellazione on public.versamenti;
 create policy versamenti_cancellazione on public.versamenti as PERMISSIVE for DELETE to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists versamenti_inserimento on public.versamenti;
 create policy versamenti_inserimento on public.versamenti as PERMISSIVE for INSERT to public
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists versamenti_lettura on public.versamenti;
 create policy versamenti_lettura on public.versamenti as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists versamenti_modifica on public.versamenti;
 create policy versamenti_modifica on public.versamenti as PERMISSIVE for UPDATE to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists voci_quota_admin on public.voci_quota;
 create policy voci_quota_admin on public.voci_quota as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app))
   with check ((ruolo_corrente() = 'amministratore'::ruolo_app));
 
+drop policy if exists voci_quota_lettura on public.voci_quota;
 create policy voci_quota_lettura on public.voci_quota as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists documenti_loggia_cancellazione on storage.objects;
 create policy documenti_loggia_cancellazione on storage.objects as PERMISSIVE for DELETE to authenticated
   using (((bucket_id = 'documenti-loggia'::text) AND (ruolo_corrente() = 'amministratore'::ruolo_app)));
 
+drop policy if exists documenti_loggia_inserimento on storage.objects;
 create policy documenti_loggia_inserimento on storage.objects as PERMISSIVE for INSERT to authenticated
   with check (((bucket_id = 'documenti-loggia'::text) AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app]))));
 
+drop policy if exists documenti_loggia_lettura on storage.objects;
 create policy documenti_loggia_lettura on storage.objects as PERMISSIVE for SELECT to authenticated
   using (((bucket_id = 'documenti-loggia'::text) AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))));
 
+drop policy if exists "lemmi modelli cancellazione" on storage.objects;
 create policy "lemmi modelli cancellazione" on storage.objects as PERMISSIVE for DELETE to authenticated
   using (((bucket_id = 'modelli'::text) AND lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text, 'segretario'::text])));
 
+drop policy if exists "lemmi modelli inserimento" on storage.objects;
 create policy "lemmi modelli inserimento" on storage.objects as PERMISSIVE for INSERT to authenticated
   with check (((bucket_id = 'modelli'::text) AND lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text, 'segretario'::text])));
 
+drop policy if exists "lemmi modelli lettura" on storage.objects;
 create policy "lemmi modelli lettura" on storage.objects as PERMISSIVE for SELECT to authenticated
   using (((bucket_id = 'modelli'::text) AND lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text, 'venerabile'::text, 'segretario'::text])));
 
+drop policy if exists tavole_cancellazione on storage.objects;
 create policy tavole_cancellazione on storage.objects as PERMISSIVE for DELETE to authenticated
   using (((bucket_id = 'tavole'::text) AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))));
 
+drop policy if exists tavole_inserimento on storage.objects;
 create policy tavole_inserimento on storage.objects as PERMISSIVE for INSERT to authenticated
   with check (((bucket_id = 'tavole'::text) AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))));
 
+drop policy if exists tavole_lettura on storage.objects;
 create policy tavole_lettura on storage.objects as PERMISSIVE for SELECT to authenticated
   using (((bucket_id = 'tavole'::text) AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))));
 
+drop policy if exists tavole_modifica on storage.objects;
 create policy tavole_modifica on storage.objects as PERMISSIVE for UPDATE to authenticated
   using (((bucket_id = 'tavole'::text) AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))))
   with check (((bucket_id = 'tavole'::text) AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))));
