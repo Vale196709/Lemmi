@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.49.0',
+  numero: '0.50.0',
   data: '2026-11-05',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.50.0', data: '2026-11-05', t: 'Stato del sistema più chiaro: riquadro «In sintesi» con semafori su versione, spazio, backup e copia fuori da Supabase, ognuno con una frase e cosa fare' },
     { n: '0.49.0', data: '2026-11-05', t: 'Dati da controllare (codice fiscale, luoghi, CAP, date, telefoni e codici doppi già in archivio, anche in Excel); CAP verificato sul comune; Stati esteri da elenco; avviso se il codice fiscale è già presente; controllo del telefono' },
     { n: '0.48.0', data: '2026-11-05', t: 'Controlli sulle date: maggiore età del bussante, ordine di domanda, presa in considerazione, comunicazione e votazioni, preavviso di 60/30 giorni, seconda votazione in tornata diversa, passaggi di grado coerenti con l’iniziazione' },
     { n: '0.47.0', data: '2026-11-05', t: 'Controllo del codice fiscale (formato, lettera finale, coerenza con nome, data e comune); province e comuni scelti da elenco ISTAT con casella per nati all’estero o in comuni soppressi (data/luoghi.json)' },

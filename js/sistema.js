@@ -82,6 +82,65 @@
       </div></div>`;
   }
 
+  /* ---------- in sintesi: semafori con una frase chiara e, se serve, cosa fare ---------- */
+  const CHIAVE_SCARICO = 'lemmi_ultimo_scarico_backup';
+  const leggiScarico = () => { try { return localStorage.getItem(CHIAVE_SCARICO); } catch (_) { return null; } };
+  const segnaScarico = () => { try { localStorage.setItem(CHIAVE_SCARICO, new Date().toISOString()); } catch (_) { /* senza memoria del browser il promemoria non si aggiorna */ } };
+  const quando = (gg) => (gg === 0 ? 'oggi' : gg === 1 ? 'ieri' : gg + ' giorni fa');
+  const livelloSpazio = (p) => (p >= 90 ? 'bad' : p >= 70 ? 'warn' : 'ok');
+  const ETICHETTA = { ok: 'In ordine', warn: 'Da controllare', bad: 'Urgente' };
+
+  function sintesi(sp, errSp, elenco, stato, errBk) {
+    const righe = [];
+    const add = (livello, titolo, testo, cosa, vai) => righe.push({ livello, titolo, testo, cosa: cosa || '', vai });
+    const lim = (window.LEMMI_VERSIONE && window.LEMMI_VERSIONE.limiti) || { db_mb: 500, file_mb: 1024 };
+
+    const ver = window.LEMMI_VERSIONE || { numero: 'n/d' };
+    const ggV = ver.data ? giorniFa(ver.data + 'T12:00:00') : null;
+    add('ok', 'Versione dell’app', 'Versione ' + ver.numero + (ver.data ? ', aggiornata il ' + ver.data.split('-').reverse().join('/') + (ggV !== null && ggV >= 0 ? ' (' + quando(ggV) + ')' : '') : ''), '', 'sys-versione');
+
+    if (errSp || !sp) add('warn', 'Spazio disponibile', 'Non riesco a leggere lo spazio usato.', 'Apri i dettagli per vedere il motivo.', 'sys-spazio');
+    else {
+      const limDb = lim.db_mb * MB, limFile = lim.file_mb * MB;
+      const tot = Number(sp.db_totale) || 0, pDb = (tot / limDb) * 100;
+      const totFile = (sp.file || []).reduce((a, x) => a + (Number(x.byte) || 0), 0), pFile = (totFile / limFile) * 100;
+      const consiglio = 'Libera spazio (per esempio file non più utili) o valuta un piano superiore.';
+      add(livelloSpazio(pDb), 'Database (dati e tavole)', fmtByte(Math.max(0, limDb - tot)) + ' liberi su ' + fmtByte(limDb) + ' · usato il ' + pDb.toFixed(0) + '%', pDb >= 70 ? consiglio : '', 'sys-spazio');
+      add(livelloSpazio(pFile), 'Archivio file', fmtByte(Math.max(0, limFile - totFile)) + ' liberi su ' + fmtByte(limFile) + ' · usato il ' + pFile.toFixed(0) + '%', pFile >= 70 ? consiglio : '', 'sys-spazio');
+    }
+
+    if (errBk) add('warn', 'Backup', 'Non riesco a leggere i backup.', 'Apri i dettagli per vedere il motivo.', 'sys-backup');
+    else {
+      const riusciti = (elenco || []).filter((x) => x.esito === 'riuscito');
+      const ult = riusciti[0], comp = riusciti.find((x) => x.tipo === 'completo');
+      const gg = ult ? giorniFa(ult.concluso_il || ult.avviato_il) : null;
+      if (!ult) add('bad', 'Ultimo backup', 'Nessun backup eseguito finora.', 'Nei dettagli premi «Esegui ora».', 'sys-backup');
+      else if (gg > 2) add('bad', 'Ultimo backup', 'Risale a ' + gg + ' giorni fa.', 'Controlla che la pianificazione automatica sia attiva, oppure eseguine uno a mano.', 'sys-backup');
+      else add('ok', 'Ultimo backup', quando(gg).replace(/^./, (c) => c.toUpperCase()) + ' (' + dataOra(ult.concluso_il || ult.avviato_il) + ')', '', 'sys-backup');
+      if (stato && stato.pianificazione) add('ok', 'Backup automatico', 'Attivo: ogni notte, con un backup completo a settimana.', '', 'sys-backup');
+      else add('warn', 'Backup automatico', 'La pianificazione automatica non è attiva.', 'Su Supabase abilita pg_cron e riesegui lemmi_aggiornamento_26.sql (istruzioni nei dettagli).', 'sys-backup');
+      const ggC = comp ? giorniFa(comp.concluso_il || comp.avviato_il) : null;
+      if (comp && ggC > 10) add('warn', 'Backup completo', 'L’ultimo risale a ' + ggC + ' giorni fa (ne è previsto uno a settimana).', 'Eseguine uno nei dettagli.', 'sys-backup');
+    }
+
+    const sc = leggiScarico(), ggS = sc ? giorniFa(sc) : null;
+    const nota = 'I backup stanno nello stesso database di Supabase: una copia scaricata e tenuta altrove protegge anche se il progetto andasse perso o sospeso.';
+    if (!sc) add('warn', 'Copia fuori da Supabase', 'Da questo dispositivo non risulta nessuna copia scaricata.', 'Scarica il backup completo in Excel e conservalo in un posto sicuro. ' + nota, 'sys-backup');
+    else if (ggS > 7) add('warn', 'Copia fuori da Supabase', 'L’ultima copia scaricata da questo dispositivo risale a ' + ggS + ' giorni fa.', 'Scarica una copia aggiornata. ' + nota, 'sys-backup');
+    else add('ok', 'Copia fuori da Supabase', 'Ultima copia scaricata da questo dispositivo: ' + quando(ggS) + '.', 'Se scarichi da un altro dispositivo, questo promemoria non lo sa.', 'sys-backup');
+
+    const peggiore = righe.some((r) => r.livello === 'bad') ? 'bad' : righe.some((r) => r.livello === 'warn') ? 'warn' : 'ok';
+    const n = righe.filter((r) => r.livello !== 'ok').length;
+    const titolo = peggiore === 'ok' ? 'Tutto in ordine' : n + (n === 1 ? ' punto richiede attenzione' : ' punti richiedono attenzione');
+    const ordine = { bad: 0, warn: 1, ok: 2 };
+    const ordinate = righe.map((r, i) => ({ r, i })).sort((a, b) => ordine[a.r.livello] - ordine[b.r.livello] || a.i - b.i).map((x) => x.r);
+    return `<div class="card" id="sys-sintesi"><h2>In sintesi <span class="badge ${peggiore}" style="margin-left:8px">${esc(titolo)}</span></h2>
+      <div>${ordinate.map((r) => `<div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line, rgba(128,128,128,.25))">
+        <span class="badge ${r.livello}" style="min-width:96px;text-align:center">${ETICHETTA[r.livello]}</span>
+        <div style="flex:1"><b>${esc(r.titolo)}</b> — ${esc(r.testo)}${r.cosa ? `<div class="muted" style="margin-top:2px">${esc(r.cosa)}</div>` : ''}</div>
+        <a href="#" data-vai="${r.vai}" style="white-space:nowrap">Dettagli</a></div>`).join('')}</div></div>`;
+  }
+
   /* ---------- backup ---------- */
   function cardBackup(elenco, stato, errore) {
     if (errore) return `<div class="card"><h2>Backup</h2><div class="notice bad">${errore}</div></div>`;
@@ -153,6 +212,7 @@
       const a = document.createElement('a');
       a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 15000);
+      segnaScarico();
       toast('Backup scaricato', 'ok');
     } catch (e) { toast(messaggioErrore(e), 'bad'); }
     btn.disabled = false; btn.textContent = etichetta;
@@ -185,8 +245,16 @@
       stato = r && r.data ? r.data : null;
     } catch (e) { errBk = nonPresente(e) ? manca : '<b>Impossibile leggere i backup.</b><br>' + esc(messaggioErrore(e)); }
 
-    v.innerHTML = `<div class="page-head"><div><h1>Stato del sistema</h1><p>Versione, spazio disponibile e backup · visibile solo all’amministratore</p></div></div>
-      ${cardVersione()}${cardSpazio(sp, errSp)}${cardBackup(elenco, stato, errBk)}`;
+    v.innerHTML = `<div class="page-head"><div><h1>Stato del sistema</h1><p>Il riepilogo qui sotto dice se serve fare qualcosa · visibile solo all’amministratore</p></div></div>
+      ${sintesi(sp, errSp, elenco, stato, errBk)}
+      <div id="sys-spazio">${cardSpazio(sp, errSp)}</div>
+      <div id="sys-backup">${cardBackup(elenco, stato, errBk)}</div>
+      <div id="sys-versione">${cardVersione()}</div>`;
+    $$('[data-vai]', v).forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const el = document.getElementById(a.dataset.vai);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
 
     const stEl = $('#bk-stato', v);
     if ($('#b-bk-auto', v)) {
