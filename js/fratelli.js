@@ -224,7 +224,7 @@
           if (ctx) {
             const cp = window.LemmiDate.passaggio({ grado, data: dt || null, anno }, ctx, L.oggi());
             if (cp.errori.length) return errore(cp.errori[0].msg);
-            if (cp.avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + cp.avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
+            if (cp.avvisi.length && !(await window.LemmiDialogo.punti(cp.avvisi))) return;
           }
         }
         if (r) chk(await state.sb.from('passaggi_grado').update(dati).eq('id', r.id));
@@ -301,7 +301,7 @@
           const dop = await window.LemmiControlli.doppioni(state.sb, dati.codice_fiscale, { tabella: 'fratelli', id: riga.id });
           if (dop.length) avvisi.push('Codice fiscale già presente in archivio: ' + dop.join('; ') + '.');
         }
-        if (avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
+        if (avvisi.length && !(await window.LemmiDialogo.punti(avvisi))) return;
         if (dati.data_nascita && dati.data_iniziazione && dati.data_iniziazione < dati.data_nascita) return errore('L’iniziazione non può precedere la nascita.');
         if (dati.data_iniziazione && 'anno_iniziazione' in dati) dati.anno_iniziazione = Number(dati.data_iniziazione.slice(0, 4));
         const r = chk(await state.sb.from('fratelli').update(dati).eq('id', f.id).select('id'));
@@ -383,7 +383,7 @@
         if (dn === 'ERR' || di === 'ERR') return errore('Date non valide: usa gg/mm/aaaa.');
         const cdn = window.LemmiDate ? window.LemmiDate.fratello({ data_nascita: dn, data_iniziazione: di }, L.oggi()) : { errori: [], avvisi: [] };
         if (cdn.errori.length) return errore(cdn.errori[0].msg);
-        if (cdn.avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + cdn.avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
+        if (cdn.avvisi.length && !(await window.LemmiDialogo.punti(cdn.avvisi))) return;
         const u = leggiUscita(fm);
         if (u.err) return errore(u.err);
         const dati = { cognome, nome, data_nascita: dn || null, matricola: fm.elements.matricola.value.trim() || null, data_iniziazione: di || null, anno_iniziazione: di ? Number(di.slice(0, 4)) : null };
@@ -417,7 +417,7 @@
         const cdd = window.LemmiDate ? window.LemmiDate.fratello({ data_nascita: nasc, data_iniziazione: ini }, L.oggi()) : { errori: [], avvisi: [] };
         if (cdd.errori.length) return errore(cdd.errori[0].msg);
         const cambiate = (nasc || null) !== (f.data_nascita || null) || (ini || null) !== (f.data_iniziazione || null);
-        if (cambiate && cdd.avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + cdd.avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
+        if (cambiate && cdd.avvisi.length && !(await window.LemmiDialogo.punti(cdd.avvisi))) return;
         chk(await state.sb.from('fratelli').update({ data_nascita: nasc, data_iniziazione: ini, anno_iniziazione: anno }).eq('id', f.id));
         chiudi(); toast('Date aggiornate', 'ok'); L.route();
       },

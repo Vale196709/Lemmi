@@ -62,7 +62,7 @@
   const oggi = () => isoLocale(new Date());
 
   // Librerie pesanti caricate solo quando servono (Excel ~860 KB, PDF ~500 KB): l'app si apre prima, soprattutto sul telefono.
-  const LIBRERIE = { xlsx: ['vendor/xlsx.full.min.js', 'XLSX'], pdflib: ['vendor/pdf-lib.min.js', 'PDFLib'] };
+  const LIBRERIE = { xlsx: ['vendor/xlsx.full.min.js', 'XLSX'], pdflib: ['vendor/pdf-lib.min.js', 'PDFLib'], zip: ['vendor/zip-no-worker.min.js', 'zip'] };
   const libInCarico = {};
   function libreria(nome) {
     const [src, glob] = LIBRERIE[nome];
@@ -72,7 +72,7 @@
         const sc = document.createElement('script');
         sc.src = src;
         sc.onload = () => (window[glob] ? ok(window[glob]) : ko(new Error('Libreria ' + nome + ' non disponibile.')));
-        sc.onerror = () => { delete libInCarico[nome]; sc.remove(); ko(new Error('Impossibile caricare la libreria ' + (nome === 'xlsx' ? 'Excel' : 'PDF') + ': controlla la connessione e riprova.')); };
+        sc.onerror = () => { delete libInCarico[nome]; sc.remove(); ko(new Error('Impossibile caricare la libreria ' + (nome === 'xlsx' ? 'Excel' : nome === 'zip' ? 'ZIP' : 'PDF') + ': controlla la connessione e riprova.')); };
         document.head.appendChild(sc);
       });
     }
@@ -420,6 +420,19 @@
     if (t === 'auto') delete document.documentElement.dataset.tema; else document.documentElement.dataset.tema = t;
     $$('.tema-sw button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tema === t ? 'true' : 'false'));
   }
+  /* ---------- dimensione del testo: normale, grande, molto grande ---------- */
+  const TESTI = [['m', 'Testo normale', '.85rem'], ['g', 'Testo grande', '1.05rem'], ['xg', 'Testo molto grande', '1.3rem']];
+  const testoAttuale = () => { try { return localStorage.getItem('lemmi.testo') || 'm'; } catch (e) { return 'm'; } };
+  function applicaTesto(t) {
+    try { if (t === 'm') localStorage.removeItem('lemmi.testo'); else localStorage.setItem('lemmi.testo', t); } catch (e) { /* solo per questa sessione */ }
+    if (t === 'm') delete document.documentElement.dataset.testo; else document.documentElement.dataset.testo = t;
+    $$('.testo-sw button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.testo === t ? 'true' : 'false'));
+  }
+  function testoHtml() {
+    const t = testoAttuale();
+    return `<div class="testo-sw" role="group" aria-label="Dimensione del testo">${TESTI.map(([k, n, fs]) =>
+      `<button type="button" data-testo="${k}" aria-pressed="${k === t}" title="${n}" aria-label="${n}" style="font-size:${fs}">A</button>`).join('')}</div>`;
+  }
   function temaHtml() {
     const t = temaAttuale();
     return `<div class="tema-sw" role="group" aria-label="Tema dei colori">${TEMI.map(([k, n, ic]) =>
@@ -441,7 +454,7 @@
         <div class="brand"><div class="logo-mark">${logoSvg()}</div><div><b>Lemmi</b><small>${esc(nomeLoggia('Gestione di Loggia'))}</small></div></div>
         <nav class="nav">${menuHtml(p)}</nav>
         <div class="who"><b>${esc(p.nome_visualizzato || state.user.email)}</b><span>${esc(ETICHETTA_RUOLO[p.ruolo] || p.ruolo)}</span>
-          <button class="btn ghost small" id="b-logout">Esci</button>${temaHtml()}${versioneHtml()}</div>
+          <button class="btn ghost small" id="b-logout">Esci</button>${temaHtml()}${testoHtml()}${versioneHtml()}</div>
       </aside>
       <main id="view" data-stampa="${esc(nomeLoggia('Gestione di Loggia') + (state.loggia.oriente ? ' · Oriente di ' + state.loggia.oriente : ''))}"></main></div>`;
     osservaTabelle.disconnect();
@@ -453,6 +466,7 @@
       const i = TEMI.findIndex((x) => x[0] === k);
       applicaTema(b.getAttribute('aria-pressed') === 'true' ? TEMI[(i + 1) % TEMI.length][0] : k);
     }));
+    $$('.testo-sw button').forEach((b) => b.addEventListener('click', () => applicaTesto(b.dataset.testo)));
     $$('.nav-head, .nav-tog').forEach((b) => b.addEventListener('click', () => {
       const g = b.closest('.nav-group');
       const aperto = g.classList.toggle('open');
@@ -757,7 +771,7 @@
         const co = window.CodiceFiscale.controllaCoerenza(dati.codice_fiscale, { cognome: dati.cognome, nome: dati.nome, dataNascita: dati.data_nascita, codiceCatastale: window.LemmiLuoghi && window.LemmiLuoghi.catastale(f, 'luogo_nascita') });
         co.avvisi.forEach((a) => { if (!co.ok) avvisi.push('Codice fiscale: ' + a.charAt(0).toLowerCase() + a.slice(1)); });
       }
-      if (avvisi.length && !window.confirm('Controlla questi punti:\n\n- ' + avvisi.join('\n- ') + '\n\nSalvare comunque?')) return;
+      if (avvisi.length && !(await window.LemmiDialogo.punti(avvisi))) return;
       const btn = $('button[type=submit]', f); btn.disabled = true;
       try {
         let rid = id;

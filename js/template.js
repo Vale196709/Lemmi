@@ -427,8 +427,25 @@
     $$('select[data-pres]', v).forEach((sel) => sel.addEventListener('change', () => {
       (x.pres || (x.pres = {}))[sel.dataset.pres] = sel.value; sincronizza();
     }));
+    // tre pulsanti da toccare (P presente, G assente giustificato, A assente) al posto del menu: il menu resta come dato di base
+    const LEGENDA = [['presente', 'P', 'Presente', 'p'], ['giustificato', 'G', 'Assente giustificato', 'g'], ['assente', 'A', 'Assente', 'a']];
+    $$('select[data-pres]', v).forEach((sel) => {
+      const gr = document.createElement('div');
+      gr.className = 'pres-seg'; gr.setAttribute('role', 'group'); gr.setAttribute('aria-label', sel.getAttribute('aria-label') || 'Presenza');
+      const aggiorna = () => gr.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.val === sel.value ? 'true' : 'false'));
+      LEGENDA.forEach(([val, lett, nome, cl]) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = cl; b.textContent = lett; b.title = nome; b.dataset.val = val; b.setAttribute('aria-label', nome);
+        b.addEventListener('click', () => { sel.value = val; sel.dispatchEvent(new Event('change')); });
+        gr.appendChild(b);
+      });
+      sel.addEventListener('change', aggiorna); gr.addEventListener('aggiorna', aggiorna);
+      sel.parentNode.insertBefore(gr, sel.nextSibling); sel.classList.add('pres-nascosta'); aggiorna();
+    });
+    const tabP = $('.pres-tab', v);
+    if (tabP && tabP.closest('.table-wrap')) tabP.closest('.table-wrap').insertAdjacentHTML('beforebegin', '<div class="hint" style="margin:0 0 8px">P presente · G assente giustificato · A assente</div>');
     const tp = $('#v-tuttip', v);
-    if (tp) tp.addEventListener('click', () => { x.pres = {}; $$('select[data-pres]', v).forEach((sel) => { sel.value = 'presente'; }); sincronizza(); });
+    if (tp) tp.addEventListener('click', () => { x.pres = {}; $$('select[data-pres]', v).forEach((sel) => { sel.value = 'presente'; }); $$('.pres-seg', v).forEach((g) => g.dispatchEvent(new Event('aggiorna'))); sincronizza(); });
     sincronizza();
     const sb = $('#v-salva', v);
     if (sb) sb.addEventListener('click', () => salvaNelRegistro(g, ta.value, err, sb));

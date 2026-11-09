@@ -123,6 +123,14 @@
       if (comp && ggC > 10) add('warn', 'Backup completo', 'L’ultimo risale a ' + ggC + ' giorni fa (ne è previsto uno a settimana).', 'Eseguine uno nei dettagli.', 'sys-backup');
     }
 
+    if (window.LemmiBackupCompleto) {
+      let bc = null; try { bc = localStorage.getItem(window.LemmiBackupCompleto.CHIAVE_ULTIMO); } catch (_) { bc = null; }
+      const ggB = bc ? giorniFa(bc) : null;
+      const cosaB = 'Crea l’archivio cifrato nella scheda «Backup completo dell’applicazione» e conservalo fuori da Supabase.';
+      if (!bc) add('warn', 'Backup completo dell’applicazione', 'Da questo dispositivo non risulta nessun archivio completo (dati, file, utenti, struttura e codice).', cosaB, 'sys-backup-completo');
+      else if (ggB > 30) add('warn', 'Backup completo dell’applicazione', 'L’ultimo archivio completo creato da questo dispositivo risale a ' + ggB + ' giorni fa.', cosaB, 'sys-backup-completo');
+      else add('ok', 'Backup completo dell’applicazione', 'Ultimo archivio completo creato da questo dispositivo: ' + quando(ggB) + '.', 'Se lo crei da un altro dispositivo, questo promemoria non lo sa.', 'sys-backup-completo');
+    }
     const sc = leggiScarico(), ggS = sc ? giorniFa(sc) : null;
     const nota = 'I backup stanno nello stesso database di Supabase: una copia scaricata e tenuta altrove protegge anche se il progetto andasse perso o sospeso.';
     if (!sc) add('warn', 'Copia fuori da Supabase', 'Da questo dispositivo non risulta nessuna copia scaricata.', 'Scarica il backup completo in Excel e conservalo in un posto sicuro. ' + nota, 'sys-backup');
@@ -249,7 +257,9 @@
       ${sintesi(sp, errSp, elenco, stato, errBk)}
       <div id="sys-spazio">${cardSpazio(sp, errSp)}</div>
       <div id="sys-backup">${cardBackup(elenco, stato, errBk)}</div>
+      <div id="sys-backup-completo">${window.LemmiBackupCompleto ? window.LemmiBackupCompleto.card() : ''}</div>
       <div id="sys-versione">${cardVersione()}</div>`;
+    if (window.LemmiBackupCompleto) window.LemmiBackupCompleto.collega(v);
     $$('[data-vai]', v).forEach((a) => a.addEventListener('click', (e) => {
       e.preventDefault();
       const el = document.getElementById(a.dataset.vai);
