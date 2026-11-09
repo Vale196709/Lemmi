@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <script>
     // tema scelto dall'utente (automatico, chiaro o scuro): applicato subito, prima di disegnare la pagina
-    try { var t = localStorage.getItem('lemmi.tema'); if (t === 'scuro' || t === 'chiaro') document.documentElement.dataset.tema = t; } catch (e) {}
+    try { var t = localStorage.getItem('lemmi.tema'); if (t === 'scuro' || t === 'chiaro') document.documentElement.dataset.tema = t; var x = localStorage.getItem('lemmi.testo'); if (x === 'g' || x === 'xg') document.documentElement.dataset.testo = x; } catch (e) {}
   </script>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -29,6 +29,9 @@
   <script src="js/luoghi.js"></script>
   <script src="js/controllo_date.js"></script>
   <script src="js/controlli.js"></script>
+  <script src="js/backup_completo.js"></script>
+  <script src="js/dialogo.js"></script>
+  <script src="js/azioni_rapide.js"></script>
   <script src="js/pdf.js"></script>
   <script src="js/versione.js"></script>
   <script src="js/app.js"></script>
