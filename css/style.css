@@ -68,7 +68,7 @@
 html, body { margin: 0; height: 100%; }
 body {
   font-family: var(--font);
-  font-size: 15px;
+  font-size: calc(15px * var(--scala-testo, 1));
   line-height: 1.45;
   color: var(--ink);
   background: var(--bg);
@@ -728,3 +728,39 @@ a.badge.gold:hover, button.badge { cursor: pointer; text-decoration: none; }
 button.badge { border: 0; font: inherit; font-size: .75rem; font-weight: 600; }
 
 .ric .btn.wa { flex: none; padding: 6px 8px; }
+
+/* ---------- dimensione del testo (menu laterale) ---------- */
+:root { --scala-testo: 1; }
+:root[data-testo="g"] { --scala-testo: 1.13; }
+:root[data-testo="xg"] { --scala-testo: 1.27; }
+html { font-size: calc(16px * var(--scala-testo)); }
+.testo-sw { display: flex; gap: 2px; margin-top: 8px; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, .06); }
+.testo-sw button { flex: 1; border: 0; background: transparent; color: #b8c3e3; font: inherit; line-height: 1; padding: 5px 4px; border-radius: 7px; cursor: pointer; }
+.testo-sw button:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.testo-sw button[aria-pressed="true"] { background: rgba(201, 162, 75, .22); color: #fff; }
+@media (max-width: 880px) { .side .who .testo-sw { margin: 0; background: transparent; padding: 0; } }
+
+/* ---------- finestre di conferma ---------- */
+.dlg .modal-h h2 { margin: 0; }
+.dlg-punti { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+.dlg-az { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 18px; }
+.dlg-az .btn { min-height: 44px; }
+
+/* ---------- pulsante "+" delle azioni rapide (solo telefono) ---------- */
+.fab-wrap { display: none; }
+@media (max-width: 880px) {
+  .fab-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 30; }
+  .fab { width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--gold); color: var(--navy); font-size: 2rem; line-height: 1; cursor: pointer; box-shadow: 0 6px 18px rgba(0, 0, 0, .3); transition: transform .15s; }
+  .fab[aria-expanded="true"] { transform: rotate(45deg); }
+  .fab-menu { display: grid; gap: 8px; }
+  .fab-menu[hidden] { display: none; }
+  .fab-menu a { display: block; padding: 12px 18px; border-radius: 999px; background: var(--card); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); text-decoration: none; font-weight: 600; text-align: right; }
+}
+
+/* ---------- presenze: tre pulsanti da toccare al posto del menu ---------- */
+.pres-seg { display: inline-flex; gap: 6px; }
+.pres-seg button { min-width: 46px; min-height: 44px; border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer; }
+.pres-seg button.p[aria-pressed="true"] { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.pres-seg button.g[aria-pressed="true"] { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
+.pres-seg button.a[aria-pressed="true"] { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+select[data-pres].pres-nascosta { display: none; }
