@@ -1,0 +1,34 @@
+name: Prove automatiche
+
+# Si avvia a ogni modifica caricata su GitHub. Non blocca la pubblicazione dell'app: se qualcosa non va,
+# compare una croce rossa accanto alla modifica e arriva un'e-mail. Gratuito per i repository pubblici.
+on:
+  push:
+  pull_request:
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Prove sul codice
+        run: npm test
+      - name: Prova di ricostruzione del database
+        run: npm run test:db
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
