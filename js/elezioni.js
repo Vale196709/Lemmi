@@ -53,7 +53,7 @@
     if (rigaEl && rigaEl.data_elezione) el.dati.data_elezione = rigaEl.data_elezione;
     el.dati.votazioni = el.dati.votazioni || {};
     el.frat = frat.filter((f) => /^attiv/i.test(String(f.stato || '')) || grado[f.id] === 'maestro');
-    el.pass = pass; el.cari = cari; el.scaduti = scaduti; el.grado = grado;
+    el.tutti = frat; el.pass = pass; el.cari = cari; el.scaduti = scaduti; el.grado = grado;
     ricalcola();
   }
 
@@ -168,6 +168,24 @@
   };
 
   /* modello=true: stampa il modulo precompilato anche senza votanti, presenti, voti o eletti (si completa a penna) */
+  /* cariche in essere prima delle elezioni = quelle dell'anno massonico precedente, dalla storia dei Fratelli */
+  function carichePrecedenti() {
+    const y = el.anno - 1, out = {};
+    const cerca = (re, no) => {
+      const c = el.cari.find((x) => x.anno_dal <= y && (x.anno_al == null || x.anno_al >= y) && re.test(norm(x.carica)) && !(no && no.test(norm(x.carica))));
+      const f = c && (el.tutti || el.frat).find((q) => q.id === c.fratello_id);
+      return f ? nomeCompleto(f) : '';
+    };
+    const no = /gran|aggiunt|ex /;
+    out.mv = cerca(/venerabile/, no);
+    out.s1 = cerca(/(primo|1).*sorvegliante|sorvegliante.*(1|primo)/, no);
+    out.s2 = cerca(/(secondo|2).*sorvegliante|sorvegliante.*(2|secondo)/, no);
+    out.oratore = cerca(/oratore/, no);
+    out.segretario = cerca(/segretario/, no);
+    out.tesoriere = cerca(/tesoriere/, no);
+    return out;
+  }
+
   async function generaPdf(btn, modello) {
     const d = el.dati;
     const vinc = {}; const nomi = {};
@@ -203,7 +221,7 @@
     const dati = {
       annoMassonico: el.anno, loggia: state.loggia || {},
       giorno: dt ? String(parseInt(dt[2], 10)) : '', mese: dt ? MESI[parseInt(dt[1], 10) - 1] : '', anno2: dt ? dt[0].slice(2) : '',
-      cariche: Object.assign({}, nomi, { segretario: d.segretario || '' }),
+      cariche: Object.assign(carichePrecedenti(), d.segretario ? { segretario: d.segretario } : {}),
       presenti: d.presenti ? String(d.presenti) : '', giustificati: num(d.giustificati),
       votanti: votanti() ? String(votanti()) : '', maggioranza: votanti() ? String(maggioranza()) : '',
       mv: { righe: righeDi('mv'), nulli: num(votazione('mv').nulli) },
