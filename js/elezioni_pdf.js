@@ -18,12 +18,13 @@
     const nero = rgb(0.05, 0.05, 0.35);   // inchiostro blu scuro: si distingue dal modello stampato
 
     // scrive su una riga puntinata: p = pagina (1..5), x = inizio, y = bordo alto della riga (come nel modello), w = larghezza utile
+    const RIALZO = 3;   // punti: la scritta sta sopra la riga dei puntini invece di poggiarci sopra
     const scrivi = (p, x, y, testo, w, size) => {
       const s = pulisci(testo).trim();
       if (!s) return;
       let sz = size || 9.5;
       while (sz > 6 && fh.widthOfTextAtSize(s, sz) > w) sz -= 0.25;
-      pg[p - 1].drawText(s, { x, y: H - y - 10.4, size: sz, font: fh, color: nero });
+      pg[p - 1].drawText(s, { x, y: H - y - 10.4 + RIALZO, size: sz, font: fh, color: nero });
     };
     const rifai = (p, x0, y0, x1, y1, testo, bold) => {   // copre un testo stampato (anno) e lo riscrive
       const page = pg[p - 1], h = y1 - y0;
@@ -67,12 +68,12 @@
     /* ---- pagina 4: autocertificazione del Maestro Venerabile ---- */
     const a = d.autocert || {};
     const m = a.mv || {};
-    scrivi(4, 140, 498, m.nome, 370, 10.5);
+    scrivi(4, 140, 501, m.nome, 370, 10.5);
     scrivi(4, 91, 525, m.luogo, 258); scrivi(4, 368, 525, m.nascita, 140);
     scrivi(4, 110, 550, m.citta, 395);
     scrivi(4, 92, 575, m.via, 252); scrivi(4, 368, 575, m.tel, 133);
-    scrivi(4, 93, 600, m.email, 395);
-    scrivi(4, 80, 625, m.cf, 245);
+    scrivi(4, 93, 598.5, m.email, 395);
+    scrivi(4, 80, 623.5, m.cf, 245);
     scrivi(4, 155, 650, m.attivita, 350);
 
     /* ---- pagina 5: autocertificazione dei Dignitari ---- */
@@ -82,8 +83,8 @@
       scrivi(5, 138, y[0], x.nome, 366, 10);
       scrivi(5, 86, y[1], x.luogo, 120); scrivi(5, 222, y[1], x.nascita, 70); scrivi(5, 347, y[1], x.citta, 158);
       scrivi(5, 91, y[2], x.via, 285); scrivi(5, 404, y[2], x.tel, 106);
-      scrivi(5, 87, y[3], x.email, 205); scrivi(5, 322, y[3], x.cf, 183);
-      scrivi(5, 147, y[4], x.attivita, 145);
+      scrivi(5, 87, y[3] - 1.5, x.email, 205); scrivi(5, 322, y[3] - 1.5, x.cf, 183);
+      scrivi(5, 147, y[4] - 1.5, x.attivita, 145);
     });
 
     return doc.save();

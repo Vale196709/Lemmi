@@ -16,11 +16,12 @@
     const ftb = await doc.embedFont(StandardFonts.TimesRomanBold);
     const nero = rgb(0.05, 0.05, 0.35), bianco = rgb(1, 1, 1);
 
+    const RIALZO = 3;   // punti: la scritta sta sopra la riga dei puntini invece di poggiarci sopra
     const scrivi = (p, x, y, testo, w, size) => {
       const s = pulisci(testo).trim(); if (!s) return;
       let sz = size || 9.5;
       while (sz > 6 && fh.widthOfTextAtSize(s, sz) > w) sz -= 0.25;
-      pg[p - 1].drawText(s, { x, y: H - y - 10.4, size: sz, font: fh, color: nero });
+      pg[p - 1].drawText(s, { x, y: H - y - 10.4 + RIALZO, size: sz, font: fh, color: nero });
     };
     // riscrive un anno stampato nel modello
     const rifai = (p, x0, y0, x1, y1, testo, bold) => {
@@ -57,7 +58,7 @@
     scrivi(2, 151, 385, s.nome, 358, 10);
     scrivi(2, 91, 405, s.luogo, 152); scrivi(2, 259, 405, s.nascita, 86); scrivi(2, 406, 405, s.citta, 112);
     scrivi(2, 99, 426, s.via, 197); scrivi(2, 369, 426, s.tel, 147);
-    scrivi(2, 93, 446, s.email, 222); scrivi(2, 346, 446, s.cf, 163);
+    scrivi(2, 93, 446, s.email, 222); scrivi(2, 364, 446, s.cf, 145);
     scrivi(2, 164, 466, s.attivita, 343);
 
     /* 3 - Nomina degli Ufficiali */

@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.53.1',
+  numero: '0.53.2',
   data: '2026-11-17',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.53.2', data: '2026-11-18', t: 'PDF di elezioni e insediamento: le scritte stanno ora sopra la riga dei puntini e sono più leggibili; corretta la posizione del codice fiscale nella nomina del Segretario' },
     { n: '0.53.1', data: '2026-11-17', t: 'Allegati delle tavole: messaggi chiari se manca l’archivio dei file o i permessi, e script per creare l’archivio «tavole»' },
     { n: '0.53.0', data: '2026-11-17', t: 'Elezioni delle cariche: «Stampa modello precompilato», il modulo PDF si stampa anche senza votanti, presenti, voti ed eletti, con i nominativi già inseriti' },
     { n: '0.52.0', data: '2026-11-08', t: 'Dimensione del testo regolabile (A A A nel menu); conferme nello stile dell’app con «Correggi» e «Salva comunque»; pulsante «+» di azioni rapide su telefono; presenze del verbale con tre pulsanti P, G, A' },
