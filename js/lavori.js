@@ -118,7 +118,7 @@
       <div class="f s12"><label for="l-file">File della tavola (PDF, Word, ODT o testo, fino a 10 MB)</label>
         ${x.file_path ? `<div class="hint" style="margin-bottom:6px">File attuale: <b>${esc(x.file_nome || 'allegato')}</b>${x.file_dimensione ? ' · ' + kb(x.file_dimensione) : ''}. Scegliendone un altro, lo sostituisci.</div>
           <label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-bottom:6px"><input type="checkbox" name="rimuovi_file"> Rimuovi il file attuale</label>` : ''}
-        <input id="l-file" name="file" type="file" accept=".pdf,.doc,.docx,.odt,.txt"></div></div>`;
+        <input id="l-file" class="vis" name="file" type="file" accept=".pdf,.doc,.docx,.odt,.txt"></div></div>`;
     const extra = !nuovo && puoCancellare() ? '<button class="btn danger" type="button" data-del>Elimina</button>' : '';
 
     const m = finestra(nuovo ? 'Nuovo lavoro' : 'Modifica lavoro', corpo, {
