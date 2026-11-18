@@ -9,7 +9,7 @@
   const TUTTI = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const SOCI = ['amministratore', 'venerabile', 'segretario'];
   const CONFRATELLI = TUTTI.concat('fratello');   // il profilo Fratello vede solo la propria scheda, il calendario e il proprio accesso
-  const ACCESSO_SEZ = { home: CONFRATELLI, libromatricola: SOCI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: CONFRATELLI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: ['amministratore', 'venerabile', 'tesoriere'], template: SOCI, procedure: SOCI, verbali: SOCI, loggia: CONFRATELLI, utenti: ['amministratore'], sistema: ['amministratore'], registro: ['amministratore'], cerca: SOCI, completa: SOCI, relazione: SOCI };
+  const ACCESSO_SEZ = { home: CONFRATELLI, libromatricola: SOCI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: CONFRATELLI, biblioteca: CONFRATELLI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: ['amministratore', 'venerabile', 'tesoriere'], template: SOCI, procedure: SOCI, verbali: SOCI, loggia: CONFRATELLI, utenti: ['amministratore'], sistema: ['amministratore'], registro: ['amministratore'], cerca: SOCI, completa: SOCI, relazione: SOCI };
   const ETICHETTA_RUOLO = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere', fratello: 'Fratello' };
 
   const TIPI_DOMANDA = {
@@ -92,6 +92,7 @@
     lista: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>',
     gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5h0a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
     building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-5h6v5M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg>',
+    libro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
     pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 14h6M9 17h4"/></svg>',
@@ -385,6 +386,7 @@
     { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli/Bussanti', ic: IC.users, sub: [{ sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user }, { sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'verbali', href: '#/verbali', t: 'Verbali e presenze', ic: IC.lavori }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }, { sez: 'libromatricola', href: '#/libromatricola', t: 'Libro Matricola', ic: IC.storia }, { sez: 'completa', href: '#/completa', t: 'Dati da completare', ic: IC.lista }] },
     { sez: 'procedure', href: '#/procedure', t: 'Procedure', ic: IC.procedure },
     { sez: 'template', href: '#/template', t: 'Template', ic: IC.template },
+    { sez: 'biblioteca', href: '#/biblioteca', t: 'Biblioteca', ic: IC.libro },
     { sez: 'relazione', href: '#/relazione', t: 'Relazione annuale', ic: IC.lavori },
     { gruppo: 'config', t: 'Info di sistema', ic: IC.gear, sub: [{ sez: 'loggia', href: '#/loggia', t: 'Loggia', ic: IC.building }, { sez: 'utenti', href: '#/utenti', t: 'Utenti del sistema', ic: IC.shield }, { sez: 'sistema', href: '#/sistema', t: 'Stato del sistema', ic: IC.gear }, { sez: 'registro', href: '#/registro', t: 'Registro attività', ic: IC.lavori }] },
   ];
