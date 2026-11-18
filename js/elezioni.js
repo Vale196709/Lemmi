@@ -167,42 +167,60 @@
     return m;
   };
 
-  async function generaPdf(btn) {
+  /* modello=true: stampa il modulo precompilato anche senza votanti, presenti, voti o eletti (si completa a penna) */
+  async function generaPdf(btn, modello) {
     const d = el.dati;
     const vinc = {}; const nomi = {};
     for (const c of CARICHE) {
       const e = esito(c.k);
-      if (!e.vincitore) throw new Error('Per ' + c.t + ' non risulta ancora un eletto: controlla i voti e la maggioranza assoluta.');
-      const f = trovaFratello(e.vincitore);
-      if (!f) throw new Error('Per ' + c.t + ' il nome «' + e.vincitore + '» non corrisponde a un Fratello dell’elenco.');
+      let nome = e.vincitore;
+      if (!nome && modello) {
+        const cand = votazione(c.k).righe.map((r) => String(r.n).trim()).filter(Boolean);
+        if (cand.length === 1) nome = cand[0];   // un solo nominativo indicato: lo uso come previsto per la carica
+      }
+      if (!nome) {
+        if (modello) continue;
+        throw new Error('Per ' + c.t + ' non risulta ancora un eletto: controlla i voti e la maggioranza assoluta.');
+      }
+      const f = trovaFratello(nome);
+      if (!f) {
+        if (modello) continue;
+        throw new Error('Per ' + c.t + ' il nome «' + nome + '» non corrisponde a un Fratello dell’elenco.');
+      }
       vinc[c.k] = f; nomi[c.k] = nomeCompleto(f);
     }
-    if (new Set(CARICHE.map((c) => vinc[c.k].id)).size < CARICHE.length) throw new Error('Lo stesso Fratello risulta eletto a più cariche: controlla le votazioni.');
-    if (!d.data_elezione) throw new Error('Indica la data delle elezioni.');
-    if (!d.presenti || !votanti()) throw new Error('Indica i Fratelli presenti e i votanti.');
+    if (!modello) {
+      if (new Set(CARICHE.map((c) => vinc[c.k].id)).size < CARICHE.length) throw new Error('Lo stesso Fratello risulta eletto a più cariche: controlla le votazioni.');
+      if (!d.data_elezione) throw new Error('Indica la data delle elezioni.');
+      if (!d.presenti || !votanti()) throw new Error('Indica i Fratelli presenti e i votanti.');
+    }
     await salva(true);
-    const anag = await anagraficheVincitori(CARICHE.map((c) => vinc[c.k]));
-    const dt = d.data_elezione.split('-');
-    const righeDi = (k) => votazione(k).righe.filter((r) => String(r.n).trim()).map((r) => { const f = trovaFratello(r.n); return { nome: f ? nomeCompleto(f) : r.n.trim(), voti: String(parseInt(r.v, 10) || 0) }; });
+    const trovati = CARICHE.filter((c) => vinc[c.k]);
+    const anag = trovati.length ? await anagraficheVincitori(trovati.map((c) => vinc[c.k])) : {};
+    const dt = d.data_elezione ? d.data_elezione.split('-') : null;
+    const num = (x) => (String(x == null ? '' : x).trim() === '' ? (modello ? '' : '0') : String(parseInt(x, 10) || 0));
+    const righeDi = (k) => votazione(k).righe.filter((r) => String(r.n).trim()).map((r) => { const f = trovaFratello(r.n); return { nome: f ? nomeCompleto(f) : r.n.trim(), voti: num(r.v) }; });
     const dati = {
-      annoMassonico: el.anno, loggia: state.loggia || {}, giorno: String(parseInt(dt[2], 10)), mese: MESI[parseInt(dt[1], 10) - 1], anno2: dt[0].slice(2),
-      cariche: Object.assign({}, nomi, { segretario: d.segretario || '' }), presenti: String(d.presenti), giustificati: String(d.giustificati || '0'),
-      votanti: String(votanti()), maggioranza: String(maggioranza()),
-      mv: { righe: righeDi('mv'), nulli: String(parseInt(votazione('mv').nulli, 10) || 0) },
-      dign: {}, proclamati: nomi, autocert: {},
+      annoMassonico: el.anno, loggia: state.loggia || {},
+      giorno: dt ? String(parseInt(dt[2], 10)) : '', mese: dt ? MESI[parseInt(dt[1], 10) - 1] : '', anno2: dt ? dt[0].slice(2) : '',
+      cariche: Object.assign({}, nomi, { segretario: d.segretario || '' }),
+      presenti: d.presenti ? String(d.presenti) : '', giustificati: num(d.giustificati),
+      votanti: votanti() ? String(votanti()) : '', maggioranza: votanti() ? String(maggioranza()) : '',
+      mv: { righe: righeDi('mv'), nulli: num(votazione('mv').nulli) },
+      dign: {}, proclamati: modello ? {} : nomi, autocert: {},
     };
-    ['s1', 's2', 'oratore', 'tesoriere'].forEach((k) => { dati.dign[k] = { righe: righeDi(k), nulli: String(parseInt(votazione(k).nulli, 10) || 0) }; });
-    CARICHE.forEach((c) => { dati.autocert[c.k] = schedaAutocert(anag[vinc[c.k].id]); });
+    ['s1', 's2', 'oratore', 'tesoriere'].forEach((k) => { dati.dign[k] = { righe: righeDi(k), nulli: num(votazione(k).nulli) }; });
+    trovati.forEach((c) => { dati.autocert[c.k] = schedaAutocert(anag[vinc[c.k].id]); });
 
     const r = await fetch('templates/ELEZIONI.pdf');
     if (!r.ok) throw new Error('Modello templates/ELEZIONI.pdf non trovato.');
     const bytes = await window.LemmiElezioniPdf.compila(new Uint8Array(await r.arrayBuffer()), dati);
     const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
     const a = document.createElement('a');
-    a.href = url; a.download = 'Elezioni_cariche_' + el.anno + '.pdf'; a.style.display = 'none';
+    a.href = url; a.download = 'Elezioni_cariche_' + el.anno + (modello ? '_modello' : '') + '.pdf'; a.style.display = 'none';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
-    const manc = CARICHE.map((c) => ({ c: c.t, f: vinc[c.k], m: mancanti(anag[vinc[c.k].id]) })).filter((x) => x.m.length);
+    const manc = trovati.map((c) => ({ c: c.t, f: vinc[c.k], m: mancanti(anag[vinc[c.k].id]) })).filter((x) => x.m.length);
     return manc;
   }
 
@@ -295,21 +313,25 @@
     $('#e-doc').innerHTML = `<div class="card"><h2>4. Documenti da inviare</h2>
       <div class="form-grid"><div class="f s6"><label for="e-seg">Segretario che redige il verbale</label><input id="e-seg" list="dl-maestri" value="${esc(d.segretario)}" placeholder="Cognome e nome" autocomplete="off"></div></div>
       <p class="muted">Il pacchetto contiene il processo verbale (pagine 1-3, con la pagina delle firme dei Maestri presenti) e le autocertificazioni del Maestro Venerabile e dei Dignitari (pagine 4-5), compilate con i dati dell’anagrafica. Dopo le firme, il verbale va inviato a <b>${MAIL_GRAN_SEGRETERIA}</b> per ottenere il Nulla Osta all’insediamento.</p>
-      <div class="actions"><button class="btn gold" id="e-pdf">${IC.pdf || ''} Genera il pacchetto PDF</button></div>
+      <div class="actions"><button class="btn gold" id="e-pdf">${IC.pdf || ''} Genera il pacchetto PDF</button>
+        <button class="btn ghost" id="e-pdf-mod" type="button" title="Non servono votanti, voti o eletti">${IC.pdf || ''} Stampa modello precompilato</button></div>
+      <div class="hint" style="margin-top:6px">Il modello precompilato si può stampare in qualsiasi momento: riporta Loggia, anno, data (se indicata) e i nominativi inseriti; presenti, votanti, voti ed eventuali nomi mancanti restano in bianco da completare a penna.</div>
       <div id="e-pdf-esito"></div>
       <h3 style="margin:18px 0 6px">Nulla Osta</h3><div class="form-grid"><div class="f s4"><label for="e-no">Ricevuto il</label><input id="e-no" value="${esc(isoToIt(d.nulla_osta_data))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div></div></div>`;
     mascheraDate($('#e-doc'));
     $('#e-seg').addEventListener('input', (e) => { d.segretario = e.target.value; });
     $('#e-no').addEventListener('change', (e) => { const i = itToIso(e.target.value); if (i === 'ERR') return toast('Data non valida: usa gg/mm/aaaa.', 'bad'); d.nulla_osta_data = i; });
-    $('#e-pdf').onclick = async (ev) => {
+    const lanciaPdf = (idBtn, modello) => async (ev) => {
       const b = ev.currentTarget; b.disabled = true; $('#e-pdf-esito').innerHTML = '';
       try {
-        const manc = await generaPdf(b);
-        $('#e-pdf-esito').innerHTML = `<div class="notice" style="margin-top:10px">PDF generato. Stampa, fai firmare e invia a ${MAIL_GRAN_SEGRETERIA}.</div>` +
+        const manc = await generaPdf(b, modello);
+        $('#e-pdf-esito').innerHTML = `<div class="notice" style="margin-top:10px">${modello ? 'Modello precompilato generato: completa a penna i dati mancanti, poi fai firmare.' : 'PDF generato. Stampa, fai firmare e invia a ' + MAIL_GRAN_SEGRETERIA + '.'}</div>` +
           (manc.length ? `<div class="notice" style="margin-top:8px"><b>Dati mancanti in anagrafica</b> (da completare a mano sul modulo o nella scheda del Fratello):<br>${manc.map((x) => esc(x.c + ' ' + nomeCompleto(x.f) + ': ' + x.m.join(', '))).join('<br>')}</div>` : '');
       } catch (e) { $('#e-pdf-esito').innerHTML = `<div class="notice" style="margin-top:10px;background:var(--bad-soft,#fde8e8);color:var(--bad,#a12)">${esc(messaggioErrore(e))}</div>`; }
       b.disabled = false;
     };
+    $('#e-pdf').onclick = lanciaPdf('e-pdf', false);
+    $('#e-pdf-mod').onclick = lanciaPdf('e-pdf-mod', true);
     v.insertAdjacentHTML('beforeend', '<div id="e-ins"></div>');
     L.elezioni = { el, esito, CARICHE, MESI, trovaFratello, nomeCompleto, elencoNome, anagraficheVincitori, schedaAutocert, mancanti, salva, norm, votanti };
     for (const fn of (L.elezioniExtra || [])) { try { await fn($('#e-ins')); } catch (e) { $('#e-ins').innerHTML = `<div class="notice">${esc(messaggioErrore(e))}</div>`; } }
