@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.53.3',
-  data: '2026-11-17',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
+  numero: '0.54.0',
+  data: '2026-11-18',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.54.0', data: '2026-11-18', t: 'Profili Maestro, Compagno e Apprendista in sola lettura: il Maestro vede tutte le tavole, il Compagno quelle di Compagno e Apprendista, l’Apprendista solo le sue; i permessi seguono il grado del Fratello' },
     { n: '0.53.3', data: '2026-11-18', t: 'Verbale delle elezioni: «Le cariche sono così ricoperte» riporta le cariche in essere prima delle elezioni (anno massonico precedente), non più i candidati o gli eletti' },
     { n: '0.53.2', data: '2026-11-18', t: 'PDF di elezioni e insediamento: le scritte stanno ora sopra la riga dei puntini e sono più leggibili; corretta la posizione del codice fiscale nella nomina del Segretario' },
     { n: '0.53.1', data: '2026-11-17', t: 'Allegati delle tavole: messaggi chiari se manca l’archivio dei file o i permessi, e script per creare l’archivio «tavole»' },

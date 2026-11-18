@@ -1,5 +1,6 @@
-/* Lemmi - Area del Fratello: con il profilo "fratello" ciascuno vede SOLO i propri dati
+/* Lemmi - Area del Fratello: con il profilo "fratello" ciascuno vede i propri dati
  * (anagrafica, storia, tavole, quote) e le prossime tornate del suo grado. Sola lettura.
+ * Tavole degli altri: il Maestro le vede tutte, il Compagno quelle di Compagno e Apprendista, l'Apprendista solo le proprie.
  * Le regole di sicurezza del database (lemmi_aggiornamento_35.sql) garantiscono che non possa leggere altro. */
 (function () {
   'use strict';
@@ -23,11 +24,14 @@
     const [pass, car, lav, quote, tor] = await Promise.all([
       leggi(state.sb.from('passaggi_grado').select('grado,anno,data').order('data')),
       leggi(state.sb.from('cariche_storico').select('carica,anno_dal,anno_al,note').order('anno_dal')),
-      leggi(state.sb.from('lavori').select('titolo,tipo,stato,data_consegna_prevista,data_presentazione,tornata_id').order('data_assegnazione', { ascending: false })),
+      leggi(state.sb.rpc('tavole_per_grado')),
       leggi(state.sb.rpc('mie_quote')),
       leggi(state.sb.from('tornate').select('*').gte('data', oggi()).neq('stato', 'annullata').order('data').limit(20)),
     ]);
+    const mie = lav.filter((l) => l.mia), altre = lav.filter((l) => !l.mia);
     const mioGrado = pass.reduce((m, p) => Math.max(m, GRADI.indexOf(String(p.grado))), 0);
+    const mioGradoNome = cap(GRADI[mioGrado]);
+    const linkFile = (l) => (l.file_path ? ` <a href="javascript:void(0)" class="scarica-tavola" data-p="${esc(l.file_path)}" data-n="${esc(l.file_nome || 'tavola')}" title="Scarica il file">⬇ file</a>` : '');
     const tornate = tor.filter((t) => !pass.length || !t.grado || GRADI.indexOf(String(t.grado)) <= mioGrado).slice(0, 5);   // grado non registrato: si mostrano tutte
     const aperte = quote.filter((q) => Number(q.residuo) > 0 && q.stato !== 'Esente');
     const daVersare = aperte.reduce((a, q) => a + Number(q.residuo), 0);
@@ -63,14 +67,25 @@
         <div class="card"><h2>La mia storia</h2>
           ${storia.length ? `<div class="timeline tl-v">${storia.map((s) => L.vocetl({ tipo: s.tipo, etichetta: s.d, titolo: s.t, dettaglio: s.n })).join('')}</div>` : '<div class="empty"><div>Nessun dato registrato.</div></div>'}</div>
         <div class="card"><h2>Le mie tavole</h2>
-          ${lav.length ? `<div class="table-wrap"><table><tbody>${lav.map((l) => `<tr><td><b>${esc(l.titolo)}</b><div class="hint">${esc(cap(l.tipo))} · ${l.data_presentazione ? 'presentata il ' + fmtData(l.data_presentazione) : l.data_consegna_prevista ? 'consegna entro il ' + fmtData(l.data_consegna_prevista) : 'senza data'}</div></td>
+          ${mie.length ? `<div class="table-wrap"><table><tbody>${mie.map((l) => `<tr><td><b>${esc(l.titolo)}</b>${linkFile(l)}<div class="hint">${esc(cap(l.tipo))} · ${l.data_presentazione ? 'presentata il ' + fmtData(l.data_presentazione) : l.data_consegna_prevista ? 'consegna entro il ' + fmtData(l.data_consegna_prevista) : 'senza data'}</div></td>
             <td><span class="badge ${l.stato === 'presentato' ? 'ok' : 'gray'}">${esc(cap(String(l.stato).replace('_', ' ')))}</span></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div>Nessuna tavola registrata.</div></div>'}</div>
       </div>
+      ${altre.length ? `<div class="card"><h2>Tavole della Loggia</h2><p class="hint" style="margin-bottom:8px">${mioGradoNome === 'Maestro' ? 'Come Maestro vedi tutte le tavole.' : 'Vedi le tavole in grado di ' + (mioGradoNome === 'Compagno' ? 'Compagno e di Apprendista' : 'Apprendista') + '.'}</p>
+        <div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Stato</th></tr></thead><tbody>${altre.map((l) => `<tr><td><b>${esc(l.titolo)}</b>${linkFile(l)}${l.tema ? `<div class="hint">${esc(l.tema)}</div>` : ''}</td>
+          <td>${esc(l.autore)}</td><td>${l.grado_tornata ? esc(cap(l.grado_tornata)) : '—'}</td>
+          <td><span class="badge ${l.stato === 'presentato' ? 'ok' : 'gray'}">${esc(cap(String(l.stato).replace('_', ' ')))}</span><div class="hint">${l.data_presentazione ? fmtData(l.data_presentazione) : l.data_consegna_prevista ? 'consegna ' + fmtData(l.data_consegna_prevista) : ''}</div></td></tr>`).join('')}</tbody></table></div></div>` : ''}
       <div class="card"><h2>I miei dati</h2><div class="kv">
         ${kv('Data di nascita', fr.data_nascita ? fmtData(fr.data_nascita) : '')}${kv('Luogo di nascita', [fr.luogo_nascita, fr.provincia_nascita ? '(' + fr.provincia_nascita + ')' : ''].filter(Boolean).join(' '))}
         ${kv('Indirizzo', [fr.indirizzo, fr.cap, fr.citta, fr.provincia ? '(' + fr.provincia + ')' : ''].filter(Boolean).join(' '))}
         ${kv('Professione', fr.professione)}${kv('Cellulare', fr.cellulare)}${kv('E-mail', fr.email)}
       </div><p class="hint" style="margin-top:12px">Se un dato è sbagliato o manca, comunicalo al Segretario. Le notifiche sul telefono si attivano da «Il mio accesso».</p></div>`;
+    v.querySelectorAll('.scarica-tavola').forEach((a) => a.addEventListener('click', async () => {
+      try {
+        const r = chk(await state.sb.storage.from('tavole').createSignedUrl(a.dataset.p, 60, { download: a.dataset.n || true }));
+        const x = document.createElement('a'); x.href = r.signedUrl; x.rel = 'noopener noreferrer'; x.style.display = 'none';
+        document.body.appendChild(x); x.click(); x.remove();
+      } catch (e) { window.alert('Non è stato possibile scaricare il file: ' + ((e && e.message) || e)); }
+    }));
     if (L.agapi) { try { await L.agapi.montaFratello(v, tornate); } catch (e) { /* facoltativo */ } }
   };
 })();

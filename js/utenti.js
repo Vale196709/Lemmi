@@ -8,7 +8,7 @@
   if (!L) return;
   const { state, $, $$, esc, chk, toast, messaggioErrore, isAdmin } = L;
 
-  const PROFILI = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere', fratello: 'Fratello (sola lettura dei propri dati)' };
+  const PROFILI = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere', fratello: 'Maestro / Compagno / Apprendista (sola lettura, in base al grado)' };
   const BADGE = { amministratore: 'gold', venerabile: 'info', segretario: 'ok', tesoriere: 'warn', fratello: 'gray' };
   const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : '');
   const dataOra = (iso) => {
