@@ -77,10 +77,7 @@
 
   /* ---------- file ---------- */
   async function scaricaFile(l) {
-    const r = chk(await state.sb.storage.from(BUCKET).createSignedUrl(l.file_path, 60, { download: l.file_nome || true }));
-    const a = document.createElement('a');
-    a.href = r.signedUrl; a.rel = 'noopener noreferrer'; a.style.display = 'none';
-    document.body.appendChild(a); a.click(); a.remove();
+    await L.zipFile.scarica(BUCKET, l.file_path, l.file_nome, MIME[estensione(l.file_nome)]);
   }
   const rimuoviOggetto = async (path) => { if (path) { try { await state.sb.storage.from(BUCKET).remove([path]); } catch (e) { /* si ripulisce a mano se serve */ } } };
 
@@ -159,8 +156,9 @@
           const ext = estensione(file.name);
           if (!MIME[ext]) return errore('Formato non ammesso: usa PDF, Word (doc, docx), ODT o testo.');
           if (file.size > MAX_BYTE) return errore('Il file supera i 10 MB.');
-          const path = id + '/' + Date.now() + '_' + nomeSicuro(file.name);
-          try { chk(await state.sb.storage.from(BUCKET).upload(path, file, { contentType: MIME[ext], upsert: false })); }
+          const pr = await L.zipFile.prepara(file);
+          const path = L.zipFile.suffisso(id + '/' + Date.now() + '_' + nomeSicuro(file.name), pr.zippato);
+          try { chk(await state.sb.storage.from(BUCKET).upload(path, pr.blob, { contentType: pr.zippato ? 'application/zip' : MIME[ext], upsert: false })); }
           catch (er) {
             const t = String((er && er.message) || er);
             if (/bucket not found/i.test(t)) throw new Error('Manca l’archivio dei file «tavole» su Supabase: esegui lo script sql/lemmi_aggiornamento_43.sql nell’editor SQL.');

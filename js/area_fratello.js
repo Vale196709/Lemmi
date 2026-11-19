@@ -81,9 +81,7 @@
       </div><p class="hint" style="margin-top:12px">Se un dato è sbagliato o manca, comunicalo al Segretario. Le notifiche sul telefono si attivano da «Il mio accesso».</p></div>`;
     v.querySelectorAll('.scarica-tavola').forEach((a) => a.addEventListener('click', async () => {
       try {
-        const r = chk(await state.sb.storage.from('tavole').createSignedUrl(a.dataset.p, 60, { download: a.dataset.n || true }));
-        const x = document.createElement('a'); x.href = r.signedUrl; x.rel = 'noopener noreferrer'; x.style.display = 'none';
-        document.body.appendChild(x); x.click(); x.remove();
+        await L.zipFile.scarica('tavole', a.dataset.p, a.dataset.n);
       } catch (e) { window.alert('Non è stato possibile scaricare il file: ' + ((e && e.message) || e)); }
     }));
     if (L.agapi) { try { await L.agapi.montaFratello(v, tornate); } catch (e) { /* facoltativo */ } }

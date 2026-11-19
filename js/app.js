@@ -878,13 +878,13 @@
             ${canEdit() ? `<label class="btn ghost small" for="up-${d.tipo}">${IC.up} Carica</label><input type="file" id="up-${d.tipo}" data-up="${d.tipo}" accept="application/pdf,image/jpeg,image/png" multiple>` : ''}
             ${files.length ? `<div class="files">${files.map((x) => `<div class="file"><span class="fn" title="${esc(x.nome_file)}">${esc(x.nome_file)}</span>
               <span class="muted">${fmtData(x.creato_il)}</span>
-              <button class="btn ghost small" data-open="${esc(x.percorso)}">Apri</button>
+              <button class="btn ghost small" data-open="${esc(x.percorso)}" data-nome="${esc(x.nome_file)}" data-mime="${esc(x.mime || '')}">Apri</button>
               ${isAdmin() ? `<button class="btn danger small" data-deldoc="${esc(x.id)}" data-path="${esc(x.percorso)}">Elimina</button>` : ''}</div>`).join('')}</div>` : ''}</div>`;
         }).join('')}</div></div>`;
 
     $$('[data-gen]', v).forEach((btn) => btn.addEventListener('click', () => generaPdf(b, pres, btn.dataset.gen, $('#x-collegio').checked, btn)));
     $$('[data-up]', v).forEach((inp) => inp.addEventListener('change', () => caricaFile(id, inp)));
-    $$('[data-open]', v).forEach((btn) => btn.addEventListener('click', () => apriFile(btn.dataset.open)));
+    $$('[data-open]', v).forEach((btn) => btn.addEventListener('click', () => apriFile(btn.dataset.open, btn.dataset.nome, btn.dataset.mime)));
     $$('[data-deldoc]', v).forEach((btn) => btn.addEventListener('click', () => eliminaDoc(btn.dataset.deldoc, btn.dataset.path, id)));
     const del = $('#b-del');
     if (del) del.addEventListener('click', () => eliminaBussante(b, docs));
@@ -898,11 +898,13 @@
     if (!files.length) return;
     let ok = 0;
     for (const file of files) {
+      let percorso = null;
       if (file.size > MAX_FILE) { toast(file.name + ': supera i 10 MB.', 'bad'); continue; }
       if (!/^(application\/pdf|image\/jpeg|image\/png)$/.test(file.type)) { toast(file.name + ': formato non consentito.', 'bad'); continue; }
-      const percorso = `bussanti/${bid}/${tipo}/${Date.now()}-${nomeFile(file.name)}`;
       try {
-        const up = await state.sb.storage.from(BUCKET).upload(percorso, file, { contentType: file.type, upsert: false });
+        const pr = await window.Lemmi.zipFile.prepara(file);
+        percorso = window.Lemmi.zipFile.suffisso(`bussanti/${bid}/${tipo}/${Date.now()}-${nomeFile(file.name)}`, pr.zippato);
+        const up = await state.sb.storage.from(BUCKET).upload(percorso, pr.blob, { contentType: pr.tipo, upsert: false });
         if (up.error) throw up.error;
         const ins = await state.sb.from('documenti').insert({ bussante_id: bid, tipo, nome_file: file.name, percorso, mime: file.type, dimensione: file.size });
         if (ins.error) { await state.sb.storage.from(BUCKET).remove([percorso]); throw ins.error; }
@@ -913,13 +915,10 @@
     route();
   }
 
-  async function apriFile(percorso) {
+  async function apriFile(percorso, nome, mime) {
     const w = window.open('', '_blank');
-    try {
-      const { data, error } = await state.sb.storage.from(BUCKET).createSignedUrl(percorso, 120);
-      if (error) throw error;
-      if (w) w.location.href = data.signedUrl; else window.location.href = data.signedUrl;
-    } catch (e) { if (w) w.close(); toast(messaggioErrore(e), 'bad'); }
+    try { await window.Lemmi.zipFile.apri(BUCKET, percorso, nome, mime, w); }
+    catch (e) { if (w) w.close(); toast(messaggioErrore(e), 'bad'); }
   }
 
   async function eliminaDoc(docId, percorso, bid) {

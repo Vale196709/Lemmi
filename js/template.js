@@ -123,9 +123,7 @@
   async function scarica(r) {
     if (!r) return;
     try {
-      const d = chk(await state.sb.storage.from(BUCKET).createSignedUrl(r.file_path, 60, { download: r.file_nome || true }));
-      const a = document.createElement('a'); a.href = d.signedUrl; a.download = r.file_nome || ''; a.style.display = 'none';
-      document.body.appendChild(a); a.click(); a.remove();
+      await L.zipFile.scarica(BUCKET, r.file_path, r.file_nome, r.mime || undefined);
     } catch (e) { toast(messaggioErrore(e), 'bad'); }
   }
 
@@ -150,9 +148,11 @@
     if (file.size > MAX_FILE) { err.textContent = 'Il file supera i 10 MB.'; return; }
     const btn = $('button[type=submit]', form); btn.disabled = true;
     const categoria = form.elements.categoria.value;
-    const path = categoria + '/' + Date.now() + '-' + nomeFile(file.name);
+    let path;
     try {
-      const up = await state.sb.storage.from(BUCKET).upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+      const pr = await L.zipFile.prepara(file);
+      path = L.zipFile.suffisso(categoria + '/' + Date.now() + '-' + nomeFile(file.name), pr.zippato);
+      const up = await state.sb.storage.from(BUCKET).upload(path, pr.blob, { contentType: pr.tipo, upsert: false });
       if (up.error) throw up.error;
       const ins = await state.sb.from('modelli_loggia').insert({ categoria, nome, descrizione: form.elements.descrizione.value.trim() || null, file_path: path, file_nome: file.name, mime: file.type || null, dimensione: file.size });
       if (ins.error) { await state.sb.storage.from(BUCKET).remove([path]); throw ins.error; }
