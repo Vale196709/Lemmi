@@ -29,8 +29,14 @@
     Object.keys(mappa).map((k) => `<option value="${esc(k)}" ${k === sel ? 'selected' : ''}>${esc(mappa[k])}</option>`).join('');
 
   /* ---------- compressione ---------- */
+  const conLimite = (promessa, ms, msg) => new Promise((ok, ko) => {
+    const t = setTimeout(() => ko(new Error(msg)), ms);
+    promessa.then((x) => { clearTimeout(t); ok(x); }, (e) => { clearTimeout(t); ko(e); });
+  });
+
   async function comprimiZip(file) {
     const zip = await L.libreria('zip');
+    zip.configure({ useWebWorkers: false });   // senza, la libreria cerca un "worker" che qui non c'è e resta in attesa
     const w = new zip.ZipWriter(new zip.BlobWriter('application/zip'));
     await w.add(file.name, new zip.BlobReader(file), { level: 9 });
     return w.close();
@@ -38,6 +44,7 @@
 
   async function decomprimiZip(blob, tipo) {
     const zip = await L.libreria('zip');
+    zip.configure({ useWebWorkers: false });
     const r = new zip.ZipReader(new zip.BlobReader(blob));
     try {
       const voci = await r.getEntries();
@@ -134,14 +141,16 @@
             let blob = file, compresso = false;
             if (e.zip.checked && !GIA_COMPRESSI.includes(estensione(file.name))) {
               prog.textContent = 'Comprimo ' + etichetta + '…';
-              const z = await comprimiZip(file);
-              if (z.size <= file.size * 0.95) { blob = z; compresso = true; }
+              try {
+                const z = await conLimite(comprimiZip(file), 30000 + (file.size / 1048576) * 4000, 'compressione troppo lenta');
+                if (z.size <= file.size * 0.95) { blob = z; compresso = true; }
+              } catch (ez) { prog.textContent = 'Compressione non riuscita per ' + etichetta + ': carico il file così com’è…'; }
             }
             if (blob.size > MAX_BYTE) throw new Error('supera i 50 MB anche dopo la compressione (' + kb(blob.size) + ')');
             prog.textContent = 'Carico ' + etichetta + '…';
             const id = nuovoId();
             const path = id + '/' + Date.now() + '_' + nomeSicuro(file.name) + (compresso ? '.zip' : '');
-            try { chk(await state.sb.storage.from(BUCKET).upload(path, blob, { contentType: compresso ? 'application/zip' : tipo, upsert: false })); }
+            try { chk(await conLimite(state.sb.storage.from(BUCKET).upload(path, blob, { contentType: compresso ? 'application/zip' : tipo, upsert: false }), 120000 + (blob.size / 1048576) * 20000, 'il caricamento è troppo lento o si è interrotto: controlla la connessione e riprova')); }
             catch (er) {
               const t = String((er && er.message) || er);
               if (/bucket not found/i.test(t)) throw new Error('manca l’archivio «biblioteca» su Supabase: esegui lo script sql/lemmi_aggiornamento_45.sql');

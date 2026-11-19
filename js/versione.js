@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.55.0',
+  numero: '0.55.1',
   data: '2026-11-18',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.55.1', data: '2026-11-18', t: 'Biblioteca: corretto il caricamento che restava in attesa (libreria ZIP senza processi in background); se la compressione non riesce il file viene caricato non compresso' },
     { n: '0.55.0', data: '2026-11-18', t: 'Nuova sezione Biblioteca: libri, pubblicazioni, foto e altri file, con compressione ZIP automatica al caricamento (decompressi da soli al download), riduzione facoltativa delle foto e scelta di chi può vederli' },
     { n: '0.54.0', data: '2026-11-18', t: 'Profili Maestro, Compagno e Apprendista in sola lettura: il Maestro vede tutte le tavole, il Compagno quelle di Compagno e Apprendista, l’Apprendista solo le sue; i permessi seguono il grado del Fratello' },
     { n: '0.53.3', data: '2026-11-18', t: 'Verbale delle elezioni: «Le cariche sono così ricoperte» riporta le cariche in essere prima delle elezioni (anno massonico precedente), non più i candidati o gli eletti' },
