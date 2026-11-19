@@ -14,9 +14,12 @@
   const VISIBILITA = { ufficio: 'Solo ufficio (Amministratore, Maestro Venerabile, Segretario)', fratelli: 'Tutti i Fratelli' };
   // formati già compressi: lo ZIP non porterebbe risparmio, quindi non si prova nemmeno
   const GIA_COMPRESSI = ['zip', '7z', 'rar', 'gz', 'bz2', 'xz', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif', 'avif', 'mp3', 'm4a', 'aac', 'ogg', 'mp4', 'mov', 'mkv', 'avi', 'webm', 'docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'epub'];
-  const bi = { righe: [], q: '', cat: '' };
+  const bi = { righe: [], q: '', cat: '', puoCaricare: false };
 
-  const puoGestire = () => canEdit();
+  // carica chi è Maestro (Venerabile e Segretario lo sono sempre); modifica ed elimina solo i propri file (l'amministratore tutto)
+  const puoGestire = () => bi.puoCaricare;
+  const isAdmin = () => state.profilo && state.profilo.ruolo === 'amministratore';
+  const suo = (r) => isAdmin() || (bi.puoCaricare && state.user && r.creato_da === state.user.id);
   const vedeVisibilita = () => ['amministratore', 'venerabile', 'segretario'].includes(state.profilo && state.profilo.ruolo);
   const nuovoId = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID()
     : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }));
@@ -72,7 +75,10 @@
   }
 
   /* ---------- dati ---------- */
-  async function carica() { bi.righe = chk(await state.sb.from('biblioteca').select('*').order('creato_il', { ascending: false })); }
+  async function carica() {
+    bi.righe = chk(await state.sb.from('biblioteca').select('*').order('creato_il', { ascending: false }));
+    try { bi.puoCaricare = chk(await state.sb.rpc('puo_caricare_biblioteca')) === true; } catch (e) { bi.puoCaricare = false; }
+  }
 
   /* ---------- finestra ---------- */
   function finestra(titolo, corpo, opt) {
@@ -272,9 +278,9 @@
           <td>${esc(r.autore || '—')}${r.anno ? `<div class="hint">${esc(r.anno)}</div>` : ''}</td>
           <td class="num">${kb(r.dimensione || 0)}${risp ? `<div class="hint">ZIP −${risp}%</div>` : ''}</td>
           ${vis ? `<td><span class="badge ${r.visibilita === 'fratelli' ? 'ok' : 'gray'}">${r.visibilita === 'fratelli' ? 'Tutti i Fratelli' : 'Solo ufficio'}</span></td>` : ''}
-          <td class="num" style="white-space:nowrap"><button class="btn ghost small" data-scarica="${esc(r.id)}">Scarica</button>${puoGestire() ? ` <button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`;
+          <td class="num" style="white-space:nowrap"><button class="btn ghost small" data-scarica="${esc(r.id)}">Scarica</button>${suo(r) ? ` <button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`;
       }).join('')}</tbody></table></div>
-      ${puoGestire() ? `<p class="hint" style="margin-top:8px">Spazio usato dalla Biblioteca: ${kb(bi.righe.reduce((a, r) => a + Number(r.dimensione || 0), 0))}. Il piano gratuito di Supabase offre 1 GB in tutto, condiviso con gli altri archivi.</p>` : ''}`;
+      ${puoGestire() ? `<p class="hint" style="margin-top:8px">Puoi modificare ed eliminare solo i file che hai caricato tu. Spazio usato dalla Biblioteca: ${kb(bi.righe.reduce((a, r) => a + Number(r.dimensione || 0), 0))}. Il piano gratuito di Supabase offre 1 GB in tutto, condiviso con gli altri archivi.</p>` : ''}`;
       $$('[data-scarica]', c).forEach((b) => b.addEventListener('click', async () => {
         const r = bi.righe.find((x) => x.id === b.dataset.scarica); if (!r) return;
         b.disabled = true;
