@@ -143,6 +143,13 @@
       if (c2 && !window.confirm(c2)) return;
       btn.disabled = true;
       try {
+        if (az !== 'elimina') {
+          // disattiva / riattiva: direttamente sul database (script lemmi_aggiornamento_44.sql)
+          chk(await state.sb.rpc('imposta_disattivazione_utente', { p_user: btn.dataset.u, p_disattiva: az === 'disattiva' }));
+          toast(ok, 'ok');
+          L.route();
+          return;
+        }
         const { data: ses } = await state.sb.auth.getSession();
         const headers = ses && ses.session ? { Authorization: 'Bearer ' + ses.session.access_token } : {};
         const { data, error } = await state.sb.functions.invoke('gestisci-utente', { body: { azione: az, user_id: btn.dataset.u }, headers });
