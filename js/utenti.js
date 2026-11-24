@@ -25,7 +25,7 @@
     } catch (e) {
       const mancante = /could not find the function|schema cache|does not exist/i.test((e && e.message) || '');
       v.innerHTML = `<div class="page-head"><div><h1>Utenti del sistema</h1><p>Info di sistema</p></div></div>
-        <div class="notice bad">${mancante ? '<b>Manca la funzione sul database.</b> Esegui su Supabase (SQL Editor) lo script <code>lemmi_aggiornamento_18.sql</code>, poi ricarica la pagina.' : '<b>Impossibile leggere l’elenco.</b><br>' + esc(messaggioErrore(e))}</div>`;
+        <div class="notice bad">${mancante ? '<b>Manca la funzione sul database.</b> Esegui su Supabase (SQL Editor) gli script <code>lemmi_aggiornamento_18.sql</code> e <code>lemmi_aggiornamento_43.sql</code>, poi ricarica la pagina.' : '<b>Impossibile leggere l’elenco.</b><br>' + esc(messaggioErrore(e))}</div>`;
       return;
     }
     const fratelli = await L.caricaFratelli();
@@ -55,7 +55,7 @@
       </div>
       <div class="actions" style="margin-bottom:14px">${Object.keys(PROFILI).filter((k) => conta[k]).map((k) => `<span class="badge ${BADGE[k]}">${esc(PROFILI[k])}: ${conta[k]}</span>`).join('')}
         <span class="muted">${righe.length} ${righe.length === 1 ? 'utente configurato' : 'utenti configurati'}</span></div>
-      <div class="table-wrap"><table><thead><tr><th>Nome</th><th>Cognome</th><th>Grado</th><th>E-mail</th><th>Profilo</th><th>Collegato al Fratello</th><th>Ultimo accesso</th></tr></thead>
+      <div class="table-wrap"><table><thead><tr><th>Nome</th><th>Cognome</th><th>Grado</th><th>E-mail</th><th>Profilo</th><th>Collegato al Fratello</th><th>Ultimo accesso</th><th>Azioni</th></tr></thead>
         <tbody>${righe.length ? righe.map((r) => `<tr>
           <td><b>${esc(r.nome || '—')}</b>${!r.fratello_id && r.nome_visualizzato ? `<div class="hint">nome utente: ${esc(r.nome_visualizzato)}</div>` : ''}</td>
           <td><b>${esc(r.cognome || '—')}</b></td>
@@ -70,8 +70,12 @@
             <option value="">— nessuno —</option>
             ${fratelli.map((f) => `<option value="${esc(f.id)}" ${String(f.id) === String(r.fratello_id) ? 'selected' : ''}>${esc(f.cognome)} ${esc(f.nome)}</option>`).join('')}</select>
             ${r.collegamento === 'e-mail' ? '<div class="hint">riconosciuto dall’e-mail</div>' : ''}</td>
-          <td>${esc(dataOra(r.ultimo_accesso))}</td></tr>`).join('') : '<tr><td colspan="7"><div class="empty"><div>Nessun utente configurato.</div></div></td></tr>'}</tbody></table></div>
-      <div class="hint" style="margin-top:12px">Nome, cognome e grado vengono dall’anagrafica dei Fratelli: il collegamento avviene dall’e-mail (se è la stessa dell’anagrafica) oppure scegliendo il Fratello dall’elenco. Gli utenti si creano da qui con «Nuovo utente»; per toglierli si usa Supabase (Authentication › Users). il profilo si cambia dal menu della colonna «Profilo» (non si può cambiare il proprio, per non restare senza amministratore).</div>`;
+          <td>${esc(dataOra(r.ultimo_accesso))}${r.disattivato ? '<div><span class="badge bad">Disattivato</span></div>' : ''}</td>
+          <td>${String(r.user_id) === String(state.user.id)
+            ? '<span class=\"hint\">—</span>'
+            : `<div class=\"actions\" style=\"flex-wrap:nowrap\"><button class=\"btn ghost small btn-gu\" type=\"button\" data-az=\"${r.disattivato ? 'riattiva' : 'disattiva'}\" data-u=\"${esc(r.user_id)}\" data-email=\"${esc(r.email || '')}\" data-nome=\"${esc(((r.nome || '') + ' ' + (r.cognome || '')).trim() || r.nome_visualizzato || '')}\">${r.disattivato ? 'Riattiva' : 'Disattiva'}</button>
+              <button class=\"btn ghost small btn-gu\" type=\"button\" data-az=\"elimina\" data-u=\"${esc(r.user_id)}\" data-email=\"${esc(r.email || '')}\" data-nome=\"${esc(((r.nome || '') + ' ' + (r.cognome || '')).trim() || r.nome_visualizzato || '')}\" aria-label=\"Elimina l’utente ${esc(r.email || '')}\">Elimina</button></div>`}</td></tr>`).join('') : '<tr><td colspan="8"><div class="empty"><div>Nessun utente configurato.</div></div></td></tr>'}</tbody></table></div>
+      <div class="hint" style="margin-top:12px">Nome, cognome e grado vengono dall’anagrafica dei Fratelli: il collegamento avviene dall’e-mail (se è la stessa dell’anagrafica) oppure scegliendo il Fratello dall’elenco. Gli utenti si creano da qui con «Nuovo utente»; con «Disattiva» si sospende l’accesso (si può riattivare), con «Elimina» lo si toglie per sempre (il Fratello resta comunque in anagrafica). Il profilo si cambia dal menu della colonna «Profilo» (non si può cambiare il proprio, per non restare senza amministratore).</div>`;
 
     // ---- nuovo utente (funzione "crea-utente" su Supabase) ----
     const genPw = () => {
@@ -124,6 +128,35 @@
         toast(mancante ? 'Manca la funzione sul database: esegui lemmi_aggiornamento_26.sql su Supabase.' : messaggioErrore(e), 'bad');
         sel.value = prima; sel.disabled = false;
       }
+    }));
+    // ---- disattiva / riattiva / elimina (funzione "gestisci-utente" su Supabase) ----
+    const TESTI = {
+      disattiva: (c) => ['Disattivare l’utente ' + c + '?\n\nNon potrà più accedere a Lemmi (se è già dentro, esce entro circa un’ora).\nProfilo e collegamento al Fratello restano: potrai riattivarlo quando vuoi.', null, 'Utente disattivato'],
+      riattiva: (c) => ['Riattivare l’utente ' + c + '?\n\nTornerà ad accedere con la sua password e il suo profilo di prima.', null, 'Utente riattivato'],
+      elimina: (c) => ['Eliminare l’utente ' + c + '?\n\nPerderà l’accesso a Lemmi e l’operazione non si può annullare (per ridargli l’accesso dovrai creare un nuovo utente).\nIl Fratello resta in anagrafica con tutta la sua storia.\n\nSe vuoi solo sospendere l’accesso, usa «Disattiva».', 'Conferma finale: eliminare definitivamente l’accesso di ' + c + '?', 'Utente eliminato'],
+    };
+    $$('.btn-gu', v).forEach((btn) => btn.addEventListener('click', async () => {
+      const az = btn.dataset.az;
+      const chi = btn.dataset.nome ? btn.dataset.nome + ' (' + btn.dataset.email + ')' : btn.dataset.email;
+      const [c1, c2, ok] = TESTI[az](chi);
+      if (!window.confirm(c1)) return;
+      if (c2 && !window.confirm(c2)) return;
+      btn.disabled = true;
+      try {
+        const { data: ses } = await state.sb.auth.getSession();
+        const headers = ses && ses.session ? { Authorization: 'Bearer ' + ses.session.access_token } : {};
+        const { data, error } = await state.sb.functions.invoke('gestisci-utente', { body: { azione: az, user_id: btn.dataset.u }, headers });
+        if (error) {
+          let msg = error.message || 'Errore';
+          const st = error.context && error.context.status;
+          try { const j = await error.context.json(); if (j && j.errore) msg = j.errore; } catch (_) { /* nessun dettaglio */ }
+          if ((st === 404 && !/utente/i.test(msg)) || /failed to send|fetch/i.test(msg)) msg = 'La funzione «gestisci-utente» non risulta pubblicata su Supabase: segui il passo 2 del file LEGGIMI-aggiornamento-58.txt.';
+          throw new Error(msg);
+        }
+        if (data && data.errore) throw new Error(data.errore);
+        toast(ok, 'ok');
+        L.route();
+      } catch (e) { toast(messaggioErrore(e), 'bad'); btn.disabled = false; }
     }));
     $$('.sel-fr', v).forEach((sel) => sel.addEventListener('change', async () => {
       sel.disabled = true;

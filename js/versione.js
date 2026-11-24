@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.57.0',
-  data: '2026-11-19',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
+  numero: '0.58.0',
+  data: '2026-11-23',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.58.0', data: '2026-11-23', t: 'Info di sistema > Utenti: pulsanti «Disattiva / Riattiva» (sospende l’accesso senza perdere profilo e collegamento) ed «Elimina» (doppia conferma); solo amministratore, mai su sé stessi; il Fratello resta in anagrafica' },
     { n: '0.57.0', data: '2026-11-19', t: 'Biblioteca: caricano solo i Maestri e ciascuno modifica ed elimina solo i file che ha caricato (l’amministratore può intervenire su tutto)' },
     { n: '0.56.0', data: '2026-11-18', t: 'Tutti i file caricati (tavole, modelli, documenti dei bussanti) si comprimono in ZIP al caricamento e si decomprimono da soli al download; i file già presenti restano com’erano' },
     { n: '0.55.1', data: '2026-11-18', t: 'Biblioteca: corretto il caricamento che restava in attesa (libreria ZIP senza processi in background); se la compressione non riesce il file viene caricato non compresso' },
