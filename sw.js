@@ -1,7 +1,7 @@
 /* Lemmi - service worker, per rendere l'app installabile su telefono.
  * Prima prova sempre la rete (così gli aggiornamenti arrivano subito); la copia salvata serve solo se non c'è
  * connessione, e solo per i file del sito. I dati di Supabase (altro indirizzo) non vengono mai salvati qui. */
-const CACHE = 'lemmi-guscio-v4';
+const CACHE = 'lemmi-guscio-v5';
 
 self.addEventListener('install', () => self.skipWaiting());
 

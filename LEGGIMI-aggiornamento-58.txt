@@ -1,0 +1,18 @@
+AGGIORNAMENTO 58 (versione 0.58.0) - Disattivare, riattivare ed eliminare gli utenti
+
+PASSO 1 (Supabase > SQL Editor) - esegui sql/lemmi_aggiornamento_43.sql
+   (aggiunge a "Utenti del sistema" l'indicazione Attivo / Disattivato). Atteso: "Success. No rows returned".
+PASSO 2 (Supabase > Edge Functions) - pubblica la nuova funzione (una volta sola, nessun costo):
+   "Deploy a new function" > "Via Editor". Nome: gestisci-utente   (esattamente cosi')
+   Incolla tutto il contenuto di supabase/functions/gestisci-utente/index.ts e premi "Deploy function".
+   "Verify JWT": come hai fatto per crea-utente.
+PASSO 3 (sito) - carica su GitHub, mantenendo le cartelle:
+   js/utenti.js, js/versione.js, sw.js, sql/lemmi_aggiornamento_43.sql,
+   supabase/functions/gestisci-utente/index.ts, docs/aggiornamenti/LEGGIMI-aggiornamento-58.txt
+   Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Come funziona: Info di sistema > Utenti del sistema > colonna "Azioni". Solo amministratore; non compare sulla propria riga.
+ - Disattiva: l'utente non puo' piu' accedere (se e' gia' dentro esce entro circa un'ora). Profilo, collegamento
+   al Fratello e password restano. Compare il badge "Disattivato". "Riattiva" lo riporta com'era.
+ - Elimina: doppia conferma; toglie utente e profilo, non si annulla (per ridare l'accesso si crea un nuovo utente).
+ - In entrambi i casi il Fratello resta in anagrafica con storia, tavole e versamenti.
