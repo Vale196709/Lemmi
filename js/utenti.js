@@ -56,6 +56,7 @@
       </div>
       <div class="actions" style="margin-bottom:14px">${Object.keys(PROFILI).filter((k) => conta[k]).map((k) => `<span class="badge ${BADGE[k]}">${esc(PROFILI_BREVI[k])}: ${conta[k]}</span>`).join('')}
         <span class="muted">${righe.length} ${righe.length === 1 ? 'utente configurato' : 'utenti configurati'}</span></div>
+      <div id="pw-esito"></div>
       <div class="table-wrap"><table class="tab-utenti"><thead><tr><th>Utente</th><th>Profilo</th><th>Fratello collegato</th><th>Ultimo accesso</th><th>Azioni</th></tr></thead>
         <tbody>${righe.length ? righe.map((r) => {
           const io = String(r.user_id) === String(state.user.id);
@@ -77,6 +78,7 @@
           <td data-label="Ultimo accesso"><div class="u-acc">${esc(dataOra(r.ultimo_accesso))}</div>${r.disattivato ? '<span class="badge bad">Disattivato</span>' : ''}</td>
           <td data-label="Azioni">${io ? '<span class="hint">—</span>'
             : `<div class="u-azioni"><button class="btn ghost small btn-gu" type="button" data-az="${r.disattivato ? 'riattiva' : 'disattiva'}" ${dati}>${r.disattivato ? 'Riattiva' : 'Disattiva'}</button>
+              <button class="btn ghost small btn-pw" type="button" ${dati}>Password</button>
               <button class="btn ghost small btn-gu u-del" type="button" data-az="elimina" ${dati} aria-label="Elimina l’utente ${esc(r.email || '')}">Elimina</button></div>`}</td></tr>`;
         }).join('') : '<tr><td colspan="5"><div class="empty"><div>Nessun utente configurato.</div></div></td></tr>'}</tbody></table></div>
       <div class="hint" style="margin-top:12px">Nome, cognome e grado vengono dall’anagrafica dei Fratelli: il collegamento avviene dall’e-mail (se è la stessa dell’anagrafica) oppure scegliendo il Fratello dall’elenco. Gli utenti si creano da qui con «Nuovo utente»; con «Disattiva» si sospende l’accesso (si può riattivare), con «Elimina» lo si toglie per sempre (il Fratello resta comunque in anagrafica). Il profilo si cambia dal menu della colonna «Profilo» (non si può cambiare il proprio, per non restare senza amministratore).</div>`;
@@ -153,6 +155,27 @@
         toast(ok, 'ok');
         L.route();
       } catch (e) { toast(messaggioErrore(e), 'bad'); btn.disabled = false; }
+    }));
+    // ---- reimposta password (funzione del database, script lemmi_aggiornamento_46.sql) ----
+    $$('.btn-pw', v).forEach((btn) => btn.addEventListener('click', async () => {
+      const chi = btn.dataset.nome && btn.dataset.nome !== btn.dataset.email ? btn.dataset.nome + ' (' + btn.dataset.email + ')' : btn.dataset.email;
+      if (!window.confirm('Reimpostare la password di ' + chi + '?\n\nLa vecchia password smette di funzionare e l’utente esce da eventuali sessioni aperte.\nTi mostro la nuova password temporanea da comunicargli.')) return;
+      const nuova = genPw();
+      btn.disabled = true;
+      try {
+        chk(await state.sb.rpc('reimposta_password_utente', { p_user: btn.dataset.u, p_password: nuova }));
+        const box = $('#pw-esito', v);
+        box.innerHTML = `<div class="notice ok" style="margin-bottom:14px"><b>Password reimpostata</b> per ${esc(chi)}.<br>
+          Nuova password temporanea: <code id="pw-val" style="font-size:1.05rem;user-select:all">${esc(nuova)}</code>
+          <button class="btn small" type="button" id="pw-copia" style="margin-left:8px">Copia</button>
+          <div class="hint" style="margin-top:6px">Comunicala all’utente in modo riservato: qui resta visibile solo finché non cambi pagina. Potrà cambiarla dalla pagina Loggia.</div></div>`;
+        $('#pw-copia', v).addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(nuova); toast('Password copiata', 'ok'); } catch (_) { toast('Copia non riuscita: selezionala e copiala a mano', 'warn'); }
+        });
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        toast('Password reimpostata', 'ok');
+      } catch (e) { toast(messaggioErrore(e), 'bad'); }
+      btn.disabled = false;
     }));
     $$('.sel-fr', v).forEach((sel) => sel.addEventListener('change', async () => {
       sel.disabled = true;

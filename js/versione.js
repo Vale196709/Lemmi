@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.58.1',
+  numero: '0.59.0',
   data: '2026-11-23',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.59.0', data: '2026-11-24', t: 'Utenti del sistema: pulsante «Password» per reimpostare la password di un utente (nuova password temporanea mostrata all’amministratore, con «Copia»)' },
     { n: '0.58.1', data: '2026-11-24', t: 'Utenti del sistema: tabella ridisegnata e compatta (5 colonne, tutto visibile senza scorrere; su telefono diventa a schede); «Elimina» in rosso, utenti disattivati in grigio' },
     { n: '0.58.0', data: '2026-11-23', t: 'Info di sistema > Utenti: pulsanti «Disattiva / Riattiva» (sospende l’accesso senza perdere profilo e collegamento) ed «Elimina» (doppia conferma); solo amministratore, mai su sé stessi; il Fratello resta in anagrafica' },
     { n: '0.57.0', data: '2026-11-19', t: 'Biblioteca: caricano solo i Maestri e ciascuno modifica ed elimina solo i file che ha caricato (l’amministratore può intervenire su tutto)' },
