@@ -764,3 +764,27 @@ html { font-size: calc(16px * var(--scala-testo)); }
 .pres-seg button.g[aria-pressed="true"] { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
 .pres-seg button.a[aria-pressed="true"] { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
 select[data-pres].pres-nascosta { display: none; }
+
+/* ---------- Info di sistema > Utenti del sistema: tabella compatta, senza scorrimento orizzontale ---------- */
+.tab-utenti { table-layout: fixed; }
+.tab-utenti th, .tab-utenti td { padding: 10px 12px; vertical-align: middle; }
+.tab-utenti th:nth-child(1) { width: 29%; } .tab-utenti th:nth-child(2) { width: 19%; }
+.tab-utenti th:nth-child(3) { width: 21%; } .tab-utenti th:nth-child(4) { width: 14%; } .tab-utenti th:nth-child(5) { width: 17%; }
+.tab-utenti select { width: 100%; min-width: 0; padding: 7px 8px; font-size: .85rem; text-overflow: ellipsis; }
+.tab-utenti .u-nome { font-weight: 700; overflow-wrap: anywhere; }
+.tab-utenti .u-nome .badge { margin-left: 4px; font-weight: 600; vertical-align: 1px; }
+.tab-utenti .u-mail { font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+.tab-utenti .u-acc { font-size: .85rem; margin-bottom: 3px; }
+.tab-utenti .u-azioni { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab-utenti .u-del { color: var(--bad); border-color: var(--bad); }
+.tab-utenti tr.u-off td { background: var(--surface-2); }
+.tab-utenti tr.u-off .u-nome, .tab-utenti tr.u-off .u-mail { opacity: .6; }
+@media (max-width: 880px) {
+  .tab-utenti, .tab-utenti tbody, .tab-utenti tr, .tab-utenti td { display: block; width: 100%; }
+  .tab-utenti thead { display: none; }
+  .tab-utenti tr { padding: 10px 4px; border-bottom: 1px solid var(--line); }
+  .tab-utenti tr:last-child { border-bottom: 0; }
+  .tab-utenti td { border: 0; padding: 5px 12px; background: none !important; }
+  .tab-utenti td::before { content: attr(data-label); display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 2px; }
+  .tab-utenti td:first-child::before { display: none; }
+}

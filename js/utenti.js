@@ -9,6 +9,7 @@
   const { state, $, $$, esc, chk, toast, messaggioErrore, isAdmin } = L;
 
   const PROFILI = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere', fratello: 'Maestro / Compagno / Apprendista (sola lettura, in base al grado)' };
+  const PROFILI_BREVI = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere', fratello: 'Fratello (sola lettura)' };
   const BADGE = { amministratore: 'gold', venerabile: 'info', segretario: 'ok', tesoriere: 'warn', fratello: 'gray' };
   const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : '');
   const dataOra = (iso) => {
@@ -53,28 +54,31 @@
         </form>
         <div id="nu-esito"></div>
       </div>
-      <div class="actions" style="margin-bottom:14px">${Object.keys(PROFILI).filter((k) => conta[k]).map((k) => `<span class="badge ${BADGE[k]}">${esc(PROFILI[k])}: ${conta[k]}</span>`).join('')}
+      <div class="actions" style="margin-bottom:14px">${Object.keys(PROFILI).filter((k) => conta[k]).map((k) => `<span class="badge ${BADGE[k]}">${esc(PROFILI_BREVI[k])}: ${conta[k]}</span>`).join('')}
         <span class="muted">${righe.length} ${righe.length === 1 ? 'utente configurato' : 'utenti configurati'}</span></div>
-      <div class="table-wrap"><table><thead><tr><th>Nome</th><th>Cognome</th><th>Grado</th><th>E-mail</th><th>Profilo</th><th>Collegato al Fratello</th><th>Ultimo accesso</th><th>Azioni</th></tr></thead>
-        <tbody>${righe.length ? righe.map((r) => `<tr>
-          <td><b>${esc(r.nome || '—')}</b>${!r.fratello_id && r.nome_visualizzato ? `<div class="hint">nome utente: ${esc(r.nome_visualizzato)}</div>` : ''}</td>
-          <td><b>${esc(r.cognome || '—')}</b></td>
-          <td>${esc(cap(r.grado) || '—')}</td>
-          <td>${esc(r.email || '—')}</td>
-          <td data-sort="${esc(r.ruolo || '')}">${String(r.user_id) === String(state.user.id)
+      <div class="table-wrap"><table class="tab-utenti"><thead><tr><th>Utente</th><th>Profilo</th><th>Fratello collegato</th><th>Ultimo accesso</th><th>Azioni</th></tr></thead>
+        <tbody>${righe.length ? righe.map((r) => {
+          const io = String(r.user_id) === String(state.user.id);
+          const nomeC = ((r.nome || '') + ' ' + (r.cognome || '')).trim();
+          const etic = nomeC || r.nome_visualizzato || r.email || '';
+          const dati = `data-u="${esc(r.user_id)}" data-email="${esc(r.email || '')}" data-nome="${esc(etic)}"`;
+          return `<tr class="${r.disattivato ? 'u-off' : ''}">
+          <td data-label="Utente"><div class="u-nome">${esc(nomeC || r.nome_visualizzato || '—')}${r.grado ? ` <span class="badge gray">${esc(cap(r.grado))}</span>` : ''}</div>
+            <div class="u-mail">${esc(r.email || '—')}</div></td>
+          <td data-label="Profilo" data-sort="${esc(r.ruolo || '')}">${io
             ? `<span class="badge ${BADGE[r.ruolo] || 'gray'}">${esc(PROFILI[r.ruolo] || r.ruolo || '—')}</span><div class="hint">il tuo profilo</div>`
-            : `<select class="sel-ruolo" data-u="${esc(r.user_id)}" data-prima="${esc(r.ruolo || '')}" data-nome="${esc(((r.nome || '') + ' ' + (r.cognome || '')).trim() || r.email || '')}" style="min-width:160px" aria-label="Profilo di ${esc(r.email || '')}">
+            : `<select class="sel-ruolo" ${dati} data-prima="${esc(r.ruolo || '')}" aria-label="Profilo di ${esc(r.email || '')}">
                 ${!PROFILI[r.ruolo] ? `<option value="" selected>${esc(r.ruolo || '— nessuno —')}</option>` : ''}
-                ${Object.keys(PROFILI).map((k) => `<option value="${k}" ${k === r.ruolo ? 'selected' : ''}>${esc(PROFILI[k])}</option>`).join('')}</select>`}</td>
-          <td data-sort="${esc(r.cognome || '')}"><select class="sel-fr" data-u="${esc(r.user_id)}" style="min-width:190px" aria-label="Fratello collegato a ${esc(r.email || '')}">
+                ${Object.keys(PROFILI).map((k) => `<option value="${k}" ${k === r.ruolo ? 'selected' : ''}>${esc(PROFILI_BREVI[k])}</option>`).join('')}</select>`}</td>
+          <td data-label="Fratello collegato" data-sort="${esc(r.cognome || '')}"><select class="sel-fr" data-u="${esc(r.user_id)}" aria-label="Fratello collegato a ${esc(r.email || '')}">
             <option value="">— nessuno —</option>
             ${fratelli.map((f) => `<option value="${esc(f.id)}" ${String(f.id) === String(r.fratello_id) ? 'selected' : ''}>${esc(f.cognome)} ${esc(f.nome)}</option>`).join('')}</select>
             ${r.collegamento === 'e-mail' ? '<div class="hint">riconosciuto dall’e-mail</div>' : ''}</td>
-          <td>${esc(dataOra(r.ultimo_accesso))}${r.disattivato ? '<div><span class="badge bad">Disattivato</span></div>' : ''}</td>
-          <td>${String(r.user_id) === String(state.user.id)
-            ? '<span class=\"hint\">—</span>'
-            : `<div class=\"actions\" style=\"flex-wrap:nowrap\"><button class=\"btn ghost small btn-gu\" type=\"button\" data-az=\"${r.disattivato ? 'riattiva' : 'disattiva'}\" data-u=\"${esc(r.user_id)}\" data-email=\"${esc(r.email || '')}\" data-nome=\"${esc(((r.nome || '') + ' ' + (r.cognome || '')).trim() || r.nome_visualizzato || '')}\">${r.disattivato ? 'Riattiva' : 'Disattiva'}</button>
-              <button class=\"btn ghost small btn-gu\" type=\"button\" data-az=\"elimina\" data-u=\"${esc(r.user_id)}\" data-email=\"${esc(r.email || '')}\" data-nome=\"${esc(((r.nome || '') + ' ' + (r.cognome || '')).trim() || r.nome_visualizzato || '')}\" aria-label=\"Elimina l’utente ${esc(r.email || '')}\">Elimina</button></div>`}</td></tr>`).join('') : '<tr><td colspan="8"><div class="empty"><div>Nessun utente configurato.</div></div></td></tr>'}</tbody></table></div>
+          <td data-label="Ultimo accesso"><div class="u-acc">${esc(dataOra(r.ultimo_accesso))}</div>${r.disattivato ? '<span class="badge bad">Disattivato</span>' : ''}</td>
+          <td data-label="Azioni">${io ? '<span class="hint">—</span>'
+            : `<div class="u-azioni"><button class="btn ghost small btn-gu" type="button" data-az="${r.disattivato ? 'riattiva' : 'disattiva'}" ${dati}>${r.disattivato ? 'Riattiva' : 'Disattiva'}</button>
+              <button class="btn ghost small btn-gu u-del" type="button" data-az="elimina" ${dati} aria-label="Elimina l’utente ${esc(r.email || '')}">Elimina</button></div>`}</td></tr>`;
+        }).join('') : '<tr><td colspan="5"><div class="empty"><div>Nessun utente configurato.</div></div></td></tr>'}</tbody></table></div>
       <div class="hint" style="margin-top:12px">Nome, cognome e grado vengono dall’anagrafica dei Fratelli: il collegamento avviene dall’e-mail (se è la stessa dell’anagrafica) oppure scegliendo il Fratello dall’elenco. Gli utenti si creano da qui con «Nuovo utente»; con «Disattiva» si sospende l’accesso (si può riattivare), con «Elimina» lo si toglie per sempre (il Fratello resta comunque in anagrafica). Il profilo si cambia dal menu della colonna «Profilo» (non si può cambiare il proprio, per non restare senza amministratore).</div>`;
 
     // ---- nuovo utente (funzione "crea-utente" su Supabase) ----
