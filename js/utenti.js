@@ -25,7 +25,7 @@
     } catch (e) {
       const mancante = /could not find the function|schema cache|does not exist/i.test((e && e.message) || '');
       v.innerHTML = `<div class="page-head"><div><h1>Utenti del sistema</h1><p>Info di sistema</p></div></div>
-        <div class="notice bad">${mancante ? '<b>Manca la funzione sul database.</b> Esegui su Supabase (SQL Editor) gli script <code>lemmi_aggiornamento_18.sql</code> e <code>lemmi_aggiornamento_43.sql</code>, poi ricarica la pagina.' : '<b>Impossibile leggere l’elenco.</b><br>' + esc(messaggioErrore(e))}</div>`;
+        <div class="notice bad">${mancante ? '<b>Manca la funzione sul database.</b> Esegui su Supabase (SQL Editor) gli script <code>lemmi_aggiornamento_18.sql</code>, <code>_43</code>, <code>_44</code> e <code>_45</code>, poi ricarica la pagina.' : '<b>Impossibile leggere l’elenco.</b><br>' + esc(messaggioErrore(e))}</div>`;
       return;
     }
     const fratelli = await L.caricaFratelli();
@@ -129,7 +129,7 @@
         sel.value = prima; sel.disabled = false;
       }
     }));
-    // ---- disattiva / riattiva / elimina (funzione "gestisci-utente" su Supabase) ----
+    // ---- disattiva / riattiva / elimina (funzioni del database) ----
     const TESTI = {
       disattiva: (c) => ['Disattivare l’utente ' + c + '?\n\nNon potrà più accedere a Lemmi (se è già dentro, esce entro circa un’ora).\nProfilo e collegamento al Fratello restano: potrai riattivarlo quando vuoi.', null, 'Utente disattivato'],
       riattiva: (c) => ['Riattivare l’utente ' + c + '?\n\nTornerà ad accedere con la sua password e il suo profilo di prima.', null, 'Utente riattivato'],
@@ -143,24 +143,9 @@
       if (c2 && !window.confirm(c2)) return;
       btn.disabled = true;
       try {
-        if (az !== 'elimina') {
-          // disattiva / riattiva: direttamente sul database (script lemmi_aggiornamento_44.sql)
-          chk(await state.sb.rpc('imposta_disattivazione_utente', { p_user: btn.dataset.u, p_disattiva: az === 'disattiva' }));
-          toast(ok, 'ok');
-          L.route();
-          return;
-        }
-        const { data: ses } = await state.sb.auth.getSession();
-        const headers = ses && ses.session ? { Authorization: 'Bearer ' + ses.session.access_token } : {};
-        const { data, error } = await state.sb.functions.invoke('gestisci-utente', { body: { azione: az, user_id: btn.dataset.u }, headers });
-        if (error) {
-          let msg = error.message || 'Errore';
-          const st = error.context && error.context.status;
-          try { const j = await error.context.json(); if (j && j.errore) msg = j.errore; } catch (_) { /* nessun dettaglio */ }
-          if ((st === 404 && !/utente/i.test(msg)) || /failed to send|fetch/i.test(msg)) msg = 'La funzione «gestisci-utente» non risulta pubblicata su Supabase: segui il passo 2 del file LEGGIMI-aggiornamento-58.txt.';
-          throw new Error(msg);
-        }
-        if (data && data.errore) throw new Error(data.errore);
+        // tutto direttamente sul database (script lemmi_aggiornamento_44.sql e _45.sql)
+        if (az === 'elimina') chk(await state.sb.rpc('elimina_utente_sistema', { p_user: btn.dataset.u }));
+        else chk(await state.sb.rpc('imposta_disattivazione_utente', { p_user: btn.dataset.u, p_disattiva: az === 'disattiva' }));
         toast(ok, 'ok');
         L.route();
       } catch (e) { toast(messaggioErrore(e), 'bad'); btn.disabled = false; }
