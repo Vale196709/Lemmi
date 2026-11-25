@@ -140,3 +140,11 @@ vendor/             librerie incluse (supabase-js, pdf-lib, SheetJS per i file E
 - Colori di stato uguali in tutta l’app: verde in regola, ambra in scadenza (quote da pagare entro 30 giorni), rosso scaduto (`Lemmi.badgeStato`).
 - Sotto i 640 px le tabelle con intestazione diventano schede: titolo dalla colonna con `data-card-title` (o dalla prima), righe vuote nascoste. Per escludere una tabella: `data-nocard`.
 - Eliminazioni con «Annulla» per 7 secondi (`Lemmi.eliminaConAnnulla`): l’eliminazione vera parte solo allo scadere.
+
+## Sicurezza e interfaccia (v0.65.0)
+
+- **Vista completa dei Fratelli** (`v_fratelli_completi`): la leggono per intero amministratore, Venerabile, Segretario e Tesoriere; un utente con profilo Fratello vede solo la propria riga; le note riservate solo amministratore, Venerabile e Segretario. Richiede `lemmi_aggiornamento_50.sql`.
+- **Notifiche**: l'invio automatico del mattino porta un codice segreto; la funzione `notifiche` rifiuta l'invio a tutti senza quel codice. Richiede lo script 50 e la funzione `notifiche` ripubblicata.
+- **Menu laterale**: in basso nome, profilo, «Esci» e il pulsante delle preferenze (tema, dimensione del testo, versione), che resta aperto o chiuso come l'hai lasciato. **Telefono**: in testata solo logo e nome; Esci, tema e testo sono in fondo a «Altro».
+- **Conferme**: tutte nello stile dell'app; per le eliminazioni il pulsante è rosso e il fuoco parte da «Annulla».
+- **Apertura veloce (v0.66.0)**: se il dispositivo ha già fatto l'accesso, il menu e la pagina compaiono subito con il profilo salvato l'ultima volta, mentre profilo e dati della Loggia si ricontrollano (insieme); se sono cambiati, la pagina si ridisegna da sola. I riquadri del Cruscotto (pratiche, vista economica, archivio cartaceo, ricorrenze) chiedono i dati tutti insieme: un riquadro nuovo può fare lo stesso aggiungendo `fn.carica` e usando `L.datiAnticipati`. Con rete molto lenta (oltre 4 secondi) il telefono apre la copia salvata del codice e la aggiorna per la volta dopo.

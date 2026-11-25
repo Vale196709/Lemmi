@@ -1,0 +1,18 @@
+AGGIORNAMENTO 67 (versione 0.66.0) - Apertura più veloce
+
+Nessuno script SQL, nessuna funzione Supabase da ripubblicare.
+PASSO 1 (sito) - carica su GitHub i file dello ZIP, mantenendo le cartelle:
+   js/app.js, js/economia.js, js/pratiche.js, js/archivio.js, js/ricorrenze.js, js/versione.js, sw.js,
+   docs/funzioni.md, docs/aggiornamenti/LEGGIMI-aggiornamento-67.txt
+   (js/app.js contiene già la correzione 0.65.1 della versione nel menu.)
+   Aspetta 1-2 minuti, ricarica con Ctrl+F5; sul telefono chiudi e riapri l'app due volte.
+
+Cosa cambia:
+ - All'apertura il menu e il Cruscotto compaiono subito, senza la rotellina: il profilo è quello dell'ultima volta
+   e intanto l'app lo ricontrolla. Se nel frattempo il profilo è cambiato (o l'utente è stato disattivato),
+   la pagina si aggiorna da sola. I dati restano protetti dal database come prima.
+ - I riquadri del Cruscotto (pratiche e scadenze, ricorrenze, vista economica, archivio cartaceo) chiedono i dati
+   tutti insieme. Nelle prove con un ritardo di rete simulato il Cruscotto completo passa da circa 2,3 a circa 1,0
+   secondi, e a circa 0,7 secondi quando il dispositivo ha già fatto l'accesso.
+ - Telefono con rete molto lenta: se il codice dell'app non arriva entro 4 secondi, si apre la copia salvata
+   e quella nuova viene usata alla volta successiva. Con rete normale gli aggiornamenti si vedono subito come prima.
