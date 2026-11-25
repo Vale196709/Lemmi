@@ -438,6 +438,7 @@ create table if not exists public.lavori (
   data_assegnazione date default CURRENT_DATE,
   data_consegna_prevista date,
   data_presentazione date,
+  data_discussione date,
   stato text not null default 'assegnato'::text,
   note text,
   file_path text,
@@ -2227,7 +2228,7 @@ AS $function$ select exists (select 1 from public.tavole_per_grado() t where t.f
 ;
 
 CREATE OR REPLACE FUNCTION public.tavole_per_grado()
- RETURNS TABLE(id uuid, titolo text, tema text, tipo text, autore text, grado_tornata text, stato text, data_presentazione date, data_consegna_prevista date, file_path text, file_nome text, mia boolean)
+ RETURNS TABLE(id uuid, titolo text, tema text, tipo text, autore text, grado_tornata text, stato text, data_presentazione date, data_consegna_prevista date, file_path text, file_nome text, mia boolean, data_discussione date)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
@@ -2236,7 +2237,7 @@ AS $function$
          coalesce(nullif(trim(coalesce(f.cognome, '') || ' ' || coalesce(f.nome, '')), ''), l.autore_esterno, '—') as autore,
          coalesce(l.grado_tornata, l.grado_autore) as grado_tornata, l.stato,
          l.data_presentazione, l.data_consegna_prevista, l.file_path, l.file_nome,
-         (l.fratello_id = public.fratello_mio()) as mia
+         (l.fratello_id = public.fratello_mio()) as mia, l.data_discussione
   from public.lavori l left join public.fratelli f on f.id = l.fratello_id
   where public.fratello_mio() is not null
     and ( l.fratello_id = public.fratello_mio()
@@ -3242,7 +3243,7 @@ create policy tavole_cancellazione_fratello on storage.objects as permissive for
 
 -- 4) nuova tavola (p_id nullo) oppure modifica di una propria: titolo, tema, grado, data, file (obbligatorio solo la prima volta)
 create or replace function public.fratello_salva_tavola(
-  p_id uuid, p_titolo text, p_tema text, p_grado text, p_data date,
+  p_id uuid, p_titolo text, p_tema text, p_grado text, p_data date, p_discussa date,
   p_file_path text, p_file_nome text, p_file_tipo text, p_file_dimensione bigint)
  returns jsonb
  language plpgsql
@@ -3275,10 +3276,10 @@ begin
     if p_file_path is null or p_file_nome is null then
       raise exception 'Scegli il file della tavola.';
     end if;
-    insert into public.lavori (titolo, tema, tipo, fratello_id, stato, grado_autore, grado_tornata, data_presentazione, data_assegnazione,
+    insert into public.lavori (titolo, tema, tipo, fratello_id, stato, grado_autore, grado_tornata, data_presentazione, data_discussione, data_assegnazione,
                                file_path, file_nome, file_tipo, file_dimensione)
     values (left(trim(p_titolo), 200), nullif(left(trim(coalesce(p_tema, '')), 300), ''), 'tavola', fm, 'presentato', p_grado, p_grado,
-            coalesce(p_data, current_date), current_date, p_file_path, left(p_file_nome, 200), p_file_tipo, p_file_dimensione)
+            coalesce(p_data, current_date), p_discussa, current_date, p_file_path, left(p_file_nome, 200), p_file_tipo, p_file_dimensione)
     returning id into nuovo_id;
     return jsonb_build_object('id', nuovo_id, 'vecchio_file', null);
   end if;
@@ -3288,7 +3289,7 @@ begin
   end if;
   update public.lavori
      set titolo = left(trim(p_titolo), 200), tema = nullif(left(trim(coalesce(p_tema, '')), 300), ''),
-         grado_autore = p_grado, grado_tornata = p_grado, data_presentazione = coalesce(p_data, l.data_presentazione, current_date),
+         grado_autore = p_grado, grado_tornata = p_grado, data_presentazione = coalesce(p_data, l.data_presentazione, current_date), data_discussione = p_discussa,
          stato = 'presentato', updated_at = now(),
          file_path = coalesce(p_file_path, l.file_path), file_nome = case when p_file_path is null then l.file_nome else left(p_file_nome, 200) end,
          file_tipo = case when p_file_path is null then l.file_tipo else p_file_tipo end,
@@ -3297,8 +3298,8 @@ begin
   return jsonb_build_object('id', p_id, 'vecchio_file', case when p_file_path is not null and l.file_path is distinct from p_file_path then l.file_path else null end);
 end;
 $function$;
-revoke all on function public.fratello_salva_tavola(uuid, text, text, text, date, text, text, text, bigint) from public, anon;
-grant execute on function public.fratello_salva_tavola(uuid, text, text, text, date, text, text, text, bigint) to authenticated;
+revoke all on function public.fratello_salva_tavola(uuid, text, text, text, date, date, text, text, text, bigint) from public, anon;
+grant execute on function public.fratello_salva_tavola(uuid, text, text, text, date, date, text, text, text, bigint) to authenticated;
 
 -- 5) elimina una propria tavola; restituisce il percorso del file, che l'app toglie poi dall'archivio
 create or replace function public.fratello_elimina_tavola(p_id uuid)
