@@ -844,3 +844,29 @@ select[data-pres].pres-nascosta { display: none; }
   .altro-grid a svg { width: 22px; height: 22px; color: var(--accent-ink); }
   .altro-grid a.active { border-color: var(--gold); background: var(--gold-soft); }
 }
+
+/* ---------- v0.65: riquadro utente compatto nel menu laterale; su telefono tema, testo ed Esci stanno in «Altro» ---------- */
+.side .who { padding: 10px 12px; }
+.who-riga { display: flex; align-items: center; gap: 8px; }
+.who-nome { flex: 1 1 auto; min-width: 0; }
+.who-nome b, .who-nome span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side .who .who-riga button { margin-top: 0; width: auto; flex: none; }
+.who-tog { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 30px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, .18); background: transparent; color: #dfe6fa; cursor: pointer; }
+.who-tog:hover, .who-tog[aria-expanded="true"] { background: rgba(255, 255, 255, .1); color: #fff; }
+.who-tog svg { width: 16px; height: 16px; }
+.who-pannello[hidden] { display: none; }
+.who-pannello .tema-sw { margin-top: 10px; }
+.altro-account { display: none; }
+@media (max-width: 880px) {
+  .side .who { display: none; }                         /* intestazione: solo logo e nome dell'app */
+  main { padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)); }   /* il pulsante «+» non copre la fine della pagina */
+  .altro-account { display: grid; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .altro-account .who-nome b { color: var(--ink); }
+  .altro-account .who-nome span { color: var(--muted); font-size: .8rem; }
+  .altro-account .tema-sw, .altro-account .testo-sw { margin: 0; background: var(--surface-2); border: 1px solid var(--line); }
+  .altro-account .tema-sw button, .altro-account .testo-sw button { color: var(--muted); padding: 8px 4px; }
+  .altro-account .tema-sw button[aria-pressed="true"], .altro-account .testo-sw button[aria-pressed="true"] { background: var(--gold-soft); color: var(--gold-ink); }
+  .altro-account .tema-sw .t-txt { display: inline; margin-left: 4px; }
+  .altro-account .tema-sw .t-ic { display: inline; }
+  .altro-account .ver { display: block; text-align: center; color: var(--muted); font-size: .72rem; }
+}
