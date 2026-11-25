@@ -4,9 +4,11 @@
   "description": "Gestione di Loggia: prove automatiche (l'app stessa non ha bisogno di installazione)",
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
-    "test:db": "node test/db/prova_schema.js"
+    "test:db": "node test/db/prova_schema.js",
+    "test:pagine": "node test/foto/prova_pagine.js"
   },
   "devDependencies": {
-    "jsdom": "^26.0.0"
+    "jsdom": "^26.0.0",
+    "playwright": "^1.63.0"
   }
 }

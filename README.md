@@ -47,4 +47,6 @@ Nota: sul piano gratuito GitHub Pages richiede un repository **pubblico**. Nel r
 ## Prove automatiche
 
 `npm test` esegue le prove sul codice; `npm run test:db` ricostruisce il database da `sql/schema_completo.sql` e lo controlla.
+`npm run test:pagine` apre le pagine principali in un browser vero, con dati finti, per i profili Amministratore, Segretario, Tesoriere e Fratello, su computer e su telefono: segnala errori, pagine vuote e tabelle che escono dal riquadro, e salva una foto di ogni pagina in `test/foto/risultati` (la prima volta in locale: `npx playwright install chromium`).
+Su GitHub, aperta la prova (scheda *Actions*), le foto si scaricano da **Artifacts** → `foto-pagine`.
 Si avviano da sole a ogni modifica caricata su GitHub (cartella `.github/workflows`).
