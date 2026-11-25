@@ -883,3 +883,27 @@ select[data-pres].pres-nascosta { display: none; }
 .tab-cal th, .tab-cal td { padding-left: 10px; padding-right: 10px; }
 .tab-cal td.act .btn { padding-left: 10px; padding-right: 10px; }
 .tab-cal td:first-child { white-space: nowrap; }
+
+/* ---------- v0.67: modalità «Tornata» ---------- */
+.tn-griglia { align-items: start; }
+.tn-odg { white-space: pre-line; line-height: 1.55; }
+.tn-prom { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.tn-prom li { display: flex; gap: 10px; align-items: flex-start; }
+.tn-prom li > span { font-size: 1.15rem; line-height: 1.3; }
+.tn-pres { display: grid; gap: 6px; }
+.tn-riga { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.tn-riga:last-child { border-bottom: 0; }
+.tn-nome { min-width: 0; }
+.tn-avviso { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; background: var(--gold-soft); color: var(--gold-ink); }
+.tn-avviso .btn { margin-left: auto; }
+a.tn-link { color: inherit; text-decoration: none; }
+a.tn-link:hover b { text-decoration: underline; }
+.tn-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.tn-h h2 { margin: 0; }
+@media (max-width: 640px) { .tn-riga { padding: 8px 0; } .tn-riga .pres-seg button { min-width: 44px; } }
+/* «Le mie tavole» nell'area del Fratello: titolo a tutta larghezza e pulsanti sotto */
+.tv-mie tr { display: grid; grid-template-columns: 1fr; }
+.tv-mie td { border-bottom: 0; }
+.tv-mie td.act { padding-top: 0; text-align: left; }
+.tv-mie tr + tr td:first-child { border-top: 1px solid var(--line); }
+.scarica-tavola { white-space: nowrap; }
