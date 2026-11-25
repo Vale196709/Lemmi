@@ -221,8 +221,9 @@
   });
 
   L.cruscottoExtra = L.cruscottoExtra || [];
-  L.cruscottoExtra.push(async (v) => {
-    if (!RUOLI.includes(state.profilo && state.profilo.ruolo)) return;
+  const vedeEco = () => RUOLI.includes(state.profilo && state.profilo.ruolo);
+  const extraEconomia = async (v, anticipo) => {
+    if (!vedeEco()) return;
     const sez = document.createElement('section');
     sez.id = 'eco';
     if (v.children.length > 1) sez.style.marginTop = '6px';    // subito sotto la segreteria compatta
@@ -231,12 +232,15 @@
     const anni = Array.from(new Set([ora - 2, ora - 1, ora, ora + 1])).sort();
     const disegna = async () => {
       sez.innerHTML = '<div class="muted" style="padding:10px 0">Carico la vista economica…</div>';
-      const d = await dati(eco.anno);
+      const d = anticipo ? await L.datiAnticipati(anticipo, () => dati(eco.anno)) : await dati(eco.anno);
+      anticipo = null;   // al cambio d'anno si rilegge
       if (!d.mov && !d.scad) { sez.innerHTML = ''; return; }   // nessun accesso o tabelle assenti
       ultimo = { d, anno: eco.anno };
       sez.innerHTML = html(d, eco.anno, anni);
       $('#eco-anno', sez).addEventListener('change', (e) => { eco.anno = Number(e.target.value); disegna(); });
     };
     await disegna();
-  });
+  };
+  extraEconomia.carica = () => (vedeEco() ? dati(eco.anno) : null);
+  L.cruscottoExtra.push(extraEconomia);
 })();

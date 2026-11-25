@@ -246,14 +246,18 @@
 
   /* ---------- Cruscotto: avviso per gli originali non rientrati ---------- */
   L.cruscottoExtra = L.cruscottoExtra || [];
-  L.cruscottoExtra.push(async (v) => {
-    if (!['segretario', 'amministratore', 'venerabile'].includes(ruolo())) return;
+  const vedeArchivio = () => ['segretario', 'amministratore', 'venerabile'].includes(ruolo());
+  const caricaRitardi = async () => chk(await sb().from('originali_cartacei').select('descrizione,destinatario,rientro_previsto').eq('stato', 'prelevato').lt('rientro_previsto', oggi()));
+  const extraArchivio = async (v, anticipo) => {
+    if (!vedeArchivio()) return;
     let ritardi;
-    try { ritardi = chk(await sb().from('originali_cartacei').select('descrizione,destinatario,rientro_previsto').eq('stato', 'prelevato').lt('rientro_previsto', oggi())); } catch (e) { return; }
+    try { ritardi = await L.datiAnticipati(anticipo, caricaRitardi); } catch (e) { return; }
     if (!ritardi || !ritardi.length) return;
     const el = document.createElement('div');
     el.className = 'notice warn'; el.style.marginTop = '14px';
     el.innerHTML = `<b>Archivio cartaceo:</b> ${ritardi.length === 1 ? 'un originale doveva già essere rientrato' : ritardi.length + ' originali dovevano già essere rientrati'} (${esc(ritardi.slice(0, 2).map((x) => x.descrizione + ' — ' + x.destinatario).join('; '))}${ritardi.length > 2 ? '…' : ''}). <a href="#/archivio">Apri l’archivio</a>`;
     v.appendChild(el);
-  });
+  };
+  extraArchivio.carica = () => (vedeArchivio() ? caricaRitardi() : null);
+  L.cruscottoExtra.push(extraArchivio);
 })();

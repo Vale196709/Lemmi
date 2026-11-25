@@ -271,25 +271,30 @@
   const CACHE_AVVIO = 'lemmi.avvio';
 
   async function avvia(user) {
-    $('#app').innerHTML = '<div class="loading"><span class="spin"></span></div>';
+    state.user = user;
+    // apertura veloce: se questo telefono/computer ha già il profilo dell'ultima volta, la pagina compare subito
+    // e intanto profilo e dati della Loggia si rileggono (in parallelo); se sono cambiati, la pagina si ridisegna.
+    let c = null; try { c = JSON.parse(localStorage.getItem(CACHE_AVVIO) || 'null'); } catch (x) { c = null; }
+    const giaAperta = !!(c && c.u === user.id && c.p && RUOLI_ACCESSO.includes(c.p.ruolo));
+    if (giaAperta) { state.profilo = c.p; state.loggia = c.l || {}; renderShell(); route(); }
+    else $('#app').innerHTML = '<div class="loading"><span class="spin"></span></div>';
     try {
-      state.user = user;
-      const { data: p, error } = await state.sb.from('profili').select('ruolo,nome_visualizzato').eq('user_id', user.id).maybeSingle();
-      if (error) throw error;
-      state.profilo = p;
-      if (!p || !RUOLI_ACCESSO.includes(p.ruolo)) return renderNegato(p);
-      const l = await state.sb.from('loggia').select('*').limit(1).maybeSingle();
-      state.loggia = l.data || {};
-      try { localStorage.setItem(CACHE_AVVIO, JSON.stringify({ u: user.id, p, l: state.loggia })); } catch (e) { /* facoltativo */ }
-      renderShell();
-      route();
+      const [rp, rl] = await Promise.all([
+        state.sb.from('profili').select('ruolo,nome_visualizzato').eq('user_id', user.id).maybeSingle(),
+        state.sb.from('loggia').select('*').limit(1).maybeSingle(),
+      ]);
+      if (rp.error) throw rp.error;
+      const p = rp.data;
+      if (!p || !RUOLI_ACCESSO.includes(p.ruolo)) { try { localStorage.removeItem(CACHE_AVVIO); } catch (x) { /* facoltativo */ } return renderNegato(p); }
+      const loggia = rl.data || {};
+      const cambiato = !giaAperta || JSON.stringify(p) !== JSON.stringify(c.p) || JSON.stringify(loggia) !== JSON.stringify(c.l || {});
+      state.profilo = p; state.loggia = loggia;
+      try { localStorage.setItem(CACHE_AVVIO, JSON.stringify({ u: user.id, p, l: loggia })); } catch (e) { /* facoltativo */ }
+      if (cambiato) { renderShell(); route(); }
       if (API.codaVerbali) API.codaVerbali.invia();   // verbali salvati in tornata senza rete
     } catch (e) {
-      // senza rete: si entra con il profilo dell'ultima volta (i dati si leggono di nuovo appena torna la connessione)
-      let c = null; try { c = JSON.parse(localStorage.getItem(CACHE_AVVIO) || 'null'); } catch (x) { c = null; }
-      if (senzaRete(e) && c && c.u === user.id && c.p && RUOLI_ACCESSO.includes(c.p.ruolo)) {
-        state.profilo = c.p; state.loggia = c.l || {};
-        renderShell(); route();
+      // senza rete: si resta (o si entra) con il profilo dell'ultima volta (i dati si leggono di nuovo appena torna la connessione)
+      if (senzaRete(e) && giaAperta) {
         toast('Sei senza rete: alcune pagine non si caricano. Il foglio presenze dei verbali funziona comunque.', 'bad');
         return;
       }
@@ -576,9 +581,10 @@
   /* ---------- cruscotto ---------- */
   async function vistaCruscotto(v) {
     if (state.profilo.ruolo === 'fratello') { await API.vistaFratello(v); return; }   // area personale del Fratello
+    const anticipi = avviaAnticipi();   // i dati dei riquadri aggiuntivi partono subito, insieme a quelli qui sotto
     if (!SOCI.includes(state.profilo.ruolo)) {   // il Tesoriere vede solo la parte economica
       v.innerHTML = `<div class="page-head"><div><h1>Cruscotto</h1><p>${esc(nomeLoggia('La tua Loggia'))}${state.loggia.oriente ? ' · Oriente di ' + esc(state.loggia.oriente) : ''}</p></div></div>`;
-      await estraCruscotto(v);
+      await estraCruscotto(v, anticipi);
       return;
     }
     const [bus, fr] = await Promise.all([
@@ -614,13 +620,29 @@
         </div>
       </div>`;
     collegaRighe(v);
-    await estraCruscotto(v);
+    await estraCruscotto(v, anticipi);
   }
 
   // riquadri aggiuntivi del Cruscotto (es. vista economica): un errore qui non deve rompere la pagina
-  async function estraCruscotto(v) {
-    for (const fn of (API.cruscottoExtra || [])) { try { await fn(v); } catch (e) { /* facoltativo */ } }
+  // Ogni riquadro può avere fn.carica(): i dati di tutti si chiedono subito e insieme, poi i riquadri si disegnano
+  // nell'ordine di sempre (prima ognuno aspettava il precedente).
+  function avviaAnticipi() {
+    return (API.cruscottoExtra || []).map((fn) => {
+      if (typeof fn.carica !== 'function') return null;
+      try { const p = fn.carica(); return p ? Promise.resolve(p).catch((e) => ({ __errore: e })) : null; } catch (e) { return null; }
+    });
+  }
+  async function estraCruscotto(v, anticipi) {
+    const lista = API.cruscottoExtra || [];
+    anticipi = anticipi || avviaAnticipi();
+    for (let i = 0; i < lista.length; i++) { try { await lista[i](v, anticipi[i]); } catch (e) { /* facoltativo */ } }
     collegaRighe(v);
+  }
+  // usato dai riquadri del Cruscotto: i dati già chiesti in anticipo, oppure li chiede ora
+  async function datiAnticipati(anticipo, carica) {
+    const r = anticipo ? await anticipo : await carica();
+    if (r && r.__errore) throw r.__errore;
+    return r;
   }
 
   function collegaRighe(root) {
@@ -1073,7 +1095,7 @@
   // Interfaccia messa a disposizione dei moduli aggiuntivi (es. js/pagamenti.js)
   // importi in euro nel formato 1.234,56 €
   const eur = (x) => { const n = Math.round(Number(x || 0) * 100) / 100; const [i, d] = Math.abs(n).toFixed(2).split('.'); return (n < 0 ? '-' : '') + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d + ' €'; };
-  const API = window.Lemmi = { state, $, $$, esc, chk, toast, eliminaConAnnulla, coloreStato, etichettaStato, badgeStato, badgeGrado, statoQuota, schedeTabelle, SAGOMA, vocetl, messaggioErrore, senzaRete, fmtData, isoToIt, itToIso, oggi, isoLocale, libreria, eur, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
+  const API = window.Lemmi = { state, $, $$, esc, chk, toast, eliminaConAnnulla, datiAnticipati, coloreStato, etichettaStato, badgeStato, badgeGrado, statoQuota, schedeTabelle, SAGOMA, vocetl, messaggioErrore, senzaRete, fmtData, isoToIt, itToIso, oggi, isoLocale, libreria, eur, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
   API.estensioniLoggia.push(schedaPassword);
 
   function schedaPassword(v) {

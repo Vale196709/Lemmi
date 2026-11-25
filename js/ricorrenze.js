@@ -64,18 +64,21 @@
       ${L.wa && r.f.cellulare ? L.wa.fratello(r.f.id, testoAuguri(r), '') : ''}</div>`;
 
   L.cruscottoExtra = L.cruscottoExtra || [];
-  L.cruscottoExtra.push(async (v) => {
-    if (!SOCI.includes(state.profilo && state.profilo.ruolo)) return;
+  const vedeRic = () => SOCI.includes(state.profilo && state.profilo.ruolo);
+  const extraRicorrenze = async (v, anticipo) => {
+    if (!vedeRic()) return;
     const dest = $('#seg-cr', v);
     if (!dest) return;
     let lista;
-    try { lista = await ricorrenze(); } catch (e) { return; }
+    try { lista = await L.datiAnticipati(anticipo, ricorrenze); } catch (e) { return; }
     const oggiN = lista.filter((r) => r.giorni === 0).length;
     dest.insertAdjacentHTML('beforeend', `<div class="card compact" id="cr-ric"><h2>Ricorrenze${lista.length ? ` <small>${oggiN ? oggiN + ' oggi · ' : ''}prossimi ${GIORNI_AVANTI} giorni</small>` : ''}</h2>
       ${lista.length ? `<div class="ric-list">${lista.slice(0, MOSTRATE).map(riga).join('')}</div>
         ${lista.length > MOSTRATE ? `<details style="margin-top:6px"><summary style="cursor:pointer;font-size:.84rem">altre ${lista.length - MOSTRATE}</summary><div class="ric-list" style="margin-top:6px">${lista.slice(MOSTRATE).map(riga).join('')}</div></details>` : ''}`
         : `<div class="empty">Nessun compleanno o anniversario di iniziazione nei prossimi ${GIORNI_AVANTI} giorni.</div>`}</div>`);
-  });
+  };
+  extraRicorrenze.carica = () => (vedeRic() ? ricorrenze() : null);
+  L.cruscottoExtra.push(extraRicorrenze);
 
   L.ricorrenze = { prossima, ricorrenze };
 })();

@@ -299,10 +299,10 @@
 
   /* ---------- Cruscotto ---------- */
   L.cruscottoExtra = L.cruscottoExtra || [];
-  L.cruscottoExtra.unshift(async (v) => {
+  const extraPratiche = async (v, anticipo) => {
     if (!vede()) return;
     let lista;
-    try { lista = await caricaTutto(true); } catch (e) { return; }
+    try { lista = await L.datiAnticipati(anticipo, () => caricaTutto(true)); } catch (e) { return; }
     if (!lista.length && !scrive()) return;
     const tutte = scadenzeDi(lista), sc = tutte.slice(0, 3);
     const cardPratiche = `<div class="card compact"><h2>Pratiche in corso${lista.length > 3 ? ` <small>${lista.length} in totale · <a href="#/procedure">tutte</a></small>` : ''}</h2>${lista.length ? `<div class="table-wrap"><table><tbody>${lista.slice(0, 3).map((x) => `
@@ -314,7 +314,9 @@
     const sez = document.createElement('section'); sez.id = 'pratiche-cr'; sez.style.marginTop = '28px';
     sez.innerHTML = `<div class="grid cols-2">${cardPratiche}${cardScad}</div>`;
     v.appendChild(sez); collega(sez);
-  });
+  };
+  extraPratiche.carica = () => (vede() ? caricaTutto(true) : null);
+  L.cruscottoExtra.unshift(extraPratiche);
 
   /* ---------- Calendario ---------- */
   const calOrig = L.viste.calendario;
