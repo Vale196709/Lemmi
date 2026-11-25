@@ -138,6 +138,16 @@ const SCHERMI = [{ nome: 'computer', viewport: { width: 1366, height: 860 } }, {
           return { vuota: !v || !v.textContent.trim(), errore: !!(v && /Si è verificato un errore|Pagina non trovata|non ha accesso/.test(v.textContent)), testo: v ? v.textContent.trim().slice(0, 140) : '', fuori };
         }, !!schermo.isMobile);
         await pg.screenshot({ path: path.join(cartellaFoto, nome + '.png'), fullPage: true });
+        // ogni campo per scegliere un file deve essere visibile, oppure avere un pulsante (label) che lo apre
+        const fileNascosti = async () => pg.evaluate(() => [...document.querySelectorAll('input[type=file]')]
+          .filter((i) => i.offsetParent === null && !(i.id && document.querySelector('label.btn[for="' + i.id + '"]')))
+          .map((i) => i.id || i.name || 'senza nome'));
+        if (prova.ruolo === 'fratello' && h === '' && await pg.$('#tv-carica')) {
+          await pg.click('#tv-carica'); await pg.waitForTimeout(200);
+          await pg.screenshot({ path: path.join(cartellaFoto, nome + '_carica-tavola.png') });
+          (await fileNascosti()).forEach((x) => esito.fuori.push('campo file nascosto senza pulsante: ' + x));
+          await pg.click('.modal [data-x]');
+        } else (await fileNascosti()).forEach((x) => esito.fuori.push('campo file nascosto senza pulsante: ' + x));
         pagineProvate++;
         const elenco = [];
         if (esito.vuota) elenco.push('pagina vuota');
