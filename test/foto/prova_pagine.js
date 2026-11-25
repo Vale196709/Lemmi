@@ -26,6 +26,7 @@ const fratelli = NOMI.map(([cognome, nome, grado], i) => ({
   anno_iniziazione: 2000 + i, data_iniziazione: (2000 + i) + '-03-15', professione: 'Impiegato',
 }));
 const tornate = [
+  { id: 't0', data: isoTra(0), tipo: 'ordinaria', grado: 'apprendista', ora: '20:30:00', stato: 'programmata', luogo: 'Casa massonica', relatore: 'Fr. Mario Rossi', ordine_del_giorno: '1. Lettura del verbale\n2. Tavola del Fr. Rossi\n3. Varie' },
   { id: 't1', data: isoTra(7), tipo: 'ordinaria', grado: 'apprendista', ora: '20:30:00', stato: 'programmata', luogo: 'Casa massonica' },
   { id: 't2', data: isoTra(14), tipo: 'informale', grado: null, ora: '21:00:00', stato: 'programmata', link_online: 'https://meet.example/abc' },
 ];
@@ -41,6 +42,14 @@ const TABELLE = {
   loggia: [{ id: 1, nome: 'Adriano Lemmi', numero: '812', oriente: 'Roma', indirizzo: 'Via di prova 1' }],
   v_scadenze_stato: scadenze, v_conto_movimenti: movimenti, conto_movimenti: movimenti,
   conti: [{ id: 'c1', nome: 'BancoPosta', attivo: true }], voci_quota: [{ id: 'v1', codice: 'capitazione', nome: 'Capitazione', personale: true }],
+};
+const lavori = [
+  { id: 'l1', titolo: 'I Quattro Triangoli Elementali', tema: 'Terra - Acqua - Aria - Fuoco', tipo: 'tavola', fratello_id: fratelli[0].id, stato: 'presentato', grado_autore: 'apprendista', grado_tornata: 'apprendista', data_presentazione: isoTra(0), file_path: 'fratelli/' + fratelli[0].id + '/u1/1_quattro.pdf.zip', file_nome: 'quattro.pdf' },
+  { id: 'l2', titolo: 'Il silenzio dell’Apprendista', tipo: 'tavola', fratello_id: fratelli[3].id, stato: 'presentato', grado_autore: 'maestro', grado_tornata: 'apprendista', data_presentazione: isoTra(-30), file_path: 'fratelli/x/u2/2_silenzio.pdf', file_nome: 'silenzio.pdf' },
+];
+TABELLE.lavori = lavori;
+const RPC = {
+  tavole_per_grado: lavori.map((l) => ({ id: l.id, titolo: l.titolo, tema: l.tema || null, tipo: 'tavola', autore: l.fratello_id === fratelli[0].id ? 'Rossi Mario' : 'Neri Giorgio', grado_tornata: l.grado_tornata, stato: l.stato, data_presentazione: l.data_presentazione, file_path: l.file_path, file_nome: l.file_nome, mia: l.fratello_id === fratelli[0].id })),
 };
 const ruoloDi = { fratello: { ruolo: 'fratello', nome_visualizzato: 'Rossi Mario', fratello_id: fratelli[0].id } };
 
@@ -72,7 +81,7 @@ function rispostaSupabase(route, ruolo) {
   if (url.pathname.startsWith('/storage/v1/')) return json([]);
   const m = /^\/rest\/v1\/(rpc\/)?([a-z_0-9]+)/.exec(url.pathname);
   if (!m) return json([]);
-  if (m[1]) return json([]);
+  if (m[1]) return json(ruolo === 'fratello' ? (RPC[m[2]] || []) : []);
   let dati = m[2] === 'profili' ? [ruoloDi[ruolo] || { ruolo, nome_visualizzato: 'Utente di prova' }] : (TABELLE[m[2]] || []);
   const id = url.searchParams.get('id');
   if (id && /^eq\./.test(id)) dati = dati.filter((x) => String(x.id) === id.slice(3));
@@ -88,10 +97,11 @@ const sessione = { access_token: 'a.b.c', token_type: 'bearer', expires_in: 3600
 
 /* ---------- pagine da provare ---------- */
 const TUTTE = ['', 'cerca', 'calendario', 'pagamenti', 'fratelli', 'fratelli/' + fratelli[0].id, 'bussanti', 'bussanti/nuovo', 'storia', 'verbali', 'lavori',
-  'elezioni', 'piedilista', 'libromatricola', 'procedure', 'archivio', 'template', 'biblioteca', 'relazione', 'completa', 'loggia', 'utenti', 'sistema', 'registro'];
+  'elezioni', 'piedilista', 'libromatricola', 'procedure', 'archivio', 'template', 'biblioteca', 'relazione', 'completa', 'loggia', 'utenti', 'sistema', 'registro', 'tornata', 'tornata/t2'];
 const PROVE = [
   { ruolo: 'amministratore', pagine: TUTTE },
-  { ruolo: 'segretario', pagine: ['', 'fratelli', 'procedure'] },
+  { ruolo: 'venerabile', pagine: ['tornata/t0'] },
+  { ruolo: 'segretario', pagine: ['', 'fratelli', 'procedure', 'tornata/t0'] },
   { ruolo: 'tesoriere', pagine: ['', 'pagamenti'] },
   { ruolo: 'fratello', pagine: ['', 'calendario', 'biblioteca', 'loggia'] },
 ];
