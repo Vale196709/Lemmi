@@ -1,4 +1,4 @@
--- Lemmi - STRUTTURA COMPLETA DEL DATABASE (esportata da Supabase il 06/11/2026 con sql/esporta_schema.sql)
+-- Lemmi - STRUTTURA COMPLETA DEL DATABASE (esportata da Supabase il 25/11/2026 con sql/esporta_schema.sql)
 -- Solo struttura, nessun dato. Serve come documentazione e per ricostruire il database in caso di emergenza.
 -- Ordine: tipi, sequenze, tabelle (in ordine di dipendenza), indici, funzioni di base, viste, altre funzioni, trigger,
 -- regole di sicurezza (RLS), poi, in fondo, i commenti con archivi file e pianificazioni da ricreare a mano.
@@ -26,83 +26,6 @@ create sequence if not exists public.backup_esecuzioni_id_seq;
 create sequence if not exists public.backup_righe_id_seq;
 
 create sequence if not exists public.registro_attivita_id_seq;
-
-create table if not exists public.backup_esecuzioni (
-  id bigint not null default nextval('backup_esecuzioni_id_seq'::regclass),
-  tipo text not null,
-  origine text not null default 'manuale'::text,
-  avviato_il timestamp with time zone not null default now(),
-  concluso_il timestamp with time zone,
-  esito text not null default 'in corso'::text,
-  base_id bigint,
-  tabelle integer,
-  righe_nuove bigint not null default 0,
-  righe_eliminate bigint not null default 0,
-  byte bigint not null default 0,
-  nota text,
-  constraint backup_esecuzioni_tipo_check CHECK ((tipo = ANY (ARRAY['completo'::text, 'incrementale'::text]))),
-  constraint backup_esecuzioni_pkey PRIMARY KEY (id)
-);
-alter table public.backup_esecuzioni enable row level security;
-
-create table if not exists public.categorie_movimento (
-  id uuid not null default gen_random_uuid(),
-  nome text not null,
-  tipo text not null,
-  attiva boolean not null default true,
-  note text,
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint categorie_movimento_tipo_check CHECK ((tipo = ANY (ARRAY['entrata'::text, 'uscita'::text, 'giroconto'::text]))),
-  constraint categorie_movimento_pkey PRIMARY KEY (id),
-  constraint categorie_movimento_nome_key UNIQUE (nome)
-);
-alter table public.categorie_movimento enable row level security;
-
-create table if not exists public.conto_saldi (
-  id uuid not null default gen_random_uuid(),
-  data date not null,
-  saldo numeric(12,2) not null,
-  fonte text,
-  created_at timestamp with time zone not null default now(),
-  conto text not null default 'BancoPosta'::text,
-  constraint conto_saldi_pkey PRIMARY KEY (id),
-  constraint conto_saldi_conto_data_key UNIQUE (conto, data)
-);
-alter table public.conto_saldi enable row level security;
-
-create table if not exists public.cronologia_modifiche (
-  id bigint not null generated always as identity,
-  quando timestamp with time zone not null default now(),
-  utente uuid,
-  tabella text not null,
-  operazione text not null,
-  riga_id text,
-  prima jsonb,
-  dopo jsonb,
-  constraint cronologia_modifiche_pkey PRIMARY KEY (id)
-);
-alter table public.cronologia_modifiche enable row level security;
-
-create table if not exists public.elenco_cariche (
-  nome text not null,
-  ordine integer not null default 100,
-  constraint elenco_cariche_pkey PRIMARY KEY (nome)
-);
-alter table public.elenco_cariche enable row level security;
-
-create table if not exists public.fasce_eta (
-  id uuid not null default gen_random_uuid(),
-  eta_da integer not null,
-  importo numeric(10,2) not null,
-  descrizione text,
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint fasce_eta_eta_da_check CHECK (((eta_da >= 0) AND (eta_da <= 120))),
-  constraint fasce_eta_importo_check CHECK ((importo >= (0)::numeric)),
-  constraint fasce_eta_pkey PRIMARY KEY (id),
-  constraint fasce_eta_eta_da_key UNIQUE (eta_da)
-);
-alter table public.fasce_eta enable row level security;
 
 create table if not exists public.fratelli (
   id uuid not null default gen_random_uuid(),
@@ -135,135 +58,6 @@ create table if not exists public.fratelli (
 );
 alter table public.fratelli enable row level security;
 
-create table if not exists public.import_estratti (
-  id uuid not null default gen_random_uuid(),
-  nome_file text not null,
-  periodo_dal date,
-  periodo_al date,
-  righe_totali integer,
-  righe_nuove integer,
-  note text,
-  caricato_da uuid default auth.uid(),
-  creato_il timestamp with time zone not null default now(),
-  constraint import_estratti_pkey PRIMARY KEY (id)
-);
-alter table public.import_estratti enable row level security;
-
-create table if not exists public.loggia (
-  id boolean not null default true,
-  nome text,
-  numero text,
-  oriente text,
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint loggia_id_check CHECK (id),
-  constraint loggia_pkey PRIMARY KEY (id)
-);
-alter table public.loggia enable row level security;
-
-create table if not exists public.modelli_loggia (
-  id uuid not null default gen_random_uuid(),
-  categoria text not null default 'altro'::text,
-  nome text not null,
-  descrizione text,
-  file_path text not null,
-  file_nome text,
-  mime text,
-  dimensione bigint,
-  creato_il timestamp with time zone not null default now(),
-  creato_da uuid default auth.uid(),
-  constraint modelli_loggia_pkey PRIMARY KEY (id)
-);
-alter table public.modelli_loggia enable row level security;
-
-create table if not exists public.modelli_messaggio (
-  id uuid not null default gen_random_uuid(),
-  codice text not null,
-  nome text not null,
-  categoria categoria_messaggio not null,
-  oggetto text not null,
-  corpo text not null,
-  campi jsonb not null default '[]'::jsonb,
-  attivo boolean not null default true,
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint modelli_messaggio_pkey PRIMARY KEY (id),
-  constraint modelli_messaggio_codice_key UNIQUE (codice)
-);
-alter table public.modelli_messaggio enable row level security;
-
-create table if not exists public.parametri_quote (
-  id boolean not null default true,
-  eta_giorno integer not null default 1,
-  eta_mese integer not null default 1,
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint parametri_quote_eta_giorno_check CHECK (((eta_giorno >= 1) AND (eta_giorno <= 31))),
-  constraint parametri_quote_eta_mese_check CHECK (((eta_mese >= 1) AND (eta_mese <= 12))),
-  constraint parametri_quote_id_check CHECK (id),
-  constraint parametri_quote_pkey PRIMARY KEY (id)
-);
-alter table public.parametri_quote enable row level security;
-
-create table if not exists public.pratiche (
-  id uuid not null default gen_random_uuid(),
-  procedura text not null,
-  titolo text not null,
-  rif_tipo text,
-  rif_id text,
-  rif_nome text,
-  stato text not null default 'in_corso'::text,
-  creata_il timestamp with time zone not null default now(),
-  creata_da uuid default auth.uid(),
-  chiusa_il timestamp with time zone,
-  constraint pratiche_procedura_check CHECK ((procedura = ANY (ARRAY['bussante'::text, 'grado'::text, 'exeat'::text, 'consegne'::text]))),
-  constraint pratiche_rif_tipo_check CHECK ((rif_tipo = ANY (ARRAY['bussante'::text, 'fratello'::text]))),
-  constraint pratiche_stato_check CHECK ((stato = ANY (ARRAY['in_corso'::text, 'conclusa'::text, 'annullata'::text]))),
-  constraint pratiche_pkey PRIMARY KEY (id)
-);
-alter table public.pratiche enable row level security;
-
-create table if not exists public.push_chiavi (
-  id integer not null default 1,
-  pubblica text not null,
-  privata text not null,
-  creato_il timestamp with time zone not null default now(),
-  constraint push_chiavi_id_check CHECK ((id = 1)),
-  constraint push_chiavi_pkey PRIMARY KEY (id)
-);
-alter table public.push_chiavi enable row level security;
-
-create table if not exists public.push_inviati (
-  chiave text not null,
-  inviato_il timestamp with time zone not null default now(),
-  constraint push_inviati_pkey PRIMARY KEY (chiave)
-);
-alter table public.push_inviati enable row level security;
-
-create table if not exists public.push_iscrizioni (
-  endpoint text not null,
-  user_id uuid not null default auth.uid(),
-  chiavi jsonb not null,
-  dispositivo text,
-  creato_il timestamp with time zone not null default now(),
-  constraint push_iscrizioni_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
-  constraint push_iscrizioni_pkey PRIMARY KEY (endpoint)
-);
-alter table public.push_iscrizioni enable row level security;
-
-create table if not exists public.registro_attivita (
-  id bigint not null default nextval('registro_attivita_id_seq'::regclass),
-  quando timestamp with time zone not null default now(),
-  utente_id uuid,
-  utente_email text,
-  tabella text not null,
-  operazione text not null,
-  riga_id text,
-  prima jsonb,
-  dopo jsonb,
-  constraint registro_attivita_operazione_check CHECK ((operazione = ANY (ARRAY['inserimento'::text, 'modifica'::text, 'eliminazione'::text]))),
-  constraint registro_attivita_pkey PRIMARY KEY (id)
-);
-alter table public.registro_attivita enable row level security;
-
 create table if not exists public.tornate (
   id uuid not null default gen_random_uuid(),
   data date not null,
@@ -294,45 +88,6 @@ create table if not exists public.tornate (
   constraint tornate_data_tipo_key UNIQUE (data, tipo)
 );
 alter table public.tornate enable row level security;
-
-create table if not exists public.verbali (
-  id uuid not null default gen_random_uuid(),
-  data date not null,
-  grado text not null,
-  presenti integer not null default 0,
-  ospiti text,
-  testo text,
-  dati jsonb,
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  creato_da uuid default auth.uid(),
-  constraint verbali_grado_check CHECK ((grado = ANY (ARRAY['apprendista'::text, 'compagno'::text, 'maestro'::text]))),
-  constraint verbali_pkey PRIMARY KEY (id),
-  constraint verbali_data_grado_key UNIQUE (data, grado)
-);
-alter table public.verbali enable row level security;
-
-create table if not exists public.voci_quota (
-  id uuid not null default gen_random_uuid(),
-  codice text not null,
-  nome text not null,
-  personale boolean not null default true,
-  tipo_importo text not null,
-  importo_fisso numeric(10,2),
-  gradi_applicabili text[],
-  attiva boolean not null default true,
-  note text,
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  esenzione_eta_sotto integer,
-  esenzione_importo numeric(10,2),
-  constraint voce_fisso_ha_importo CHECK (((tipo_importo <> 'fisso'::text) OR (importo_fisso IS NOT NULL))),
-  constraint voci_quota_importo_fisso_check CHECK (((importo_fisso IS NULL) OR (importo_fisso >= (0)::numeric))),
-  constraint voci_quota_tipo_importo_check CHECK ((tipo_importo = ANY (ARRAY['fisso'::text, 'per_eta'::text, 'libero'::text]))),
-  constraint voci_quota_pkey PRIMARY KEY (id),
-  constraint voci_quota_codice_key UNIQUE (codice)
-);
-alter table public.voci_quota enable row level security;
 
 create table if not exists public.agape_adesioni (
   id uuid not null default gen_random_uuid(),
@@ -379,18 +134,6 @@ create table if not exists public.agape_ospiti (
 );
 alter table public.agape_ospiti enable row level security;
 
-create table if not exists public.backup_righe (
-  id bigint not null default nextval('backup_righe_id_seq'::regclass),
-  esecuzione_id bigint not null,
-  tabella text not null,
-  hash text not null,
-  dati jsonb,
-  eliminata boolean not null default false,
-  constraint backup_righe_esecuzione_id_fkey FOREIGN KEY (esecuzione_id) REFERENCES backup_esecuzioni(id) ON DELETE CASCADE,
-  constraint backup_righe_pkey PRIMARY KEY (id)
-);
-alter table public.backup_righe enable row level security;
-
 create table if not exists public.bussanti (
   id uuid not null default gen_random_uuid(),
   tipo_domanda tipo_domanda not null default 'iniziazione'::tipo_domanda,
@@ -434,35 +177,19 @@ create table if not exists public.bussanti (
 );
 alter table public.bussanti enable row level security;
 
-create table if not exists public.cariche_storico (
+create table if not exists public.categorie_movimento (
   id uuid not null default gen_random_uuid(),
-  fratello_id uuid not null,
-  carica text not null,
-  anno_dal integer,
-  anno_al integer,
+  nome text not null,
+  tipo text not null,
+  attiva boolean not null default true,
   note text,
-  constraint cariche_storico_check CHECK (((anno_dal IS NULL) OR (anno_al IS NULL) OR (anno_al >= anno_dal))),
-  constraint cariche_storico_carica_fkey FOREIGN KEY (carica) REFERENCES elenco_cariche(nome),
-  constraint cariche_storico_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE CASCADE,
-  constraint cariche_storico_pkey PRIMARY KEY (id)
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint categorie_movimento_tipo_check CHECK ((tipo = ANY (ARRAY['entrata'::text, 'uscita'::text, 'giroconto'::text]))),
+  constraint categorie_movimento_pkey PRIMARY KEY (id),
+  constraint categorie_movimento_nome_key UNIQUE (nome)
 );
-alter table public.cariche_storico enable row level security;
-
-create table if not exists public.elezioni (
-  id uuid not null default gen_random_uuid(),
-  anno_massonico integer not null,
-  data_elezione date,
-  tornata_id uuid,
-  nulla_osta_data date,
-  nulla_osta_note text,
-  dati jsonb not null default '{}'::jsonb,
-  created_at timestamp with time zone not null default now(),
-  updated_at timestamp with time zone not null default now(),
-  constraint elezioni_tornata_id_fkey FOREIGN KEY (tornata_id) REFERENCES tornate(id) ON DELETE SET NULL,
-  constraint elezioni_pkey PRIMARY KEY (id),
-  constraint elezioni_anno_massonico_key UNIQUE (anno_massonico)
-);
-alter table public.elezioni enable row level security;
+alter table public.categorie_movimento enable row level security;
 
 create table if not exists public.eventi_conto (
   id uuid not null default gen_random_uuid(),
@@ -477,159 +204,19 @@ create table if not exists public.eventi_conto (
 );
 alter table public.eventi_conto enable row level security;
 
-create table if not exists public.lavori (
+create table if not exists public.import_estratti (
   id uuid not null default gen_random_uuid(),
-  titolo text not null,
-  tema text,
-  tipo text not null default 'tavola'::text,
-  fratello_id uuid,
-  autore_esterno text,
-  grado_autore text,
-  grado_tornata text,
-  tornata_id uuid,
-  data_assegnazione date default CURRENT_DATE,
-  data_consegna_prevista date,
-  data_presentazione date,
-  stato text not null default 'assegnato'::text,
+  nome_file text not null,
+  periodo_dal date,
+  periodo_al date,
+  righe_totali integer,
+  righe_nuove integer,
   note text,
-  file_path text,
-  file_nome text,
-  file_tipo text,
-  file_dimensione bigint,
-  created_by uuid default auth.uid(),
-  created_at timestamp with time zone not null default now(),
-  updated_at timestamp with time zone not null default now(),
-  constraint lavori_grado_autore_check CHECK ((grado_autore = ANY (ARRAY['apprendista'::text, 'compagno'::text, 'maestro'::text]))),
-  constraint lavori_grado_tornata_check CHECK ((grado_tornata = ANY (ARRAY['apprendista'::text, 'compagno'::text, 'maestro'::text]))),
-  constraint lavori_stato_check CHECK ((stato = ANY (ARRAY['assegnato'::text, 'in_preparazione'::text, 'consegnato'::text, 'presentato'::text, 'archiviato'::text]))),
-  constraint lavori_tipo_check CHECK ((tipo = ANY (ARRAY['tavola'::text, 'formazione'::text, 'relazione'::text, 'altro'::text]))),
-  constraint lavori_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE SET NULL,
-  constraint lavori_tornata_id_fkey FOREIGN KEY (tornata_id) REFERENCES tornate(id) ON DELETE SET NULL,
-  constraint lavori_pkey PRIMARY KEY (id)
-);
-alter table public.lavori enable row level security;
-
-create table if not exists public.messaggi (
-  id uuid not null default gen_random_uuid(),
-  modello_id uuid,
-  categoria categoria_messaggio not null,
-  oggetto text not null,
-  corpo text not null,
-  valori jsonb not null default '{}'::jsonb,
-  stato stato_messaggio not null default 'bozza'::stato_messaggio,
-  canale text,
-  creato_da uuid default auth.uid(),
-  approvato_da uuid,
-  approvato_il timestamp with time zone,
-  inviato_il timestamp with time zone,
+  caricato_da uuid default auth.uid(),
   creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint messaggi_modello_id_fkey FOREIGN KEY (modello_id) REFERENCES modelli_messaggio(id) ON DELETE SET NULL,
-  constraint messaggi_pkey PRIMARY KEY (id)
+  constraint import_estratti_pkey PRIMARY KEY (id)
 );
-alter table public.messaggi enable row level security;
-
-create table if not exists public.passaggi_grado (
-  id uuid not null default gen_random_uuid(),
-  fratello_id uuid not null,
-  grado grado_massonico not null,
-  anno integer,
-  data date,
-  constraint passaggi_grado_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE CASCADE,
-  constraint passaggi_grado_pkey PRIMARY KEY (id)
-);
-alter table public.passaggi_grado enable row level security;
-
-create table if not exists public.piano_rate (
-  id uuid not null default gen_random_uuid(),
-  voce_id uuid not null,
-  modalita text not null,
-  rata_n integer not null,
-  giorno integer not null,
-  mese integer not null,
-  percentuale numeric(5,2) not null,
-  constraint piano_rate_giorno_check CHECK (((giorno >= 1) AND (giorno <= 31))),
-  constraint piano_rate_mese_check CHECK (((mese >= 1) AND (mese <= 12))),
-  constraint piano_rate_modalita_check CHECK ((modalita = ANY (ARRAY['unica'::text, 'due_rate'::text]))),
-  constraint piano_rate_percentuale_check CHECK (((percentuale > (0)::numeric) AND (percentuale <= (100)::numeric))),
-  constraint piano_rate_rata_n_check CHECK ((rata_n >= 1)),
-  constraint piano_rate_voce_id_fkey FOREIGN KEY (voce_id) REFERENCES voci_quota(id) ON DELETE CASCADE,
-  constraint piano_rate_pkey PRIMARY KEY (id),
-  constraint piano_rate_voce_id_modalita_rata_n_key UNIQUE (voce_id, modalita, rata_n)
-);
-alter table public.piano_rate enable row level security;
-
-create table if not exists public.pratiche_date (
-  pratica_id uuid not null,
-  chiave text not null,
-  valore text not null,
-  constraint pratiche_date_pratica_id_fkey FOREIGN KEY (pratica_id) REFERENCES pratiche(id) ON DELETE CASCADE,
-  constraint pratiche_date_pkey PRIMARY KEY (pratica_id, chiave)
-);
-alter table public.pratiche_date enable row level security;
-
-create table if not exists public.pratiche_passi (
-  pratica_id uuid not null,
-  indice integer not null,
-  data_fatto date not null default CURRENT_DATE,
-  fatto_da uuid default auth.uid(),
-  constraint pratiche_passi_pratica_id_fkey FOREIGN KEY (pratica_id) REFERENCES pratiche(id) ON DELETE CASCADE,
-  constraint pratiche_passi_pkey PRIMARY KEY (pratica_id, indice)
-);
-alter table public.pratiche_passi enable row level security;
-
-create table if not exists public.presenze_verbale (
-  id bigint not null generated always as identity,
-  verbale_id uuid not null,
-  fratello_id text not null,
-  esito text not null,
-  constraint presenze_verbale_esito_check CHECK ((esito = ANY (ARRAY['presente'::text, 'giustificato'::text, 'assente'::text]))),
-  constraint presenze_verbale_verbale_id_fkey FOREIGN KEY (verbale_id) REFERENCES verbali(id) ON DELETE CASCADE,
-  constraint presenze_verbale_pkey PRIMARY KEY (id),
-  constraint presenze_verbale_verbale_id_fratello_id_key UNIQUE (verbale_id, fratello_id)
-);
-alter table public.presenze_verbale enable row level security;
-
-create table if not exists public.profili (
-  user_id uuid not null,
-  ruolo ruolo_app not null,
-  nome_visualizzato text,
-  fratello_id uuid,
-  constraint profili_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE SET NULL,
-  constraint profili_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
-  constraint profili_pkey PRIMARY KEY (user_id)
-);
-alter table public.profili enable row level security;
-
-create table if not exists public.scadenze (
-  id uuid not null default gen_random_uuid(),
-  voce_id uuid not null,
-  fratello_id uuid not null,
-  anno integer not null,
-  rata_n integer not null default 1,
-  rate_totali integer not null default 1,
-  eta_calcolata integer,
-  importo_base numeric(10,2) not null,
-  sconto numeric(10,2) not null default 0,
-  importo_dovuto numeric(10,2) generated always as (GREATEST((importo_base - sconto), (0)::numeric)) stored,
-  data_scadenza date,
-  motivo_eccezione text,
-  note text,
-  creato_da uuid default auth.uid(),
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  constraint scadenze_anno_check CHECK (((anno >= 2000) AND (anno <= 2100))),
-  constraint scadenze_check CHECK ((rata_n <= rate_totali)),
-  constraint scadenze_importo_base_check CHECK ((importo_base >= (0)::numeric)),
-  constraint scadenze_rata_n_check CHECK ((rata_n >= 1)),
-  constraint scadenze_rate_totali_check CHECK ((rate_totali >= 1)),
-  constraint scadenze_sconto_check CHECK ((sconto >= (0)::numeric)),
-  constraint scadenze_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE RESTRICT,
-  constraint scadenze_voce_id_fkey FOREIGN KEY (voce_id) REFERENCES voci_quota(id),
-  constraint scadenze_pkey PRIMARY KEY (id),
-  constraint scadenze_voce_id_fratello_id_anno_rata_n_key UNIQUE (voce_id, fratello_id, anno, rata_n)
-);
-alter table public.scadenze enable row level security;
+alter table public.import_estratti enable row level security;
 
 create table if not exists public.conto_movimenti (
   id uuid not null default gen_random_uuid(),
@@ -663,39 +250,6 @@ create table if not exists public.conto_movimenti (
 );
 alter table public.conto_movimenti enable row level security;
 
-create table if not exists public.documenti (
-  id uuid not null default gen_random_uuid(),
-  bussante_id uuid,
-  fratello_id uuid,
-  tipo tipo_documento not null,
-  nome_file text not null,
-  percorso text not null,
-  mime text,
-  dimensione bigint,
-  note text,
-  caricato_da uuid default auth.uid(),
-  creato_il timestamp with time zone not null default now(),
-  constraint documenti_check CHECK ((num_nonnulls(bussante_id, fratello_id) = 1)),
-  constraint documenti_bussante_id_fkey FOREIGN KEY (bussante_id) REFERENCES bussanti(id) ON DELETE CASCADE,
-  constraint documenti_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE CASCADE,
-  constraint documenti_pkey PRIMARY KEY (id),
-  constraint documenti_percorso_key UNIQUE (percorso)
-);
-alter table public.documenti enable row level security;
-
-create table if not exists public.messaggi_destinatari (
-  id uuid not null default gen_random_uuid(),
-  messaggio_id uuid not null,
-  fratello_id uuid,
-  email text not null,
-  esito text,
-  constraint messaggi_destinatari_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE SET NULL,
-  constraint messaggi_destinatari_messaggio_id_fkey FOREIGN KEY (messaggio_id) REFERENCES messaggi(id) ON DELETE CASCADE,
-  constraint messaggi_destinatari_pkey PRIMARY KEY (id),
-  constraint messaggi_destinatari_messaggio_id_fratello_id_key UNIQUE (messaggio_id, fratello_id)
-);
-alter table public.messaggi_destinatari enable row level security;
-
 create table if not exists public.agape_pagamenti (
   id uuid not null default gen_random_uuid(),
   tornata_id uuid not null,
@@ -723,6 +277,513 @@ create table if not exists public.agape_pagamenti (
   constraint agape_pagamenti_pkey PRIMARY KEY (id)
 );
 alter table public.agape_pagamenti enable row level security;
+
+create table if not exists public.backup_esecuzioni (
+  id bigint not null default nextval('backup_esecuzioni_id_seq'::regclass),
+  tipo text not null,
+  origine text not null default 'manuale'::text,
+  avviato_il timestamp with time zone not null default now(),
+  concluso_il timestamp with time zone,
+  esito text not null default 'in corso'::text,
+  base_id bigint,
+  tabelle integer,
+  righe_nuove bigint not null default 0,
+  righe_eliminate bigint not null default 0,
+  byte bigint not null default 0,
+  nota text,
+  constraint backup_esecuzioni_tipo_check CHECK ((tipo = ANY (ARRAY['completo'::text, 'incrementale'::text]))),
+  constraint backup_esecuzioni_pkey PRIMARY KEY (id)
+);
+alter table public.backup_esecuzioni enable row level security;
+
+create table if not exists public.backup_righe (
+  id bigint not null default nextval('backup_righe_id_seq'::regclass),
+  esecuzione_id bigint not null,
+  tabella text not null,
+  hash text not null,
+  dati jsonb,
+  eliminata boolean not null default false,
+  constraint backup_righe_esecuzione_id_fkey FOREIGN KEY (esecuzione_id) REFERENCES backup_esecuzioni(id) ON DELETE CASCADE,
+  constraint backup_righe_pkey PRIMARY KEY (id)
+);
+alter table public.backup_righe enable row level security;
+
+create table if not exists public.biblioteca (
+  id uuid not null default gen_random_uuid(),
+  titolo text not null,
+  categoria text not null default 'altro'::text,
+  autore text,
+  anno integer,
+  descrizione text,
+  visibilita text not null default 'ufficio'::text,
+  file_path text not null,
+  file_nome text not null,
+  file_tipo text,
+  dimensione_originale bigint,
+  dimensione bigint,
+  compresso boolean not null default false,
+  creato_il timestamp with time zone not null default now(),
+  creato_da uuid default auth.uid(),
+  constraint biblioteca_categoria_check CHECK ((categoria = ANY (ARRAY['libro'::text, 'pubblicazione'::text, 'foto'::text, 'documento'::text, 'altro'::text]))),
+  constraint biblioteca_visibilita_check CHECK ((visibilita = ANY (ARRAY['ufficio'::text, 'fratelli'::text]))),
+  constraint biblioteca_pkey PRIMARY KEY (id)
+);
+alter table public.biblioteca enable row level security;
+
+create table if not exists public.elenco_cariche (
+  nome text not null,
+  ordine integer not null default 100,
+  constraint elenco_cariche_pkey PRIMARY KEY (nome)
+);
+alter table public.elenco_cariche enable row level security;
+
+create table if not exists public.cariche_storico (
+  id uuid not null default gen_random_uuid(),
+  fratello_id uuid not null,
+  carica text not null,
+  anno_dal integer,
+  anno_al integer,
+  note text,
+  constraint cariche_storico_check CHECK (((anno_dal IS NULL) OR (anno_al IS NULL) OR (anno_al >= anno_dal))),
+  constraint cariche_storico_carica_fkey FOREIGN KEY (carica) REFERENCES elenco_cariche(nome),
+  constraint cariche_storico_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE CASCADE,
+  constraint cariche_storico_pkey PRIMARY KEY (id)
+);
+alter table public.cariche_storico enable row level security;
+
+create table if not exists public.conto_saldi (
+  id uuid not null default gen_random_uuid(),
+  data date not null,
+  saldo numeric(12,2) not null,
+  fonte text,
+  created_at timestamp with time zone not null default now(),
+  conto text not null default 'BancoPosta'::text,
+  constraint conto_saldi_pkey PRIMARY KEY (id),
+  constraint conto_saldi_conto_data_key UNIQUE (conto, data)
+);
+alter table public.conto_saldi enable row level security;
+
+create table if not exists public.cronologia_modifiche (
+  id bigint not null generated always as identity,
+  quando timestamp with time zone not null default now(),
+  utente uuid,
+  tabella text not null,
+  operazione text not null,
+  riga_id text,
+  prima jsonb,
+  dopo jsonb,
+  constraint cronologia_modifiche_pkey PRIMARY KEY (id)
+);
+alter table public.cronologia_modifiche enable row level security;
+
+create table if not exists public.documenti (
+  id uuid not null default gen_random_uuid(),
+  bussante_id uuid,
+  fratello_id uuid,
+  tipo tipo_documento not null,
+  nome_file text not null,
+  percorso text not null,
+  mime text,
+  dimensione bigint,
+  note text,
+  caricato_da uuid default auth.uid(),
+  creato_il timestamp with time zone not null default now(),
+  constraint documenti_check CHECK ((num_nonnulls(bussante_id, fratello_id) = 1)),
+  constraint documenti_bussante_id_fkey FOREIGN KEY (bussante_id) REFERENCES bussanti(id) ON DELETE CASCADE,
+  constraint documenti_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE CASCADE,
+  constraint documenti_pkey PRIMARY KEY (id),
+  constraint documenti_percorso_key UNIQUE (percorso)
+);
+alter table public.documenti enable row level security;
+
+create table if not exists public.elezioni (
+  id uuid not null default gen_random_uuid(),
+  anno_massonico integer not null,
+  data_elezione date,
+  tornata_id uuid,
+  nulla_osta_data date,
+  nulla_osta_note text,
+  dati jsonb not null default '{}'::jsonb,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
+  constraint elezioni_tornata_id_fkey FOREIGN KEY (tornata_id) REFERENCES tornate(id) ON DELETE SET NULL,
+  constraint elezioni_pkey PRIMARY KEY (id),
+  constraint elezioni_anno_massonico_key UNIQUE (anno_massonico)
+);
+alter table public.elezioni enable row level security;
+
+create table if not exists public.fasce_eta (
+  id uuid not null default gen_random_uuid(),
+  eta_da integer not null,
+  importo numeric(10,2) not null,
+  descrizione text,
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint fasce_eta_eta_da_check CHECK (((eta_da >= 0) AND (eta_da <= 120))),
+  constraint fasce_eta_importo_check CHECK ((importo >= (0)::numeric)),
+  constraint fasce_eta_pkey PRIMARY KEY (id),
+  constraint fasce_eta_eta_da_key UNIQUE (eta_da)
+);
+alter table public.fasce_eta enable row level security;
+
+create table if not exists public.lavori (
+  id uuid not null default gen_random_uuid(),
+  titolo text not null,
+  tema text,
+  tipo text not null default 'tavola'::text,
+  fratello_id uuid,
+  autore_esterno text,
+  grado_autore text,
+  grado_tornata text,
+  tornata_id uuid,
+  data_assegnazione date default CURRENT_DATE,
+  data_consegna_prevista date,
+  data_presentazione date,
+  stato text not null default 'assegnato'::text,
+  note text,
+  file_path text,
+  file_nome text,
+  file_tipo text,
+  file_dimensione bigint,
+  created_by uuid default auth.uid(),
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
+  constraint lavori_grado_autore_check CHECK ((grado_autore = ANY (ARRAY['apprendista'::text, 'compagno'::text, 'maestro'::text]))),
+  constraint lavori_grado_tornata_check CHECK ((grado_tornata = ANY (ARRAY['apprendista'::text, 'compagno'::text, 'maestro'::text]))),
+  constraint lavori_stato_check CHECK ((stato = ANY (ARRAY['assegnato'::text, 'in_preparazione'::text, 'consegnato'::text, 'presentato'::text, 'archiviato'::text]))),
+  constraint lavori_tipo_check CHECK ((tipo = ANY (ARRAY['tavola'::text, 'formazione'::text, 'relazione'::text, 'altro'::text]))),
+  constraint lavori_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE SET NULL,
+  constraint lavori_tornata_id_fkey FOREIGN KEY (tornata_id) REFERENCES tornate(id) ON DELETE SET NULL,
+  constraint lavori_pkey PRIMARY KEY (id)
+);
+alter table public.lavori enable row level security;
+
+create table if not exists public.loggia (
+  id boolean not null default true,
+  nome text,
+  numero text,
+  oriente text,
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint loggia_id_check CHECK (id),
+  constraint loggia_pkey PRIMARY KEY (id)
+);
+alter table public.loggia enable row level security;
+
+create table if not exists public.modelli_messaggio (
+  id uuid not null default gen_random_uuid(),
+  codice text not null,
+  nome text not null,
+  categoria categoria_messaggio not null,
+  oggetto text not null,
+  corpo text not null,
+  campi jsonb not null default '[]'::jsonb,
+  attivo boolean not null default true,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint modelli_messaggio_pkey PRIMARY KEY (id),
+  constraint modelli_messaggio_codice_key UNIQUE (codice)
+);
+alter table public.modelli_messaggio enable row level security;
+
+create table if not exists public.messaggi (
+  id uuid not null default gen_random_uuid(),
+  modello_id uuid,
+  categoria categoria_messaggio not null,
+  oggetto text not null,
+  corpo text not null,
+  valori jsonb not null default '{}'::jsonb,
+  stato stato_messaggio not null default 'bozza'::stato_messaggio,
+  canale text,
+  creato_da uuid default auth.uid(),
+  approvato_da uuid,
+  approvato_il timestamp with time zone,
+  inviato_il timestamp with time zone,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint messaggi_modello_id_fkey FOREIGN KEY (modello_id) REFERENCES modelli_messaggio(id) ON DELETE SET NULL,
+  constraint messaggi_pkey PRIMARY KEY (id)
+);
+alter table public.messaggi enable row level security;
+
+create table if not exists public.messaggi_destinatari (
+  id uuid not null default gen_random_uuid(),
+  messaggio_id uuid not null,
+  fratello_id uuid,
+  email text not null,
+  esito text,
+  constraint messaggi_destinatari_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE SET NULL,
+  constraint messaggi_destinatari_messaggio_id_fkey FOREIGN KEY (messaggio_id) REFERENCES messaggi(id) ON DELETE CASCADE,
+  constraint messaggi_destinatari_pkey PRIMARY KEY (id),
+  constraint messaggi_destinatari_messaggio_id_fratello_id_key UNIQUE (messaggio_id, fratello_id)
+);
+alter table public.messaggi_destinatari enable row level security;
+
+create table if not exists public.modelli_loggia (
+  id uuid not null default gen_random_uuid(),
+  categoria text not null default 'altro'::text,
+  nome text not null,
+  descrizione text,
+  file_path text not null,
+  file_nome text,
+  mime text,
+  dimensione bigint,
+  creato_il timestamp with time zone not null default now(),
+  creato_da uuid default auth.uid(),
+  constraint modelli_loggia_pkey PRIMARY KEY (id)
+);
+alter table public.modelli_loggia enable row level security;
+
+create table if not exists public.originali_cartacei (
+  id uuid not null default gen_random_uuid(),
+  cartellina text not null,
+  descrizione text not null,
+  riferimento text,
+  data_ricezione date,
+  stato text not null default 'in_archivio'::text,
+  destinatario text,
+  data_uscita date,
+  rientro_previsto date,
+  copia_in_cartellina boolean not null default false,
+  scansionato boolean not null default false,
+  note text,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  creato_da uuid default auth.uid(),
+  constraint originali_cartacei_cartellina_check CHECK ((cartellina = ANY (ARRAY['bussanti'::text, 'regolarizzazioni'::text, 'assemblee_goi'::text, 'elezioni'::text, 'associazione'::text, 'passaggi_grado'::text]))),
+  constraint originali_cartacei_stato_check CHECK ((stato = ANY (ARRAY['in_archivio'::text, 'prelevato'::text, 'trasmesso'::text]))),
+  constraint originali_cartacei_uscita_check CHECK (((stato = 'in_archivio'::text) OR ((destinatario IS NOT NULL) AND (data_uscita IS NOT NULL)))),
+  constraint originali_cartacei_pkey PRIMARY KEY (id)
+);
+alter table public.originali_cartacei enable row level security;
+
+create table if not exists public.originali_movimenti (
+  id uuid not null default gen_random_uuid(),
+  originale_id uuid not null,
+  data date not null,
+  evento text not null,
+  destinatario text,
+  rientro_previsto date,
+  note text,
+  creato_il timestamp with time zone not null default now(),
+  creato_da uuid default auth.uid(),
+  constraint originali_movimenti_evento_check CHECK ((evento = ANY (ARRAY['prelievo'::text, 'trasmissione'::text, 'rientro'::text]))),
+  constraint originali_movimenti_originale_fkey FOREIGN KEY (originale_id) REFERENCES originali_cartacei(id) ON DELETE CASCADE,
+  constraint originali_movimenti_pkey PRIMARY KEY (id)
+);
+alter table public.originali_movimenti enable row level security;
+
+create table if not exists public.parametri_quote (
+  id boolean not null default true,
+  eta_giorno integer not null default 1,
+  eta_mese integer not null default 1,
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint parametri_quote_eta_giorno_check CHECK (((eta_giorno >= 1) AND (eta_giorno <= 31))),
+  constraint parametri_quote_eta_mese_check CHECK (((eta_mese >= 1) AND (eta_mese <= 12))),
+  constraint parametri_quote_id_check CHECK (id),
+  constraint parametri_quote_pkey PRIMARY KEY (id)
+);
+alter table public.parametri_quote enable row level security;
+
+create table if not exists public.passaggi_grado (
+  id uuid not null default gen_random_uuid(),
+  fratello_id uuid not null,
+  grado grado_massonico not null,
+  anno integer,
+  data date,
+  constraint passaggi_grado_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE CASCADE,
+  constraint passaggi_grado_pkey PRIMARY KEY (id)
+);
+alter table public.passaggi_grado enable row level security;
+
+create table if not exists public.voci_quota (
+  id uuid not null default gen_random_uuid(),
+  codice text not null,
+  nome text not null,
+  personale boolean not null default true,
+  tipo_importo text not null,
+  importo_fisso numeric(10,2),
+  gradi_applicabili text[],
+  attiva boolean not null default true,
+  note text,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  esenzione_eta_sotto integer,
+  esenzione_importo numeric(10,2),
+  constraint voce_fisso_ha_importo CHECK (((tipo_importo <> 'fisso'::text) OR (importo_fisso IS NOT NULL))),
+  constraint voci_quota_importo_fisso_check CHECK (((importo_fisso IS NULL) OR (importo_fisso >= (0)::numeric))),
+  constraint voci_quota_tipo_importo_check CHECK ((tipo_importo = ANY (ARRAY['fisso'::text, 'per_eta'::text, 'libero'::text]))),
+  constraint voci_quota_pkey PRIMARY KEY (id),
+  constraint voci_quota_codice_key UNIQUE (codice)
+);
+alter table public.voci_quota enable row level security;
+
+create table if not exists public.piano_rate (
+  id uuid not null default gen_random_uuid(),
+  voce_id uuid not null,
+  modalita text not null,
+  rata_n integer not null,
+  giorno integer not null,
+  mese integer not null,
+  percentuale numeric(5,2) not null,
+  constraint piano_rate_giorno_check CHECK (((giorno >= 1) AND (giorno <= 31))),
+  constraint piano_rate_mese_check CHECK (((mese >= 1) AND (mese <= 12))),
+  constraint piano_rate_modalita_check CHECK ((modalita = ANY (ARRAY['unica'::text, 'due_rate'::text]))),
+  constraint piano_rate_percentuale_check CHECK (((percentuale > (0)::numeric) AND (percentuale <= (100)::numeric))),
+  constraint piano_rate_rata_n_check CHECK ((rata_n >= 1)),
+  constraint piano_rate_voce_id_fkey FOREIGN KEY (voce_id) REFERENCES voci_quota(id) ON DELETE CASCADE,
+  constraint piano_rate_pkey PRIMARY KEY (id),
+  constraint piano_rate_voce_id_modalita_rata_n_key UNIQUE (voce_id, modalita, rata_n)
+);
+alter table public.piano_rate enable row level security;
+
+create table if not exists public.pratiche (
+  id uuid not null default gen_random_uuid(),
+  procedura text not null,
+  titolo text not null,
+  rif_tipo text,
+  rif_id text,
+  rif_nome text,
+  stato text not null default 'in_corso'::text,
+  creata_il timestamp with time zone not null default now(),
+  creata_da uuid default auth.uid(),
+  chiusa_il timestamp with time zone,
+  constraint pratiche_procedura_check CHECK ((procedura = ANY (ARRAY['bussante'::text, 'grado'::text, 'exeat'::text, 'consegne'::text]))),
+  constraint pratiche_rif_tipo_check CHECK ((rif_tipo = ANY (ARRAY['bussante'::text, 'fratello'::text]))),
+  constraint pratiche_stato_check CHECK ((stato = ANY (ARRAY['in_corso'::text, 'conclusa'::text, 'annullata'::text]))),
+  constraint pratiche_pkey PRIMARY KEY (id)
+);
+alter table public.pratiche enable row level security;
+
+create table if not exists public.pratiche_date (
+  pratica_id uuid not null,
+  chiave text not null,
+  valore text not null,
+  constraint pratiche_date_pratica_id_fkey FOREIGN KEY (pratica_id) REFERENCES pratiche(id) ON DELETE CASCADE,
+  constraint pratiche_date_pkey PRIMARY KEY (pratica_id, chiave)
+);
+alter table public.pratiche_date enable row level security;
+
+create table if not exists public.pratiche_passi (
+  pratica_id uuid not null,
+  indice integer not null,
+  data_fatto date not null default CURRENT_DATE,
+  fatto_da uuid default auth.uid(),
+  constraint pratiche_passi_pratica_id_fkey FOREIGN KEY (pratica_id) REFERENCES pratiche(id) ON DELETE CASCADE,
+  constraint pratiche_passi_pkey PRIMARY KEY (pratica_id, indice)
+);
+alter table public.pratiche_passi enable row level security;
+
+create table if not exists public.verbali (
+  id uuid not null default gen_random_uuid(),
+  data date not null,
+  grado text not null,
+  presenti integer not null default 0,
+  ospiti text,
+  testo text,
+  dati jsonb,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  creato_da uuid default auth.uid(),
+  constraint verbali_grado_check CHECK ((grado = ANY (ARRAY['apprendista'::text, 'compagno'::text, 'maestro'::text]))),
+  constraint verbali_pkey PRIMARY KEY (id),
+  constraint verbali_data_grado_key UNIQUE (data, grado)
+);
+alter table public.verbali enable row level security;
+
+create table if not exists public.presenze_verbale (
+  id bigint not null generated always as identity,
+  verbale_id uuid not null,
+  fratello_id text not null,
+  esito text not null,
+  constraint presenze_verbale_esito_check CHECK ((esito = ANY (ARRAY['presente'::text, 'giustificato'::text, 'assente'::text]))),
+  constraint presenze_verbale_verbale_id_fkey FOREIGN KEY (verbale_id) REFERENCES verbali(id) ON DELETE CASCADE,
+  constraint presenze_verbale_pkey PRIMARY KEY (id),
+  constraint presenze_verbale_verbale_id_fratello_id_key UNIQUE (verbale_id, fratello_id)
+);
+alter table public.presenze_verbale enable row level security;
+
+create table if not exists public.profili (
+  user_id uuid not null,
+  ruolo ruolo_app not null,
+  nome_visualizzato text,
+  fratello_id uuid,
+  constraint profili_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE SET NULL,
+  constraint profili_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  constraint profili_pkey PRIMARY KEY (user_id)
+);
+alter table public.profili enable row level security;
+
+create table if not exists public.push_chiavi (
+  id integer not null default 1,
+  pubblica text not null,
+  privata text not null,
+  creato_il timestamp with time zone not null default now(),
+  constraint push_chiavi_id_check CHECK ((id = 1)),
+  constraint push_chiavi_pkey PRIMARY KEY (id)
+);
+alter table public.push_chiavi enable row level security;
+
+create table if not exists public.push_inviati (
+  chiave text not null,
+  inviato_il timestamp with time zone not null default now(),
+  constraint push_inviati_pkey PRIMARY KEY (chiave)
+);
+alter table public.push_inviati enable row level security;
+
+create table if not exists public.push_iscrizioni (
+  endpoint text not null,
+  user_id uuid not null default auth.uid(),
+  chiavi jsonb not null,
+  dispositivo text,
+  creato_il timestamp with time zone not null default now(),
+  constraint push_iscrizioni_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  constraint push_iscrizioni_pkey PRIMARY KEY (endpoint)
+);
+alter table public.push_iscrizioni enable row level security;
+
+create table if not exists public.registro_attivita (
+  id bigint not null default nextval('registro_attivita_id_seq'::regclass),
+  quando timestamp with time zone not null default now(),
+  utente_id uuid,
+  utente_email text,
+  tabella text not null,
+  operazione text not null,
+  riga_id text,
+  prima jsonb,
+  dopo jsonb,
+  constraint registro_attivita_operazione_check CHECK ((operazione = ANY (ARRAY['inserimento'::text, 'modifica'::text, 'eliminazione'::text]))),
+  constraint registro_attivita_pkey PRIMARY KEY (id)
+);
+alter table public.registro_attivita enable row level security;
+
+create table if not exists public.scadenze (
+  id uuid not null default gen_random_uuid(),
+  voce_id uuid not null,
+  fratello_id uuid not null,
+  anno integer not null,
+  rata_n integer not null default 1,
+  rate_totali integer not null default 1,
+  eta_calcolata integer,
+  importo_base numeric(10,2) not null,
+  sconto numeric(10,2) not null default 0,
+  importo_dovuto numeric(10,2) generated always as (GREATEST((importo_base - sconto), (0)::numeric)) stored,
+  data_scadenza date,
+  motivo_eccezione text,
+  note text,
+  creato_da uuid default auth.uid(),
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  constraint scadenze_anno_check CHECK (((anno >= 2000) AND (anno <= 2100))),
+  constraint scadenze_check CHECK ((rata_n <= rate_totali)),
+  constraint scadenze_importo_base_check CHECK ((importo_base >= (0)::numeric)),
+  constraint scadenze_rata_n_check CHECK ((rata_n >= 1)),
+  constraint scadenze_rate_totali_check CHECK ((rate_totali >= 1)),
+  constraint scadenze_sconto_check CHECK ((sconto >= (0)::numeric)),
+  constraint scadenze_fratello_id_fkey FOREIGN KEY (fratello_id) REFERENCES fratelli(id) ON DELETE RESTRICT,
+  constraint scadenze_voce_id_fkey FOREIGN KEY (voce_id) REFERENCES voci_quota(id),
+  constraint scadenze_pkey PRIMARY KEY (id),
+  constraint scadenze_voce_id_fratello_id_anno_rata_n_key UNIQUE (voce_id, fratello_id, anno, rata_n)
+);
+alter table public.scadenze enable row level security;
 
 create table if not exists public.versamenti (
   id uuid not null default gen_random_uuid(),
@@ -794,6 +855,10 @@ CREATE INDEX IF NOT EXISTS lavori_tornata_idx ON public.lavori USING btree (torn
 
 CREATE INDEX IF NOT EXISTS messaggi_destinatari_messaggio_id_idx ON public.messaggi_destinatari USING btree (messaggio_id);
 
+CREATE INDEX IF NOT EXISTS originali_cartacei_cartellina_idx ON public.originali_cartacei USING btree (cartellina, stato);
+
+CREATE INDEX IF NOT EXISTS originali_movimenti_originale_idx ON public.originali_movimenti USING btree (originale_id, data);
+
 CREATE INDEX IF NOT EXISTS passaggi_grado_fratello_id_idx ON public.passaggi_grado USING btree (fratello_id);
 
 CREATE INDEX IF NOT EXISTS pratiche_rif_idx ON public.pratiche USING btree (rif_tipo, rif_id);
@@ -814,197 +879,7 @@ CREATE INDEX IF NOT EXISTS versamenti_fratello_idx ON public.versamenti USING bt
 
 CREATE INDEX IF NOT EXISTS versamenti_scadenza_idx ON public.versamenti USING btree (scadenza_id);
 
-CREATE OR REPLACE FUNCTION public.ruolo_corrente()
- RETURNS ruolo_app
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  select ruolo from profili where user_id = auth.uid()
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.lemmi_e_admin()
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select exists (
-    select 1 from public.profili p
-    where p.user_id = auth.uid() and p.ruolo::text = 'amministratore'
-  );
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.lemmi_ruolo_in(VARIADIC r text[])
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  select exists (select 1 from public.profili p where p.user_id = auth.uid() and p.ruolo::text = any (r));
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.fratello_mio()
- RETURNS uuid
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  -- collegamento salvato nel profilo oppure, se manca, il Fratello con la stessa e-mail dell'utente (solo se è uno)
-  select coalesce(p.fratello_id,
-           (select min(f.id::text)::uuid from public.fratelli f join auth.users u on lower(u.email) = lower(f.email)
-             where u.id = auth.uid() having count(*) = 1))
-  from public.profili p where p.user_id = auth.uid() and p.ruolo::text = 'fratello'
-$function$
-;
-
-create or replace view public.v_conto_movimenti as
- SELECT m.id,
-    m.data_operazione,
-    m.data_valuta,
-    m.descrizione,
-    m.importo,
-    m.saldo,
-    m.riferimento_banca,
-    m.origine,
-    m.stato_riconciliazione,
-    m.categoria_id,
-    c.nome AS categoria,
-    m.fratello_id,
-        CASE
-            WHEN f.id IS NULL THEN NULL::text
-            ELSE (f.cognome || ' '::text) || f.nome
-        END AS fratello,
-    m.note,
-    m.import_id,
-    m.conto,
-    COALESCE(c.tipo = 'giroconto'::text, false) AS giroconto
-   FROM conto_movimenti m
-     LEFT JOIN categorie_movimento c ON c.id = m.categoria_id
-     LEFT JOIN fratelli f ON f.id = m.fratello_id
-  WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]);
-
-create or replace view public.v_fratelli_completi as
- SELECT id,
-    cognome,
-    nome,
-    data_nascita,
-    matricola,
-    indirizzo,
-    cap,
-    citta,
-    provincia,
-    professione,
-    cellulare,
-    email,
-    stato,
-    anno_iniziazione,
-    data_iniziazione,
-    note_riservate,
-    creato_il,
-    aggiornato_il,
-    ( SELECT p.grado
-           FROM passaggi_grado p
-          WHERE p.fratello_id = f.id
-          ORDER BY p.grado DESC
-         LIMIT 1) AS grado_attuale,
-    ( SELECT string_agg(c.carica, ', '::text ORDER BY c.carica) AS string_agg
-           FROM cariche_storico c
-          WHERE c.fratello_id = f.id AND c.anno_al IS NULL) AS carica_attuale
-   FROM fratelli f;
-
-create or replace view public.v_fratelli_tesoreria as
- SELECT id,
-    cognome,
-    nome,
-    email,
-    cellulare,
-    stato
-   FROM fratelli
-  WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app]);
-
-create or replace view public.v_incassi_collettivi as
- SELECT v.anno,
-    q.codice AS voce_codice,
-    q.nome AS voce,
-    count(*) AS n_versamenti,
-    sum(v.importo) AS totale
-   FROM versamenti v
-     JOIN voci_quota q ON q.id = v.voce_id
-  WHERE NOT q.personale AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]))
-  GROUP BY v.anno, q.codice, q.nome;
-
-create or replace view public.v_scadenze_stato as
- SELECT s.id,
-    s.anno,
-    s.rata_n,
-    s.rate_totali,
-    s.fratello_id,
-    (f.cognome || ' '::text) || f.nome AS fratello,
-    q.codice AS voce_codice,
-    q.nome AS voce,
-    s.eta_calcolata,
-    s.importo_base,
-    s.sconto,
-    s.importo_dovuto,
-    s.data_scadenza,
-    COALESCE(p.versato, 0::numeric)::numeric(10,2) AS versato,
-    (s.importo_dovuto - COALESCE(p.versato, 0::numeric))::numeric(10,2) AS residuo,
-        CASE
-            WHEN s.importo_dovuto = 0::numeric THEN 'Esente'::text
-            WHEN (s.importo_dovuto - COALESCE(p.versato, 0::numeric)) <= 0::numeric THEN 'Pagato'::text
-            WHEN s.data_scadenza IS NOT NULL AND s.data_scadenza < CURRENT_DATE THEN 'Scaduto'::text
-            WHEN COALESCE(p.versato, 0::numeric) > 0::numeric THEN 'Parziale'::text
-            ELSE 'Da pagare'::text
-        END AS stato,
-    s.motivo_eccezione,
-    s.note
-   FROM scadenze s
-     JOIN voci_quota q ON q.id = s.voce_id
-     JOIN fratelli f ON f.id = s.fratello_id
-     LEFT JOIN ( SELECT versamenti.scadenza_id,
-            sum(versamenti.importo) AS versato
-           FROM versamenti
-          WHERE versamenti.scadenza_id IS NOT NULL
-          GROUP BY versamenti.scadenza_id) p ON p.scadenza_id = s.id
-  WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]);
-
-create or replace view public.v_versamenti_elenco as
- SELECT v.id,
-    v.data_versamento,
-    v.anno,
-    q.codice AS voce_codice,
-    q.nome AS voce,
-    v.fratello_id,
-        CASE
-            WHEN f.id IS NULL THEN NULL::text
-            ELSE (f.cognome || ' '::text) || f.nome
-        END AS fratello,
-    v.importo,
-    v.modalita,
-    v.riferimento,
-    v.scadenza_id,
-    v.scadenza_id IS NULL AND q.personale AS non_collegato,
-    v.movimento_id,
-    v.note
-   FROM versamenti v
-     JOIN voci_quota q ON q.id = v.voce_id
-     LEFT JOIN fratelli f ON f.id = v.fratello_id
-  WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]);
-
-create or replace view public.v_riepilogo_fratello as
- SELECT anno,
-    fratello_id,
-    fratello,
-    sum(importo_dovuto) AS dovuto,
-    sum(versato) AS versato,
-    sum(residuo) AS residuo,
-    count(*) FILTER (WHERE stato = 'Scaduto'::text) AS scadenze_scadute
-   FROM v_scadenze_stato
-  GROUP BY anno, fratello_id, fratello;
+set check_function_bodies = off;
 
 CREATE OR REPLACE FUNCTION public._ripristino_confronta(p_esec bigint, p_tabella text, p_campioni boolean)
  RETURNS jsonb
@@ -1227,6 +1102,32 @@ begin
 end $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.biblioteca_file_mio(p_path text, p_proprietario text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.lemmi_ruolo_in('amministratore')
+      or (public.puo_caricare_biblioteca()
+          and (p_proprietario = auth.uid()::text
+               or exists (select 1 from public.biblioteca b where b.file_path = p_path and b.creato_da = auth.uid())))
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.biblioteca_file_visibile(p_path text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.lemmi_ruolo_in('amministratore', 'venerabile', 'segretario')
+      or exists (select 1 from public.biblioteca b where b.file_path = p_path and b.creato_da = auth.uid())
+      or (public.ruolo_corrente() is not null
+          and exists (select 1 from public.biblioteca b where b.file_path = p_path and b.visibilita = 'fratelli'))
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.collega_utente_fratello(p_user uuid, p_fratello text)
  RETURNS void
  LANGUAGE plpgsql
@@ -1407,6 +1308,28 @@ begin
 end $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.elimina_utente_sistema(p_user uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'auth'
+AS $function$
+begin
+  if not public.lemmi_ruolo_in('amministratore') then
+    raise exception 'Solo l''amministratore può eliminare gli utenti.';
+  end if;
+  if p_user = auth.uid() then
+    raise exception 'Non puoi eliminare il tuo stesso utente.';
+  end if;
+  if not exists (select 1 from auth.users where id = p_user) then
+    raise exception 'Utente non trovato (forse è già stato eliminato).';
+  end if;
+  delete from public.profili where user_id = p_user;
+  delete from auth.users where id = p_user;
+end;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.esegui_backup(p_tipo text DEFAULT 'auto'::text, p_origine text DEFAULT 'manuale'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1514,6 +1437,33 @@ end;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.fratello_collegato()
+ RETURNS uuid
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p.fratello_id,
+           (select min(f.id::text)::uuid from public.fratelli f join auth.users u on lower(u.email) = lower(f.email)
+             where u.id = auth.uid() having count(*) = 1))
+  from public.profili p where p.user_id = auth.uid()
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.fratello_mio()
+ RETURNS uuid
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- collegamento salvato nel profilo oppure, se manca, il Fratello con la stessa e-mail dell'utente (solo se è uno)
+  select coalesce(p.fratello_id,
+           (select min(f.id::text)::uuid from public.fratelli f join auth.users u on lower(u.email) = lower(f.email)
+             where u.id = auth.uid() having count(*) = 1))
+  from public.profili p where p.user_id = auth.uid() and p.ruolo::text = 'fratello'
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.genera_calendario(p_anno integer, p_ora_ordinaria time without time zone DEFAULT NULL::time without time zone, p_ora_informale time without time zone DEFAULT NULL::time without time zone, p_estate_dal date DEFAULT NULL::date, p_estate_al date DEFAULT NULL::date, p_inverno_dal date DEFAULT NULL::date, p_inverno_al_gen date DEFAULT NULL::date)
  RETURNS integer
  LANGUAGE plpgsql
@@ -1592,6 +1542,17 @@ begin
 end $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.grado_mio()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select g.grado_attuale::text from public.v_fratelli_completi g where g.id = public.fratello_mio()), 'apprendista')
+  where public.fratello_mio() is not null
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.importa_movimenti(p_nome_file text, p_righe jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1656,6 +1617,32 @@ begin
   new.aggiornato_il := now();
   return new;
 end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.imposta_disattivazione_utente(p_user uuid, p_disattiva boolean)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'auth'
+AS $function$
+begin
+  if not public.lemmi_ruolo_in('amministratore') then
+    raise exception 'Solo l''amministratore può disattivare o riattivare gli utenti.';
+  end if;
+  if p_user = auth.uid() then
+    raise exception 'Non puoi disattivare il tuo stesso utente.';
+  end if;
+  if not exists (select 1 from auth.users where id = p_user) then
+    raise exception 'Utente non trovato.';
+  end if;
+  update auth.users
+     set banned_until = case when p_disattiva then now() + interval '100 years' else null end
+   where id = p_user;
+  if p_disattiva then
+    delete from auth.sessions where user_id = p_user;   -- chiude le sessioni aperte (esce entro circa un'ora)
+  end if;
+end;
+$function$
 ;
 
 CREATE OR REPLACE FUNCTION public.imposta_ruolo_utente(p_user uuid, p_ruolo text)
@@ -1730,7 +1717,7 @@ $function$
 ;
 
 CREATE OR REPLACE FUNCTION public.info_utenti_sistema()
- RETURNS TABLE(user_id text, email text, nome text, cognome text, grado text, ruolo text, nome_visualizzato text, fratello_id text, collegamento text, ultimo_accesso timestamp with time zone)
+ RETURNS TABLE(user_id text, email text, nome text, cognome text, grado text, ruolo text, nome_visualizzato text, fratello_id text, collegamento text, ultimo_accesso timestamp with time zone, disattivato boolean)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'auth'
@@ -1738,7 +1725,8 @@ AS $function$
   select p.user_id::text, u.email::text, f.nome::text, f.cognome::text, v.grado_attuale::text, p.ruolo::text,
          p.nome_visualizzato::text, f.id::text,
          case when p.fratello_id is not null then 'manuale' when f.id is not null then 'e-mail' else null end,
-         u.last_sign_in_at
+         u.last_sign_in_at,
+         (u.banned_until is not null and u.banned_until > now())
     from public.profili p
     join auth.users u on u.id = p.user_id
     left join public.fratelli f on f.id = coalesce(p.fratello_id,
@@ -1793,6 +1781,29 @@ end;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.lemmi_e_admin()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (
+    select 1 from public.profili p
+    where p.user_id = auth.uid() and p.ruolo::text = 'amministratore'
+  );
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.lemmi_ruolo_in(VARIADIC r text[])
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select exists (select 1 from public.profili p where p.user_id = auth.uid() and p.ruolo::text = any (r));
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.mie_quote()
  RETURNS TABLE(id uuid, anno integer, voce text, rata_n integer, rate_totali integer, importo_dovuto numeric, data_scadenza date, versato numeric, residuo numeric, stato text)
  LANGUAGE sql
@@ -1823,6 +1834,18 @@ CREATE OR REPLACE FUNCTION public.pulisci_registro()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   delete from public.registro_attivita where quando < now() - interval '24 months';
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.puo_caricare_biblioteca()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.lemmi_ruolo_in('amministratore', 'venerabile', 'segretario')
+      or exists (select 1 from public.v_fratelli_completi g
+                 where g.id = public.fratello_collegato() and g.grado_attuale::text = 'maestro')
 $function$
 ;
 
@@ -1877,6 +1900,53 @@ begin
 end $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.registra_movimento_originale(p_id uuid, p_evento text, p_data date, p_destinatario text DEFAULT NULL::text, p_rientro_previsto date DEFAULT NULL::date, p_copia boolean DEFAULT NULL::boolean, p_note text DEFAULT NULL::text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  o public.originali_cartacei;
+begin
+  if p_evento not in ('prelievo', 'trasmissione', 'rientro') then
+    raise exception 'Movimento non valido.';
+  end if;
+  if p_data is null then
+    raise exception 'Indica la data del movimento.';
+  end if;
+  select * into o from public.originali_cartacei where id = p_id for update;
+  if not found then
+    raise exception 'Originale non trovato.';
+  end if;
+  if p_evento = 'rientro' then
+    if o.stato = 'in_archivio' then
+      raise exception 'Questo originale risulta già in archivio.';
+    end if;
+    update public.originali_cartacei
+       set stato = 'in_archivio', destinatario = null, data_uscita = null, rientro_previsto = null, aggiornato_il = now()
+     where id = p_id;
+    insert into public.originali_movimenti (originale_id, data, evento, destinatario, note)
+    values (p_id, p_data, 'rientro', o.destinatario, nullif(trim(p_note), ''));
+  else
+    if o.stato <> 'in_archivio' then
+      raise exception 'Questo originale è già fuori dall''archivio: registra prima il rientro.';
+    end if;
+    if p_destinatario is null or length(trim(p_destinatario)) = 0 then
+      raise exception 'Indica a chi o dove va l''originale.';
+    end if;
+    update public.originali_cartacei
+       set stato = case p_evento when 'prelievo' then 'prelevato' else 'trasmesso' end,
+           destinatario = trim(p_destinatario), data_uscita = p_data,
+           rientro_previsto = case p_evento when 'prelievo' then p_rientro_previsto else null end,
+           copia_in_cartellina = coalesce(p_copia, copia_in_cartellina), aggiornato_il = now()
+     where id = p_id;
+    insert into public.originali_movimenti (originale_id, data, evento, destinatario, rientro_previsto, note)
+    values (p_id, p_data, p_evento, trim(p_destinatario), case p_evento when 'prelievo' then p_rientro_previsto else null end, nullif(trim(p_note), ''));
+  end if;
+end;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.registra_uscita_fratello(p_fratello uuid, p_stato text, p_data date, p_loggia text DEFAULT NULL::text, p_exeat text DEFAULT NULL::text, p_note text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1911,6 +1981,33 @@ begin
   n_ann := public.applica_uscita_fratello(p_fratello);
   return jsonb_build_object('quote_annullate', n_ann, 'quote_ripristinate', n_rip);
 end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.reimposta_password_utente(p_user uuid, p_password text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'auth', 'extensions'
+AS $function$
+begin
+  if not public.lemmi_ruolo_in('amministratore') then
+    raise exception 'Solo l''amministratore può reimpostare le password.';
+  end if;
+  if p_user = auth.uid() then
+    raise exception 'La tua password si cambia dalla pagina Loggia.';
+  end if;
+  if p_password is null or length(p_password) < 8 then
+    raise exception 'La password deve avere almeno 8 caratteri.';
+  end if;
+  if not exists (select 1 from auth.users where id = p_user) then
+    raise exception 'Utente non trovato.';
+  end if;
+  update auth.users
+     set encrypted_password = crypt(p_password, gen_salt('bf')), updated_at = now()
+   where id = p_user;
+  delete from auth.sessions where user_id = p_user;   -- chiude le sessioni aperte con la vecchia password
+end;
+$function$
 ;
 
 CREATE OR REPLACE FUNCTION public.riconcilia_con_versamento(p_movimento uuid, p_voce uuid, p_fratello uuid, p_anno integer, p_scadenza uuid DEFAULT NULL::uuid, p_note text DEFAULT NULL::text)
@@ -2057,6 +2154,16 @@ end;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.ruolo_corrente()
+ RETURNS ruolo_app
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  select ruolo from profili where user_id = auth.uid()
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.segna_inviato(p_id uuid, p_canale text DEFAULT 'manuale'::text)
  RETURNS void
  LANGUAGE plpgsql
@@ -2111,6 +2218,34 @@ end;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.tavola_file_visibile(p_path text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select exists (select 1 from public.tavole_per_grado() t where t.file_path = p_path) $function$
+;
+
+CREATE OR REPLACE FUNCTION public.tavole_per_grado()
+ RETURNS TABLE(id uuid, titolo text, tema text, tipo text, autore text, grado_tornata text, stato text, data_presentazione date, data_consegna_prevista date, file_path text, file_nome text, mia boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select l.id, l.titolo, l.tema, l.tipo,
+         coalesce(nullif(trim(coalesce(f.cognome, '') || ' ' || coalesce(f.nome, '')), ''), l.autore_esterno, '—') as autore,
+         coalesce(l.grado_tornata, l.grado_autore) as grado_tornata, l.stato,
+         l.data_presentazione, l.data_consegna_prevista, l.file_path, l.file_nome,
+         (l.fratello_id = public.fratello_mio()) as mia
+  from public.lavori l left join public.fratelli f on f.id = l.fratello_id
+  where public.fratello_mio() is not null
+    and ( l.fratello_id = public.fratello_mio()
+          or public.grado_mio() = 'maestro'
+          or (public.grado_mio() = 'compagno' and coalesce(l.grado_tornata, l.grado_autore) in ('apprendista', 'compagno')) )
+  order by coalesce(l.data_presentazione, l.data_consegna_prevista, l.data_assegnazione) desc nulls last
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.tornate_set_updated_at()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2120,6 +2255,151 @@ begin
   return new;
 end $function$
 ;
+
+create or replace view public.v_conto_movimenti as
+ SELECT m.id,
+    m.data_operazione,
+    m.data_valuta,
+    m.descrizione,
+    m.importo,
+    m.saldo,
+    m.riferimento_banca,
+    m.origine,
+    m.stato_riconciliazione,
+    m.categoria_id,
+    c.nome AS categoria,
+    m.fratello_id,
+        CASE
+            WHEN f.id IS NULL THEN NULL::text
+            ELSE (f.cognome || ' '::text) || f.nome
+        END AS fratello,
+    m.note,
+    m.import_id,
+    m.conto,
+    COALESCE(c.tipo = 'giroconto'::text, false) AS giroconto
+   FROM conto_movimenti m
+     LEFT JOIN categorie_movimento c ON c.id = m.categoria_id
+     LEFT JOIN fratelli f ON f.id = m.fratello_id
+  WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]);
+
+create or replace view public.v_fratelli_completi as
+ SELECT id,
+    cognome,
+    nome,
+    data_nascita,
+    matricola,
+    indirizzo,
+    cap,
+    citta,
+    provincia,
+    professione,
+    cellulare,
+    email,
+    stato,
+    anno_iniziazione,
+    data_iniziazione,
+    note_riservate,
+    creato_il,
+    aggiornato_il,
+    ( SELECT p.grado
+           FROM passaggi_grado p
+          WHERE p.fratello_id = f.id
+          ORDER BY p.grado DESC
+         LIMIT 1) AS grado_attuale,
+    ( SELECT string_agg(c.carica, ', '::text ORDER BY c.carica) AS string_agg
+           FROM cariche_storico c
+          WHERE c.fratello_id = f.id AND c.anno_al IS NULL) AS carica_attuale
+   FROM fratelli f;
+
+create or replace view public.v_fratelli_tesoreria as
+ SELECT id,
+    cognome,
+    nome,
+    email,
+    cellulare,
+    stato
+   FROM fratelli
+  WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'tesoriere'::ruolo_app]);
+
+create or replace view public.v_incassi_collettivi as
+ SELECT v.anno,
+    q.codice AS voce_codice,
+    q.nome AS voce,
+    count(*) AS n_versamenti,
+    sum(v.importo) AS totale
+   FROM versamenti v
+     JOIN voci_quota q ON q.id = v.voce_id
+  WHERE NOT q.personale AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]))
+  GROUP BY v.anno, q.codice, q.nome;
+
+create or replace view public.v_scadenze_stato as
+ SELECT s.id,
+    s.anno,
+    s.rata_n,
+    s.rate_totali,
+    s.fratello_id,
+    (f.cognome || ' '::text) || f.nome AS fratello,
+    q.codice AS voce_codice,
+    q.nome AS voce,
+    s.eta_calcolata,
+    s.importo_base,
+    s.sconto,
+    s.importo_dovuto,
+    s.data_scadenza,
+    COALESCE(p.versato, 0::numeric)::numeric(10,2) AS versato,
+    (s.importo_dovuto - COALESCE(p.versato, 0::numeric))::numeric(10,2) AS residuo,
+        CASE
+            WHEN s.importo_dovuto = 0::numeric THEN 'Esente'::text
+            WHEN (s.importo_dovuto - COALESCE(p.versato, 0::numeric)) <= 0::numeric THEN 'Pagato'::text
+            WHEN s.data_scadenza IS NOT NULL AND s.data_scadenza < CURRENT_DATE THEN 'Scaduto'::text
+            WHEN COALESCE(p.versato, 0::numeric) > 0::numeric THEN 'Parziale'::text
+            ELSE 'Da pagare'::text
+        END AS stato,
+    s.motivo_eccezione,
+    s.note
+   FROM scadenze s
+     JOIN voci_quota q ON q.id = s.voce_id
+     JOIN fratelli f ON f.id = s.fratello_id
+     LEFT JOIN ( SELECT versamenti.scadenza_id,
+            sum(versamenti.importo) AS versato
+           FROM versamenti
+          WHERE versamenti.scadenza_id IS NOT NULL
+          GROUP BY versamenti.scadenza_id) p ON p.scadenza_id = s.id
+  WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]);
+
+create or replace view public.v_riepilogo_fratello as
+ SELECT anno,
+    fratello_id,
+    fratello,
+    sum(importo_dovuto) AS dovuto,
+    sum(versato) AS versato,
+    sum(residuo) AS residuo,
+    count(*) FILTER (WHERE stato = 'Scaduto'::text) AS scadenze_scadute
+   FROM v_scadenze_stato
+  GROUP BY anno, fratello_id, fratello;
+
+create or replace view public.v_versamenti_elenco as
+ SELECT v.id,
+    v.data_versamento,
+    v.anno,
+    q.codice AS voce_codice,
+    q.nome AS voce,
+    v.fratello_id,
+        CASE
+            WHEN f.id IS NULL THEN NULL::text
+            ELSE (f.cognome || ' '::text) || f.nome
+        END AS fratello,
+    v.importo,
+    v.modalita,
+    v.riferimento,
+    v.scadenza_id,
+    v.scadenza_id IS NULL AND q.personale AS non_collegato,
+    v.movimento_id,
+    v.note
+   FROM versamenti v
+     JOIN voci_quota q ON q.id = v.voce_id
+     LEFT JOIN fratelli f ON f.id = v.fratello_id
+  WHERE ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app]);
 
 DROP TRIGGER IF EXISTS agape_aggiornato ON public.agape_adesioni;
 CREATE TRIGGER agape_aggiornato BEFORE UPDATE ON public.agape_adesioni FOR EACH ROW EXECUTE FUNCTION agape_aggiornato();
@@ -2157,12 +2437,6 @@ CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.elenco_car
 DROP TRIGGER IF EXISTS lemmi_audit ON public.passaggi_grado;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.passaggi_grado FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
-DROP TRIGGER IF EXISTS lemmi_audit ON public.messaggi;
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.messaggi FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
-DROP TRIGGER IF EXISTS lemmi_audit ON public.messaggi_destinatari;
-CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.messaggi_destinatari FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
-
 DROP TRIGGER IF EXISTS lemmi_audit ON public.bussanti;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.bussanti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
@@ -2171,6 +2445,12 @@ CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.documenti 
 
 DROP TRIGGER IF EXISTS lemmi_audit ON public.loggia;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.loggia FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.originali_cartacei;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.originali_cartacei FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.originali_movimenti;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.originali_movimenti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
 DROP TRIGGER IF EXISTS lemmi_audit ON public.fasce_eta;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.fasce_eta FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
@@ -2235,8 +2515,17 @@ CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.pratiche_p
 DROP TRIGGER IF EXISTS lemmi_audit ON public.pratiche_date;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.pratiche_date FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
+DROP TRIGGER IF EXISTS lemmi_audit ON public.biblioteca;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.biblioteca FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
 DROP TRIGGER IF EXISTS lemmi_audit ON public.agape_ospiti;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.agape_ospiti FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.messaggi;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.messaggi FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
+
+DROP TRIGGER IF EXISTS lemmi_audit ON public.messaggi_destinatari;
+CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.messaggi_destinatari FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
 DROP TRIGGER IF EXISTS tornate_updated_at ON public.tornate;
 CREATE TRIGGER tornate_updated_at BEFORE UPDATE ON public.tornate FOR EACH ROW EXECUTE FUNCTION tornate_set_updated_at();
@@ -2348,6 +2637,23 @@ create policy backup_esecuzioni_admin on public.backup_esecuzioni as PERMISSIVE 
 drop policy if exists backup_righe_admin on public.backup_righe;
 create policy backup_righe_admin on public.backup_righe as PERMISSIVE for SELECT to authenticated
   using (lemmi_e_admin());
+
+drop policy if exists biblioteca_cancellazione on public.biblioteca;
+create policy biblioteca_cancellazione on public.biblioteca as PERMISSIVE for DELETE to authenticated
+  using ((lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text]) OR (puo_caricare_biblioteca() AND (creato_da = auth.uid()))));
+
+drop policy if exists biblioteca_inserimento on public.biblioteca;
+create policy biblioteca_inserimento on public.biblioteca as PERMISSIVE for INSERT to authenticated
+  with check ((puo_caricare_biblioteca() AND (creato_da = auth.uid())));
+
+drop policy if exists biblioteca_lettura on public.biblioteca;
+create policy biblioteca_lettura on public.biblioteca as PERMISSIVE for SELECT to authenticated
+  using ((lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text, 'venerabile'::text, 'segretario'::text]) OR (creato_da = auth.uid()) OR ((ruolo_corrente() IS NOT NULL) AND (visibilita = 'fratelli'::text))));
+
+drop policy if exists biblioteca_modifica on public.biblioteca;
+create policy biblioteca_modifica on public.biblioteca as PERMISSIVE for UPDATE to authenticated
+  using ((lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text]) OR (puo_caricare_biblioteca() AND (creato_da = auth.uid()))))
+  with check ((lemmi_ruolo_in(VARIADIC ARRAY['amministratore'::text]) OR (puo_caricare_biblioteca() AND (creato_da = auth.uid()))));
 
 drop policy if exists bussanti_cancellazione on public.bussanti;
 create policy bussanti_cancellazione on public.bussanti as PERMISSIVE for DELETE to public
@@ -2628,6 +2934,24 @@ create policy modelli_scrittura on public.modelli_messaggio as PERMISSIVE for AL
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
 
+drop policy if exists originali_cartacei_lettura on public.originali_cartacei;
+create policy originali_cartacei_lettura on public.originali_cartacei as PERMISSIVE for SELECT to authenticated
+  using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app, 'venerabile'::ruolo_app])));
+
+drop policy if exists originali_cartacei_scrittura on public.originali_cartacei;
+create policy originali_cartacei_scrittura on public.originali_cartacei as PERMISSIVE for ALL to authenticated
+  using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
+  with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
+
+drop policy if exists originali_movimenti_lettura on public.originali_movimenti;
+create policy originali_movimenti_lettura on public.originali_movimenti as PERMISSIVE for SELECT to authenticated
+  using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app, 'venerabile'::ruolo_app])));
+
+drop policy if exists originali_movimenti_scrittura on public.originali_movimenti;
+create policy originali_movimenti_scrittura on public.originali_movimenti as PERMISSIVE for ALL to authenticated
+  using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
+  with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
+
 drop policy if exists parametri_quote_admin on public.parametri_quote;
 create policy parametri_quote_admin on public.parametri_quote as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = 'amministratore'::ruolo_app))
@@ -2827,6 +3151,23 @@ drop policy if exists voci_quota_lettura on public.voci_quota;
 create policy voci_quota_lettura on public.voci_quota as PERMISSIVE for SELECT to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])));
 
+drop policy if exists biblioteca_file_cancellazione on storage.objects;
+create policy biblioteca_file_cancellazione on storage.objects as PERMISSIVE for DELETE to authenticated
+  using (((bucket_id = 'biblioteca'::text) AND biblioteca_file_mio(name, owner_id)));
+
+drop policy if exists biblioteca_file_inserimento on storage.objects;
+create policy biblioteca_file_inserimento on storage.objects as PERMISSIVE for INSERT to authenticated
+  with check (((bucket_id = 'biblioteca'::text) AND puo_caricare_biblioteca()));
+
+drop policy if exists biblioteca_file_lettura on storage.objects;
+create policy biblioteca_file_lettura on storage.objects as PERMISSIVE for SELECT to authenticated
+  using (((bucket_id = 'biblioteca'::text) AND biblioteca_file_visibile(name)));
+
+drop policy if exists biblioteca_file_modifica on storage.objects;
+create policy biblioteca_file_modifica on storage.objects as PERMISSIVE for UPDATE to authenticated
+  using (((bucket_id = 'biblioteca'::text) AND biblioteca_file_mio(name, owner_id)))
+  with check (((bucket_id = 'biblioteca'::text) AND biblioteca_file_mio(name, owner_id)));
+
 drop policy if exists documenti_loggia_cancellazione on storage.objects;
 create policy documenti_loggia_cancellazione on storage.objects as PERMISSIVE for DELETE to authenticated
   using (((bucket_id = 'documenti-loggia'::text) AND (ruolo_corrente() = 'amministratore'::ruolo_app)));
@@ -2863,10 +3204,128 @@ drop policy if exists tavole_lettura on storage.objects;
 create policy tavole_lettura on storage.objects as PERMISSIVE for SELECT to authenticated
   using (((bucket_id = 'tavole'::text) AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))));
 
+drop policy if exists tavole_lettura_fratelli on storage.objects;
+create policy tavole_lettura_fratelli on storage.objects as PERMISSIVE for SELECT to authenticated
+  using (((bucket_id = 'tavole'::text) AND tavola_file_visibile(name)));
+
 drop policy if exists tavole_modifica on storage.objects;
 create policy tavole_modifica on storage.objects as PERMISSIVE for UPDATE to authenticated
   using (((bucket_id = 'tavole'::text) AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))))
   with check (((bucket_id = 'tavole'::text) AND (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]))));
+
+-- Tavole semplificate (aggiornamento 48)
+drop policy if exists tavole_inserimento_fratello on storage.objects;
+create policy tavole_inserimento_fratello on storage.objects as permissive for insert to authenticated
+  with check (bucket_id = 'tavole'
+    and public.ruolo_corrente() = 'fratello'::public.ruolo_app
+    and public.fratello_mio() is not null
+    and (storage.foldername(name))[1] = 'fratelli'
+    and (storage.foldername(name))[2] = public.fratello_mio()::text);
+
+-- 3) e toglie solo file della propria cartella che non servono ad altre tavole
+drop policy if exists tavole_lettura_cartella_fratello on storage.objects;
+create policy tavole_lettura_cartella_fratello on storage.objects as permissive for select to authenticated
+  using (bucket_id = 'tavole'
+    and public.ruolo_corrente() = 'fratello'::public.ruolo_app
+    and public.fratello_mio() is not null
+    and (storage.foldername(name))[1] = 'fratelli'
+    and (storage.foldername(name))[2] = public.fratello_mio()::text);
+
+drop policy if exists tavole_cancellazione_fratello on storage.objects;
+create policy tavole_cancellazione_fratello on storage.objects as permissive for delete to authenticated
+  using (bucket_id = 'tavole'
+    and public.ruolo_corrente() = 'fratello'::public.ruolo_app
+    and public.fratello_mio() is not null
+    and (storage.foldername(name))[1] = 'fratelli'
+    and (storage.foldername(name))[2] = public.fratello_mio()::text
+    and not exists (select 1 from public.lavori l where l.file_path = storage.objects.name));
+
+-- 4) nuova tavola (p_id nullo) oppure modifica di una propria: titolo, tema, grado, data, file (obbligatorio solo la prima volta)
+create or replace function public.fratello_salva_tavola(
+  p_id uuid, p_titolo text, p_tema text, p_grado text, p_data date,
+  p_file_path text, p_file_nome text, p_file_tipo text, p_file_dimensione bigint)
+ returns jsonb
+ language plpgsql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare
+  fm uuid := public.fratello_mio();
+  gradi text[] := array['apprendista', 'compagno', 'maestro'];
+  mio text := public.grado_mio();
+  l public.lavori;
+  nuovo_id uuid;
+begin
+  if public.ruolo_corrente() is distinct from 'fratello'::public.ruolo_app or fm is null then
+    raise exception 'Solo un Fratello collegato alla propria scheda può gestire le proprie tavole.';
+  end if;
+  if p_titolo is null or length(trim(p_titolo)) = 0 then
+    raise exception 'Scrivi il titolo della tavola.';
+  end if;
+  if p_grado is null or array_position(gradi, p_grado) is null then
+    raise exception 'Scegli il grado della tavola.';
+  end if;
+  if array_position(gradi, p_grado) > coalesce(array_position(gradi, mio), 1) then
+    raise exception 'Non puoi indicare un grado superiore al tuo.';
+  end if;
+  if p_file_path is not null and (p_file_path not like 'fratelli/' || fm::text || '/%' or length(p_file_path) > 300) then
+    raise exception 'Il file deve stare nella tua cartella.';
+  end if;
+  if p_id is null then
+    if p_file_path is null or p_file_nome is null then
+      raise exception 'Scegli il file della tavola.';
+    end if;
+    insert into public.lavori (titolo, tema, tipo, fratello_id, stato, grado_autore, grado_tornata, data_presentazione, data_assegnazione,
+                               file_path, file_nome, file_tipo, file_dimensione)
+    values (left(trim(p_titolo), 200), nullif(left(trim(coalesce(p_tema, '')), 300), ''), 'tavola', fm, 'presentato', p_grado, p_grado,
+            coalesce(p_data, current_date), current_date, p_file_path, left(p_file_nome, 200), p_file_tipo, p_file_dimensione)
+    returning id into nuovo_id;
+    return jsonb_build_object('id', nuovo_id, 'vecchio_file', null);
+  end if;
+  select * into l from public.lavori where id = p_id for update;
+  if not found or l.fratello_id is distinct from fm then
+    raise exception 'Questa tavola non risulta tua.';
+  end if;
+  update public.lavori
+     set titolo = left(trim(p_titolo), 200), tema = nullif(left(trim(coalesce(p_tema, '')), 300), ''),
+         grado_autore = p_grado, grado_tornata = p_grado, data_presentazione = coalesce(p_data, l.data_presentazione, current_date),
+         stato = 'presentato', updated_at = now(),
+         file_path = coalesce(p_file_path, l.file_path), file_nome = case when p_file_path is null then l.file_nome else left(p_file_nome, 200) end,
+         file_tipo = case when p_file_path is null then l.file_tipo else p_file_tipo end,
+         file_dimensione = case when p_file_path is null then l.file_dimensione else p_file_dimensione end
+   where id = p_id;
+  return jsonb_build_object('id', p_id, 'vecchio_file', case when p_file_path is not null and l.file_path is distinct from p_file_path then l.file_path else null end);
+end;
+$function$;
+revoke all on function public.fratello_salva_tavola(uuid, text, text, text, date, text, text, text, bigint) from public, anon;
+grant execute on function public.fratello_salva_tavola(uuid, text, text, text, date, text, text, text, bigint) to authenticated;
+
+-- 5) elimina una propria tavola; restituisce il percorso del file, che l'app toglie poi dall'archivio
+create or replace function public.fratello_elimina_tavola(p_id uuid)
+ returns text
+ language plpgsql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare
+  fm uuid := public.fratello_mio();
+  l public.lavori;
+begin
+  if public.ruolo_corrente() is distinct from 'fratello'::public.ruolo_app or fm is null then
+    raise exception 'Solo un Fratello collegato alla propria scheda può eliminare le proprie tavole.';
+  end if;
+  select * into l from public.lavori where id = p_id for update;
+  if not found or l.fratello_id is distinct from fm then
+    raise exception 'Questa tavola non risulta tua.';
+  end if;
+  delete from public.lavori where id = p_id;
+  return l.file_path;
+end;
+$function$;
+revoke all on function public.fratello_elimina_tavola(uuid) from public, anon;
+grant execute on function public.fratello_elimina_tavola(uuid) to authenticated;
+
+-- archivio file: biblioteca (privato: t, limite: 52428800 byte)
 
 -- archivio file: documenti-loggia (privato: t, limite: 10485760 byte)
 
@@ -2877,114 +3336,3 @@ create policy tavole_modifica on storage.objects as PERMISSIVE for UPDATE to aut
 -- pianificazione lemmi-backup-giornaliero: 30 1 * * * (attiva: t)
 
 -- pianificazione lemmi-notifiche: 0 7 * * * (attiva: t)
-
-
--- Archivio cartaceo (aggiornamento 47)
-create table if not exists public.originali_cartacei (
-  id uuid not null default gen_random_uuid(),
-  cartellina text not null,
-  descrizione text not null,
-  riferimento text,
-  data_ricezione date,
-  stato text not null default 'in_archivio',
-  destinatario text,
-  data_uscita date,
-  rientro_previsto date,
-  copia_in_cartellina boolean not null default false,
-  scansionato boolean not null default false,
-  note text,
-  creato_il timestamp with time zone not null default now(),
-  aggiornato_il timestamp with time zone not null default now(),
-  creato_da uuid default auth.uid(),
-  constraint originali_cartacei_pkey primary key (id),
-  constraint originali_cartacei_cartellina_check check (cartellina = any (array['bussanti'::text, 'regolarizzazioni'::text, 'assemblee_goi'::text, 'elezioni'::text, 'associazione'::text, 'passaggi_grado'::text])),
-  constraint originali_cartacei_stato_check check (stato = any (array['in_archivio'::text, 'prelevato'::text, 'trasmesso'::text])),
-  constraint originali_cartacei_uscita_check check (stato = 'in_archivio' or (destinatario is not null and data_uscita is not null))
-);
-alter table public.originali_cartacei enable row level security;
-create index if not exists originali_cartacei_cartellina_idx on public.originali_cartacei (cartellina, stato);
-
-create table if not exists public.originali_movimenti (
-  id uuid not null default gen_random_uuid(),
-  originale_id uuid not null,
-  data date not null,
-  evento text not null,
-  destinatario text,
-  rientro_previsto date,
-  note text,
-  creato_il timestamp with time zone not null default now(),
-  creato_da uuid default auth.uid(),
-  constraint originali_movimenti_pkey primary key (id),
-  constraint originali_movimenti_originale_fkey foreign key (originale_id) references public.originali_cartacei (id) on delete cascade,
-  constraint originali_movimenti_evento_check check (evento = any (array['prelievo'::text, 'trasmissione'::text, 'rientro'::text]))
-);
-alter table public.originali_movimenti enable row level security;
-create index if not exists originali_movimenti_originale_idx on public.originali_movimenti (originale_id, data);
-
-drop policy if exists originali_cartacei_lettura on public.originali_cartacei;
-create policy originali_cartacei_lettura on public.originali_cartacei as permissive for select to authenticated
-  using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app, 'venerabile'::public.ruolo_app]));
-drop policy if exists originali_cartacei_scrittura on public.originali_cartacei;
-create policy originali_cartacei_scrittura on public.originali_cartacei as permissive for all to authenticated
-  using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]))
-  with check (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]));
-drop policy if exists originali_movimenti_lettura on public.originali_movimenti;
-create policy originali_movimenti_lettura on public.originali_movimenti as permissive for select to authenticated
-  using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app, 'venerabile'::public.ruolo_app]));
-drop policy if exists originali_movimenti_scrittura on public.originali_movimenti;
-create policy originali_movimenti_scrittura on public.originali_movimenti as permissive for all to authenticated
-  using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]))
-  with check (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]));
-
--- Registra in un solo passaggio il movimento e il nuovo stato dell'originale (prelievo, trasmissione a un organo, rientro).
-create or replace function public.registra_movimento_originale(p_id uuid, p_evento text, p_data date, p_destinatario text default null, p_rientro_previsto date default null, p_copia boolean default null, p_note text default null)
- returns void
- language plpgsql
- set search_path to 'public', 'pg_temp'
-as $function$
-declare
-  o public.originali_cartacei;
-begin
-  if p_evento not in ('prelievo', 'trasmissione', 'rientro') then
-    raise exception 'Movimento non valido.';
-  end if;
-  if p_data is null then
-    raise exception 'Indica la data del movimento.';
-  end if;
-  select * into o from public.originali_cartacei where id = p_id for update;
-  if not found then
-    raise exception 'Originale non trovato.';
-  end if;
-  if p_evento = 'rientro' then
-    if o.stato = 'in_archivio' then
-      raise exception 'Questo originale risulta già in archivio.';
-    end if;
-    update public.originali_cartacei
-       set stato = 'in_archivio', destinatario = null, data_uscita = null, rientro_previsto = null, aggiornato_il = now()
-     where id = p_id;
-    insert into public.originali_movimenti (originale_id, data, evento, destinatario, note)
-    values (p_id, p_data, 'rientro', o.destinatario, nullif(trim(p_note), ''));
-  else
-    if o.stato <> 'in_archivio' then
-      raise exception 'Questo originale è già fuori dall''archivio: registra prima il rientro.';
-    end if;
-    if p_destinatario is null or length(trim(p_destinatario)) = 0 then
-      raise exception 'Indica a chi o dove va l''originale.';
-    end if;
-    update public.originali_cartacei
-       set stato = case p_evento when 'prelievo' then 'prelevato' else 'trasmesso' end,
-           destinatario = trim(p_destinatario), data_uscita = p_data,
-           rientro_previsto = case p_evento when 'prelievo' then p_rientro_previsto else null end,
-           copia_in_cartellina = coalesce(p_copia, copia_in_cartellina), aggiornato_il = now()
-     where id = p_id;
-    insert into public.originali_movimenti (originale_id, data, evento, destinatario, rientro_previsto, note)
-    values (p_id, p_data, p_evento, trim(p_destinatario), case p_evento when 'prelievo' then p_rientro_previsto else null end, nullif(trim(p_note), ''));
-  end if;
-end;
-$function$;
-
--- Registro delle attivita' (chi ha inserito, modificato o eliminato cosa)
-drop trigger if exists lemmi_audit on public.originali_cartacei;
-create trigger lemmi_audit after insert or update or delete on public.originali_cartacei for each row execute function public.lemmi_audit();
-drop trigger if exists lemmi_audit on public.originali_movimenti;
-create trigger lemmi_audit after insert or update or delete on public.originali_movimenti for each row execute function public.lemmi_audit();
