@@ -9,7 +9,7 @@ const nome = 'lemmi_prova_' + process.pid;
 
 const psql = (args, db) => execFileSync('psql', ['-X', '-q', '-v', 'ON_ERROR_STOP=0', ...(db ? ['-d', db] : ['-d', 'postgres']), ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 const eseguiFile = (file) => {
-  try { return { out: '', err: execFileSync('psql', ['-X', '-q', '-d', nome, '-f', file], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }) }; }
+  try { return { out: '', err: execFileSync('psql', ['-X', '-q', '-v', 'ON_ERROR_STOP=1', '-d', nome, '-f', file], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }) }; }
   catch (e) { return { out: '', err: String(e.stderr || e.message) }; }
 };
 const conta = (sql) => Number(psql(['-tA', '-c', sql], nome).trim());
