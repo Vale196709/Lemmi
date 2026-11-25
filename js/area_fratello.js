@@ -36,7 +36,7 @@
         <div class="f s6"><label for="tv-disc">Discussa il (facoltativo)</label><input id="tv-disc" name="discussa" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off" value="${esc(L.isoToIt((lavoro && lavoro.data_discussione) || ''))}"></div>
         <div class="f s12"><label for="tv-file">${nuova ? 'File' : 'Sostituisci il file (facoltativo)'} <span class="hint">PDF, Word, ODT o testo, fino a 10 MB</span></label>
           ${!nuova && lavoro.file_nome ? `<div class="hint" style="margin-bottom:6px">File attuale: <b>${esc(lavoro.file_nome)}</b></div>` : ''}
-          <input id="tv-file" name="file" type="file" accept=".pdf,.doc,.docx,.odt,.txt"></div></div>
+          <input id="tv-file" name="file" type="file" class="vis" accept=".pdf,.doc,.docx,.odt,.txt"></div></div>
         <div class="err" data-err style="margin-top:10px"></div>
         <div class="actions" style="margin-top:14px"><button class="btn gold" type="submit">${nuova ? 'Carica' : 'Salva'}</button></div></form></div></div>`;
     document.body.appendChild(ov);
