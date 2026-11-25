@@ -1,0 +1,28 @@
+AGGIORNAMENTO 69 (versione 0.67.0) - Modalità «Tornata»
+
+PASSO 1 (Supabase > SQL Editor) - esegui sql/lemmi_aggiornamento_51.sql
+   Il risultato mostra il nome della voce del Tronco trovata in Tesoreria (es. "Tronco della Vedova").
+   Se compare "ATTENZIONE: voce del Tronco non trovata", in Tesoreria crea una voce NON personale con
+   "Tronco" nel nome (l'amministratore, da Tesoreria): senza, presenze e verbale funzionano lo stesso,
+   solo il pulsante "Registra in Tesoreria" avvisa.
+PASSO 2 (GitHub) - carica i file dello ZIP mantenendo le cartelle:
+   index.html, js/tornata.js (nuovo), js/template.js, js/calendario.js, js/app.js, js/versione.js, css/style.css,
+   sql/lemmi_aggiornamento_51.sql, sql/schema_completo.sql, sql/INDICE.md, test/foto/prova_pagine.js,
+   docs/funzioni.md, docs/aggiornamenti/LEGGIMI-aggiornamento-69.txt
+   Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Come si apre:
+ - Cruscotto, il giorno della tornata: riquadro "Stasera: ..." con "Apri la serata".
+ - Calendario: clic sulla data di una tornata, oppure "apri la serata" nel riquadro "Prossima tornata".
+Cosa contiene:
+ - La serata: luogo o link, relatore, ordine del giorno ("Modifica" per correggerli al volo).
+ - Promemoria: votazioni dei bussanti, tavole presentate o discusse, agape (con "Apri l'agape"), ricorrenze di oggi.
+ - Presenze: tutti partono presenti, si tocca G o A per chi manca; ospiti per nome. Restano sul telefono anche
+   senza rete; "Salva le presenze nel registro" le porta nel registro dei verbali (il testo di un verbale gia'
+   scritto non viene toccato). Se la tornata non ha il grado, si sceglie qui.
+ - Tronco della Vedova: importo raccolto; "Registra in Tesoreria" lo scrive come incasso collettivo in contanti
+   della data della tornata (registrandolo di nuovo si corregge, con 0 si toglie).
+ - "Prepara il verbale": apre il generatore dei verbali con data, grado, presenze, assenti giustificati, ospiti
+   e Tronco gia' inseriti; da li' si scarica il Word e si salva nel registro come sempre.
+Chi la usa: Segretario e amministratore compilano; il Venerabile la vede in sola lettura.
+Conferenze via web e agapi: solo scheda e promemoria (niente presenze ne' verbale).
