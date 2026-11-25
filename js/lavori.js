@@ -85,32 +85,18 @@
   async function apriLavoro(l, predef) {
     const nuovo = !l;
     if (!lv.fratelli.length) lv.fratelli = chk(await state.sb.from('fratelli').select('id,cognome,nome,stato').order('cognome'));
-    const x = l || Object.assign({ titolo: '', tema: '', tipo: 'tavola', fratello_id: null, autore_esterno: '', grado_autore: '', grado_tornata: '', tornata_id: '', data_assegnazione: oggi(), data_consegna_prevista: '', data_presentazione: '', stato: 'assegnato', note: '' }, predef || {});
-    // tornate selezionabili: dagli ultimi 4 mesi in avanti, più quella già collegata
-    const da = new Date(); da.setMonth(da.getMonth() - 4);
-    const tor = chk(await state.sb.from('tornate').select('id,data,tipo,grado').gte('data', da.toISOString().slice(0, 10)).neq('stato', 'annullata').order('data').limit(250));
-    if (x.tornata_id && !tor.find((t) => t.id === x.tornata_id)) {
-      const gia = lv.tornate[x.tornata_id] || chk(await state.sb.from('tornate').select('id,data,tipo,grado').eq('id', x.tornata_id).maybeSingle());
-      if (gia) tor.push(gia);
-    }
-    tor.sort((a, b) => a.data.localeCompare(b.data));
+    const x = l || Object.assign({ titolo: '', tema: '', fratello_id: null, autore_esterno: '', grado_tornata: '', data_presentazione: oggi(), note: '' }, predef || {});
     const esterno = !!(x.autore_esterno && !x.fratello_id);
 
     const corpo = `<div class="form-grid">
-      <div class="f s8"><label for="l-tit">Titolo <span class="req">*</span></label><input id="l-tit" name="titolo" value="${esc(x.titolo)}"></div>
-      <div class="f s4"><label for="l-tipo">Tipo</label><select id="l-tipo" name="tipo">${opzioni(TIPI, x.tipo)}</select></div>
+      <div class="f s12"><label for="l-tit">Titolo <span class="req">*</span></label><input id="l-tit" name="titolo" value="${esc(x.titolo)}"></div>
       <div class="f s12"><label for="l-tema">Tema / argomento</label><input id="l-tema" name="tema" value="${esc(x.tema || '')}"></div>
       <div class="f s6"><label for="l-aut">Autore <span class="req">*</span></label>
         <input id="l-aut" name="autore" list="dl-l-aut" autocomplete="off" placeholder="${esterno ? 'Nome e cognome dell’autore' : 'Scrivi il cognome e scegli dall’elenco'}" value="${esc(esterno ? x.autore_esterno : (x.fratello_id ? nomeFratello(x.fratello_id) : ''))}">
         <datalist id="dl-l-aut">${lv.fratelli.map((f) => `<option value="${esc(f.cognome + ' ' + f.nome)}"></option>`).join('')}</datalist>
         <label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-top:6px"><input type="checkbox" name="esterno" ${esterno ? 'checked' : ''}> Autore non iscritto in Loggia (ospite o visitatore)</label></div>
-      <div class="f s3"><label for="l-ga">Grado dell’autore</label><select id="l-ga" name="grado_autore">${opzioni(GRADI, x.grado_autore, '—')}</select></div>
-      <div class="f s3"><label for="l-gt">Grado della tornata</label><select id="l-gt" name="grado_tornata">${opzioni(GRADI, x.grado_tornata, '—')}</select></div>
-      <div class="f s8"><label for="l-tor">Tornata prevista</label><select id="l-tor" name="tornata_id"><option value="">— da stabilire —</option>${tor.map((t) => `<option value="${esc(t.id)}" ${t.id === x.tornata_id ? 'selected' : ''}>${esc(etichettaTornata(t))}</option>`).join('')}</select></div>
-      <div class="f s4"><label for="l-stato">Stato</label><select id="l-stato" name="stato">${opzioni(STATI, x.stato)}</select></div>
-      <div class="f s4"><label for="l-d1">Assegnazione</label><input id="l-d1" name="data_assegnazione" value="${esc(isoToIt(x.data_assegnazione))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
-      <div class="f s4"><label for="l-d2">Consegna prevista</label><input id="l-d2" name="data_consegna_prevista" value="${esc(isoToIt(x.data_consegna_prevista))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
-      <div class="f s4"><label for="l-d3">Presentazione</label><input id="l-d3" name="data_presentazione" value="${esc(isoToIt(x.data_presentazione))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
+      <div class="f s3"><label for="l-gt">Grado della tavola <span class="req">*</span></label><select id="l-gt" name="grado_tornata">${opzioni(GRADI, x.grado_tornata || x.grado_autore, 'Scegli…')}</select></div>
+      <div class="f s3"><label for="l-d3">Data</label><input id="l-d3" name="data_presentazione" value="${esc(isoToIt(x.data_presentazione))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
       <div class="f s12"><label for="l-note">Note</label><textarea id="l-note" name="note" rows="3">${esc(x.note || '')}</textarea></div>
       <div class="f s12"><label for="l-file">File della tavola (PDF, Word, ODT o testo, fino a 10 MB)</label>
         ${x.file_path ? `<div class="hint" style="margin-bottom:6px">File attuale: <b>${esc(x.file_nome || 'allegato')}</b>${x.file_dimensione ? ' · ' + kb(x.file_dimensione) : ''}. Scegliendone un altro, lo sostituisci.</div>
@@ -118,7 +104,7 @@
         <input id="l-file" class="vis" name="file" type="file" accept=".pdf,.doc,.docx,.odt,.txt"></div></div>`;
     const extra = !nuovo && puoCancellare() ? '<button class="btn danger" type="button" data-del>Elimina</button>' : '';
 
-    const m = finestra(nuovo ? 'Nuovo lavoro' : 'Modifica lavoro', corpo, {
+    const m = finestra(nuovo ? 'Nuova tavola' : 'Modifica tavola', corpo, {
       extra,
       onSubmit: async (f, chiudi, errore) => {
         const e = f.elements;
@@ -135,18 +121,15 @@
           if (!fr) return errore(testoAutore ? 'Autore non trovato: scegli dall’elenco, oppure spunta “Autore non iscritto in Loggia”.' : 'Indica l’autore: scrivi il cognome e scegli dall’elenco.');
           fratello_id = fr.id;
         }
-        const d1 = itToIso(e.data_assegnazione.value), d2 = itToIso(e.data_consegna_prevista.value), d3 = itToIso(e.data_presentazione.value);
-        if ([d1, d2, d3].includes('ERR')) return errore('Controlla le date: usa il formato gg/mm/aaaa.');
-        let data_presentazione = d3;
-        if (e.stato.value === 'presentato' && !data_presentazione && e.tornata_id.value) {
-          const t = tor.find((q) => q.id === e.tornata_id.value); if (t) data_presentazione = t.data;
-        }
+        const d3 = itToIso(e.data_presentazione.value);
+        if (d3 === 'ERR') return errore('Controlla la data: usa il formato gg/mm/aaaa.');
+        if (!e.grado_tornata.value) return errore('Scegli il grado della tavola: decide chi può leggerla.');
         const dati = {
-          titolo, tema: e.tema.value.trim() || null, tipo: e.tipo.value, fratello_id, autore_esterno,
-          grado_autore: e.grado_autore.value || null, grado_tornata: e.grado_tornata.value || null,
-          tornata_id: e.tornata_id.value || null, data_assegnazione: d1, data_consegna_prevista: d2, data_presentazione,
-          stato: e.stato.value, note: e.note.value.trim() || null,
+          titolo, tema: e.tema.value.trim() || null, fratello_id, autore_esterno,
+          grado_autore: e.grado_tornata.value, grado_tornata: e.grado_tornata.value,
+          data_presentazione: d3 || oggi(), stato: 'presentato', note: e.note.value.trim() || null,
         };
+        if (nuovo) dati.tipo = 'tavola';
 
         // file
         const id = nuovo ? nuovoId() : l.id;
@@ -182,7 +165,7 @@
       },
     });
 
-    // il grado dell'autore si propone in base al grado attuale del Fratello scelto
+    // il grado della tavola si propone in base al grado attuale del Fratello scelto
     let ultimo = null;
     const proponiGrado = async () => {
       const e = m.f.elements;
@@ -191,11 +174,11 @@
       const fr = lv.fratelli.find((q) => (q.cognome + ' ' + q.nome).toLowerCase() === t || (q.nome + ' ' + q.cognome).toLowerCase() === t);
       if (!fr || fr.id === ultimo) return;
       ultimo = fr.id;
-      if (e.grado_autore.value) return;
+      if (e.grado_tornata.value) return;
       try {
         const r = chk(await state.sb.from('v_fratelli_completi').select('grado_attuale').eq('id', fr.id).maybeSingle());
         const g = r && String(r.grado_attuale || '').toLowerCase();
-        if (g && GRADI[g] && !e.grado_autore.value) e.grado_autore.value = g;
+        if (g && GRADI[g] && !e.grado_tornata.value) e.grado_tornata.value = g;
       } catch (er) { /* facoltativo */ }
     };
     m.f.elements.autore.addEventListener('change', proponiGrado);
@@ -205,18 +188,12 @@
       if (m.f.elements.esterno.checked) m.f.elements.autore.removeAttribute('list'); else m.f.elements.autore.setAttribute('list', 'dl-l-aut');
     });
     if (esterno) m.f.elements.autore.removeAttribute('list');
-    // scegliendo la tornata, si propone il suo grado
-    m.f.elements.tornata_id.addEventListener('change', () => {
-      const t = tor.find((q) => q.id === m.f.elements.tornata_id.value);
-      if (t && t.grado && !m.f.elements.grado_tornata.value) m.f.elements.grado_tornata.value = t.grado;
-    });
-
     if (nuovo && x.fratello_id) proponiGrado();
 
     const del = $('[data-del]', m.ov);
     if (del) del.onclick = () => {
       m.chiudi();
-      L.eliminaConAnnulla({ domanda: 'Eliminare questo lavoro' + (l.file_path ? ' e il suo file' : '') + '?', messaggio: 'Lavoro eliminato' + (l.file_path ? ' (con il file)' : ''), esegui: async () => {
+      L.eliminaConAnnulla({ domanda: 'Eliminare questa tavola' + (l.file_path ? ' e il suo file' : '') + '?', messaggio: 'Tavola eliminata' + (l.file_path ? ' (con il file)' : ''), esegui: async () => {
         if (l.file_path) chk(await state.sb.storage.from(BUCKET).remove([l.file_path]));
         chk(await state.sb.from('lavori').delete().eq('id', l.id));
       } });
@@ -230,46 +207,38 @@
     await carica();
     const oggiIso = oggi();
     v.innerHTML = `
-      <div class="page-head"><div><h1>Lavori e tavole</h1><p>Lavori assegnati ai Fratelli e tavole presentate in Loggia</p></div>
-        <div class="right actions">${puoGestire() ? `<button class="btn gold" id="lv-new">${IC.plus} Nuovo lavoro</button>` : ''}</div></div>
+      <div class="page-head"><div><h1>Lavori e tavole</h1><p>Le tavole dei Fratelli · ogni Fratello carica e modifica le proprie, l’amministratore può modificare tutto</p></div>
+        <div class="right actions">${puoGestire() ? `<button class="btn gold" id="lv-new">${IC.plus} Nuova tavola</button>` : ''}</div></div>
       <div class="actions" style="margin-bottom:14px;flex-wrap:wrap">
         <div class="searchbar">${IC.search}<input id="lv-q" type="search" placeholder="Cerca per titolo, tema o autore…" value="${esc(lv.q)}"></div>
-        <select id="lv-stato" style="width:auto"><option value="">Tutti gli stati</option><option value="_aperti" ${lv.stato === '_aperti' ? 'selected' : ''}>Da completare</option>${opzioni(STATI, lv.stato)}</select>
-        <select id="lv-grado" style="width:auto">${opzioni(GRADI, lv.grado, 'Tutti i gradi')}</select>
+                <select id="lv-grado" style="width:auto">${opzioni(GRADI, lv.grado, 'Tutti i gradi')}</select>
         <span class="muted" id="lv-conta"></span></div>
       <div id="lv-corpo"></div>`;
     if (puoGestire()) $('#lv-new').onclick = () => apriLavoro(null).catch((e) => toast(messaggioErrore(e), 'bad'));
     $('#lv-q').addEventListener('input', (e) => { lv.q = e.target.value; disegna(); });
-    $('#lv-stato').addEventListener('change', (e) => { lv.stato = e.target.value; disegna(); });
     $('#lv-grado').addEventListener('change', (e) => { lv.grado = e.target.value; disegna(); });
 
     function disegna() {
       const q = lv.q.trim().toLowerCase();
       const lista = lv.righe.filter((r) => {
-        if (lv.stato === '_aperti' ? !APERTI.includes(r.stato) : (lv.stato && r.stato !== lv.stato)) return false;
         if (lv.grado && r.grado_tornata !== lv.grado && r.grado_autore !== lv.grado) return false;
         if (!q) return true;
         return [r.titolo, r.tema, autoreDi(r)].some((s) => String(s || '').toLowerCase().includes(q));
       });
-      $('#lv-conta').textContent = lista.length + (lista.length === 1 ? ' lavoro' : ' lavori');
+      $('#lv-conta').textContent = lista.length + (lista.length === 1 ? ' tavola' : ' tavole');
       const c = $('#lv-corpo');
       if (!lista.length) {
-        c.innerHTML = `<div class="card empty">${IC.inbox}<div>${lv.righe.length ? 'Nessun risultato.' : 'Nessun lavoro registrato.' + (puoGestire() ? ' Usa “Nuovo lavoro” per assegnarne uno.' : '')}</div></div>`;
+        c.innerHTML = `<div class="card empty">${IC.inbox}<div>${lv.righe.length ? 'Nessun risultato.' : 'Nessuna tavola registrata.' + (puoGestire() ? ' Usa “Nuova tavola” per aggiungerne una.' : '')}</div></div>`;
         return;
       }
-      c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Lavoro</th><th>Autore</th><th>Tornata</th><th>Consegna</th><th>Stato</th><th>File</th><th></th></tr></thead><tbody>
-        ${lista.map((r) => {
-          const t = lv.tornate[r.tornata_id];
-          const ritardo = APERTI.includes(r.stato) && r.data_consegna_prevista && r.data_consegna_prevista < oggiIso;
-          return `<tr>
-            <td><b>${esc(r.titolo)}</b><div class="hint">${esc(TIPI[r.tipo] || r.tipo)}${r.tema ? ' · ' + esc(r.tema) : ''}</div></td>
-            <td>${esc(autoreDi(r))}${r.grado_autore ? `<div class="hint">${esc(GRADI[r.grado_autore])}</div>` : ''}</td>
-            <td>${t ? esc(etichettaTornata(t)) : '<span class="muted">da stabilire</span>'}${!t && r.grado_tornata ? `<div class="hint">${esc(GRADI[r.grado_tornata])}</div>` : ''}</td>
-            <td>${r.data_consegna_prevista ? fmtData(r.data_consegna_prevista) : '—'}${ritardo ? '<div><span class="badge bad">in ritardo</span></div>' : ''}</td>
-            <td>${L.badgeStato(r.stato, STATI[r.stato])}${r.data_presentazione ? `<div class="hint">${fmtData(r.data_presentazione)}</div>` : ''}</td>
+      c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Data</th><th>File</th><th></th></tr></thead><tbody>
+        ${lista.map((r) => `<tr>
+            <td><b>${esc(r.titolo)}</b>${r.tema ? `<div class="hint">${esc(r.tema)}</div>` : ''}</td>
+            <td>${esc(autoreDi(r))}</td>
+            <td>${(r.grado_tornata || r.grado_autore) ? L.badgeGrado(r.grado_tornata || r.grado_autore) : '—'}</td>
+            <td>${r.data_presentazione ? fmtData(r.data_presentazione) : '—'}</td>
             <td>${r.file_path ? `<button class="btn ghost small" data-dl="${esc(r.id)}" title="${esc(r.file_nome || '')}">Scarica</button>` : '<span class="muted">—</span>'}</td>
-            <td class="act">${L.wa && r.fratello_id && APERTI.includes(r.stato) ? L.wa.fratello(r.fratello_id, `Carissimo Fratello, ti ricordo il lavoro «${r.titolo}»${r.data_consegna_prevista ? ', da consegnare entro il ' + fmtData(r.data_consegna_prevista) : ''}${t ? ', per la tornata del ' + fmtData(t.data) : ''}. Un triplice fraterno abbraccio.`, '') : ''} ${puoGestire() ? `<button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`;
-        }).join('')}</tbody></table></div>`;
+            <td class="act">${puoGestire() ? `<button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
       $$('[data-mod]', c).forEach((b) => b.addEventListener('click', () => apriLavoro(lv.righe.find((x) => x.id === b.dataset.mod)).catch((e) => toast(messaggioErrore(e), 'bad'))));
       $$('[data-dl]', c).forEach((b) => b.addEventListener('click', async () => {
         b.disabled = true;
@@ -285,20 +254,17 @@
   L.schedaExtra.push(async (v, fratelloId) => {
     if (!puoGestire()) return;
     const righe = chk(await state.sb.from('lavori').select('*').eq('fratello_id', fratelloId).order('created_at', { ascending: false }));
-    const ids = Array.from(new Set(righe.map((r) => r.tornata_id).filter(Boolean)));
-    const tor = {};
-    if (ids.length) chk(await state.sb.from('tornate').select('id,data,tipo,grado').in('id', ids)).forEach((t) => { tor[t.id] = t; });
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0;flex:1">Fascicolo dei lavori e delle tavole <small>${righe.length}</small></h2>
-        <button class="btn gold small" data-nuovo>${IC.plus} Aggiungi lavoro</button></div>
-      ${righe.length ? `<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Lavoro</th><th>Tornata</th><th>Stato</th><th>File</th><th></th></tr></thead><tbody>${righe.map((r) => `<tr>
-        <td><b>${esc(r.titolo)}</b><div class="hint">${esc(TIPI[r.tipo] || r.tipo)}${r.tema ? ' · ' + esc(r.tema) : ''}</div></td>
-        <td>${tor[r.tornata_id] ? esc(etichettaTornata(tor[r.tornata_id])) : '<span class="muted">da stabilire</span>'}</td>
-        <td>${L.badgeStato(r.stato, STATI[r.stato])}${r.data_presentazione ? `<div class="hint">${fmtData(r.data_presentazione)}</div>` : ''}</td>
+    card.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0;flex:1">Tavole <small>${righe.length}</small></h2>
+        <button class="btn gold small" data-nuovo>${IC.plus} Aggiungi tavola</button></div>
+      ${righe.length ? `<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Tavola</th><th>Grado</th><th>Data</th><th>File</th><th></th></tr></thead><tbody>${righe.map((r) => `<tr>
+        <td><b>${esc(r.titolo)}</b>${r.tema ? `<div class="hint">${esc(r.tema)}</div>` : ''}</td>
+        <td>${(r.grado_tornata || r.grado_autore) ? L.badgeGrado(r.grado_tornata || r.grado_autore) : '—'}</td>
+        <td>${r.data_presentazione ? fmtData(r.data_presentazione) : '—'}</td>
         <td>${r.file_path ? `<button class="btn ghost small" data-dl="${esc(r.id)}" title="${esc(r.file_nome || '')}">Scarica</button>` : '<span class="muted">—</span>'}</td>
         <td class="act"><button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button></td></tr>`).join('')}</tbody></table></div>`
-        : `<div class="empty">${IC.inbox}<div>Nessun lavoro registrato per questo Fratello.</div></div>`}
+        : `<div class="empty">${IC.inbox}<div>Nessuna tavola registrata per questo Fratello.</div></div>`}
       <div style="margin-top:10px"><a href="#/lavori">Vai all’elenco completo</a></div>`;
     v.appendChild(card);
     $('[data-nuovo]', card).onclick = () => apriLavoro(null, { fratello_id: fratelloId }).catch((e) => toast(messaggioErrore(e), 'bad'));

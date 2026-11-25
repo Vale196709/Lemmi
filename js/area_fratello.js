@@ -1,5 +1,6 @@
 /* Lemmi - Area del Fratello: con il profilo "fratello" ciascuno vede i propri dati
- * (anagrafica, storia, tavole, quote) e le prossime tornate del suo grado. Sola lettura.
+ * (anagrafica, storia, tavole, quote) e le prossime tornate del suo grado. Sola lettura, tranne il caricamento
+ * delle proprie tavole (script sql/lemmi_aggiornamento_48.sql).
  * Tavole degli altri: il Maestro le vede tutte, il Compagno quelle di Compagno e Apprendista, l'Apprendista solo le proprie.
  * Le regole di sicurezza del database (lemmi_aggiornamento_35.sql) garantiscono che non possa leggere altro. */
 (function () {
@@ -12,6 +13,83 @@
   const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : '');
   const BADGE = { Pagato: 'ok', Esente: 'gray', Parziale: 'warn', Scaduto: 'bad', 'Da pagare': 'info' };
   const TIPO_T = { ordinaria: 'Tornata rituale', informale: 'Conferenza via web', straordinaria: 'Tornata straordinaria', agape: 'Agape' };
+  const $ = (sel, el) => (el || document).querySelector(sel);
+  const MAX_BYTE = 10 * 1024 * 1024;
+  const MIME = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', odt: 'application/vnd.oasis.opendocument.text', txt: 'text/plain' };
+  const estensione = (n) => { const m = /\.([A-Za-z0-9]+)$/.exec(n || ''); return m ? m[1].toLowerCase() : ''; };
+  const nomeSicuro = (n) => String(n || 'file').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(-80) || 'file';
+  const nuovoId = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+
+  // Finestra per una tavola: nuova (lavoro = null) oppure modifica di una propria (il file si cambia solo se ne scegli un altro)
+  function tavolaModulo(fr, lavoro, gradiOk, dopo) {
+    const nuova = !lavoro;
+    const gradoIniz = (lavoro && (lavoro.grado_tornata || lavoro.grado_autore)) || gradiOk[gradiOk.length - 1];
+    const ov = document.createElement('div');
+    ov.className = 'modal-ov';
+    ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${nuova ? 'Carica una tavola' : 'Modifica la tavola'}">
+      <div class="modal-h"><h2 style="margin:0">${nuova ? 'Carica una tavola' : 'Modifica la tavola'}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
+      <div class="modal-b"><form novalidate><div class="form-grid">
+        <div class="f s12"><label for="tv-titolo">Titolo <span class="req">*</span></label><input id="tv-titolo" name="titolo" maxlength="200" autocomplete="off" value="${esc(lavoro ? lavoro.titolo : '')}"></div>
+        <div class="f s12"><label for="tv-tema">Tema o argomento (facoltativo)</label><input id="tv-tema" name="tema" maxlength="300" autocomplete="off" value="${esc((lavoro && lavoro.tema) || '')}"></div>
+        <div class="f s6"><label for="tv-grado">Grado della tavola <span class="req">*</span></label><select id="tv-grado" name="grado">${gradiOk.map((g) => `<option value="${g}" ${g === gradoIniz ? 'selected' : ''}>${esc(cap(g))}</option>`).join('')}</select></div>
+        <div class="f s6"><label for="tv-data">Data</label><input id="tv-data" name="data" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off" value="${esc(L.isoToIt((lavoro && lavoro.data_presentazione) || oggi()))}"></div>
+        <div class="f s12"><label for="tv-file">${nuova ? 'File' : 'Sostituisci il file (facoltativo)'} <span class="hint">PDF, Word, ODT o testo, fino a 10 MB</span></label>
+          ${!nuova && lavoro.file_nome ? `<div class="hint" style="margin-bottom:6px">File attuale: <b>${esc(lavoro.file_nome)}</b></div>` : ''}
+          <input id="tv-file" name="file" type="file" accept=".pdf,.doc,.docx,.odt,.txt"></div></div>
+        <div class="err" data-err style="margin-top:10px"></div>
+        <div class="actions" style="margin-top:14px"><button class="btn gold" type="submit">${nuova ? 'Carica' : 'Salva'}</button></div></form></div></div>`;
+    document.body.appendChild(ov);
+    L.mascheraDate(ov);
+    const tasto = (e) => { if (e.key === 'Escape') chiudi(); };
+    const chiudi = () => { document.removeEventListener('keydown', tasto); ov.remove(); };
+    document.addEventListener('keydown', tasto);
+    $('[data-x]', ov).onclick = chiudi;
+    ov.addEventListener('mousedown', (e) => { if (e.target === ov) chiudi(); });
+    const errore = (m) => { $('[data-err]', ov).textContent = m; };
+    $('form', ov).addEventListener('submit', async (ev) => {
+      ev.preventDefault(); errore('');
+      const f = ev.target, b = $('button[type=submit]', f);
+      const titolo = f.elements.titolo.value.trim();
+      if (!titolo) return errore('Scrivi il titolo della tavola.');
+      const data = f.elements.data.value.trim() ? L.itToIso(f.elements.data.value.trim()) : null;
+      if (data === 'ERR') return errore('Scrivi la data nel formato gg/mm/aaaa.');
+      const file = f.elements.file.files && f.elements.file.files[0];
+      if (nuova && !file) return errore('Scegli il file da caricare.');
+      let ext = '';
+      if (file) {
+        ext = estensione(file.name);
+        if (!MIME[ext]) return errore('Formato non ammesso: usa PDF, Word (doc, docx), ODT o testo.');
+        if (file.size > MAX_BYTE) return errore('Il file supera i 10 MB.');
+      }
+      b.disabled = true; b.textContent = 'Salvataggio…';
+      let path = null;
+      try {
+        let pr = null;
+        if (file) {
+          pr = await L.zipFile.prepara(file);
+          path = L.zipFile.suffisso('fratelli/' + fr.id + '/' + nuovoId() + '/' + Date.now() + '_' + nomeSicuro(file.name), pr.zippato);
+          const su = await state.sb.storage.from('tavole').upload(path, pr.blob, { contentType: pr.zippato ? 'application/zip' : MIME[ext], upsert: false });
+          if (su.error) throw su.error;
+        }
+        const rr = chk(await state.sb.rpc('fratello_salva_tavola', {
+          p_id: lavoro ? lavoro.id : null, p_titolo: titolo, p_tema: f.elements.tema.value.trim() || null, p_grado: f.elements.grado.value, p_data: data,
+          p_file_path: path, p_file_nome: file ? file.name : null, p_file_tipo: file ? MIME[ext] : null, p_file_dimensione: file ? file.size : null,
+        }));
+        const vecchio = rr && rr.vecchio_file;
+        if (vecchio) { try { await state.sb.storage.from('tavole').remove([vecchio]); } catch (e2) { /* il file sostituito resta nell'archivio */ } }
+        chiudi(); L.toast(nuova ? 'Tavola caricata.' : 'Tavola aggiornata.', 'ok'); dopo();
+      } catch (e) {
+        if (path) { try { await state.sb.storage.from('tavole').remove([path]); } catch (e3) { /* niente file orfani, se possibile */ } }
+        const t = String((e && e.message) || e);
+        errore(/bucket not found/i.test(t) ? 'L’archivio delle tavole non è pronto: avvisa l’amministratore.'
+          : /row-level security|not authorized|unauthorized|violates|does not exist|could not find the function/i.test(t) ? 'Non è possibile salvare: l’accesso potrebbe non essere collegato alla tua scheda, oppure manca lo script 48 su Supabase. Avvisa l’amministratore.'
+          : t);
+        b.disabled = false; b.textContent = nuova ? 'Carica' : 'Salva';
+      }
+    });
+    const primo = $('#tv-titolo', ov); if (primo) primo.focus();
+  }
+
   const leggi = async (q) => { try { return chk(await q); } catch (e) { return []; } };
 
   L.vistaFratello = async function (v) {
@@ -28,7 +106,8 @@
       leggi(state.sb.rpc('mie_quote')),
       leggi(state.sb.from('tornate').select('*').gte('data', oggi()).neq('stato', 'annullata').order('data').limit(20)),
     ]);
-    const mie = lav.filter((l) => l.mia), altre = lav.filter((l) => !l.mia);
+    const proprie = await leggi(state.sb.from('lavori').select('id,titolo,tema,stato,file_path,file_nome,data_presentazione,grado_tornata,grado_autore').eq('fratello_id', fr.id).order('created_at', { ascending: false }));
+    const mie = proprie.length ? proprie : lav.filter((l) => l.mia), altre = lav.filter((l) => !l.mia);
     const mioGrado = pass.reduce((m, p) => Math.max(m, GRADI.indexOf(String(p.grado))), 0);
     const mioGradoNome = cap(GRADI[mioGrado]);
     const linkFile = (l) => (l.file_path ? ` <a href="javascript:void(0)" class="scarica-tavola" data-p="${esc(l.file_path)}" data-n="${esc(l.file_nome || 'tavola')}" title="Scarica il file">⬇ file</a>` : '');
@@ -66,19 +145,35 @@
             <p class="hint" style="margin-top:8px">Per versamenti o chiarimenti rivolgiti al Tesoriere.</p>` : '<div class="empty"><div>Nessuna quota registrata.</div></div>'}</div>
         <div class="card"><h2>La mia storia</h2>
           ${storia.length ? `<div class="timeline tl-v">${storia.map((s) => L.vocetl({ tipo: s.tipo, etichetta: s.d, titolo: s.t, dettaglio: s.n })).join('')}</div>` : '<div class="empty"><div>Nessun dato registrato.</div></div>'}</div>
-        <div class="card"><h2>Le mie tavole</h2>
-          ${mie.length ? `<div class="table-wrap"><table><tbody>${mie.map((l) => `<tr><td><b>${esc(l.titolo)}</b>${linkFile(l)}<div class="hint">${esc(cap(l.tipo))} · ${l.data_presentazione ? 'presentata il ' + fmtData(l.data_presentazione) : l.data_consegna_prevista ? 'consegna entro il ' + fmtData(l.data_consegna_prevista) : 'senza data'}</div></td>
-            <td><span class="badge ${l.stato === 'presentato' ? 'ok' : 'gray'}">${esc(cap(String(l.stato).replace('_', ' ')))}</span></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div>Nessuna tavola registrata.</div></div>'}</div>
+        <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Le mie tavole</h2>
+            <button class="btn gold small" type="button" id="tv-carica">+ Carica una tavola</button></div>
+          ${mie.length ? `<div class="table-wrap" style="margin-top:10px"><table><tbody>${mie.map((l) => `<tr data-riga="${esc(l.id || '')}"><td><b>${esc(l.titolo)}</b>${linkFile(l)}
+              <div class="hint">${(l.grado_tornata || l.grado_autore) ? L.badgeGrado(l.grado_tornata || l.grado_autore) + ' · ' : ''}${l.data_presentazione ? fmtData(l.data_presentazione) : 'senza data'}${l.tema ? ' · ' + esc(l.tema) : ''}</div></td>
+            <td class="act">${l.id ? `<button class="btn ghost small" type="button" data-tv="${esc(l.id)}">Modifica</button> <button class="btn ghost small" type="button" data-tv-del="${esc(l.id)}">Elimina</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div>Nessuna tavola. Con «Carica una tavola» puoi aggiungere la tua.</div></div>'}
+          <p class="hint" style="margin-top:8px">Formati ammessi: PDF, Word, ODT o testo, fino a 10 MB. Il grado che scegli decide chi può leggere la tavola.</p></div>
       </div>
       ${altre.length ? `<div class="card"><h2>Tavole della Loggia</h2><p class="hint" style="margin-bottom:8px">${mioGradoNome === 'Maestro' ? 'Come Maestro vedi tutte le tavole.' : 'Vedi le tavole in grado di ' + (mioGradoNome === 'Compagno' ? 'Compagno e di Apprendista' : 'Apprendista') + '.'}</p>
-        <div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Stato</th></tr></thead><tbody>${altre.map((l) => `<tr><td><b>${esc(l.titolo)}</b>${linkFile(l)}${l.tema ? `<div class="hint">${esc(l.tema)}</div>` : ''}</td>
-          <td>${esc(l.autore)}</td><td>${l.grado_tornata ? esc(cap(l.grado_tornata)) : '—'}</td>
-          <td><span class="badge ${l.stato === 'presentato' ? 'ok' : 'gray'}">${esc(cap(String(l.stato).replace('_', ' ')))}</span><div class="hint">${l.data_presentazione ? fmtData(l.data_presentazione) : l.data_consegna_prevista ? 'consegna ' + fmtData(l.data_consegna_prevista) : ''}</div></td></tr>`).join('')}</tbody></table></div></div>` : ''}
+        <div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Data</th></tr></thead><tbody>${altre.map((l) => `<tr><td><b>${esc(l.titolo)}</b>${linkFile(l)}${l.tema ? `<div class="hint">${esc(l.tema)}</div>` : ''}</td>
+          <td>${esc(l.autore)}</td><td>${l.grado_tornata ? L.badgeGrado(l.grado_tornata) : '—'}</td>
+          <td>${l.data_presentazione ? fmtData(l.data_presentazione) : '—'}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
       <div class="card"><h2>I miei dati</h2><div class="kv">
         ${kv('Data di nascita', fr.data_nascita ? fmtData(fr.data_nascita) : '')}${kv('Luogo di nascita', [fr.luogo_nascita, fr.provincia_nascita ? '(' + fr.provincia_nascita + ')' : ''].filter(Boolean).join(' '))}
         ${kv('Indirizzo', [fr.indirizzo, fr.cap, fr.citta, fr.provincia ? '(' + fr.provincia + ')' : ''].filter(Boolean).join(' '))}
         ${kv('Professione', fr.professione)}${kv('Cellulare', fr.cellulare)}${kv('E-mail', fr.email)}
       </div><p class="hint" style="margin-top:12px">Se un dato è sbagliato o manca, comunicalo al Segretario. Le notifiche sul telefono si attivano da «Il mio accesso».</p></div>`;
+    const gradiOk = GRADI.slice(0, mioGrado + 1);
+    const carica = $('#tv-carica', v); if (carica) carica.onclick = () => tavolaModulo(fr, null, gradiOk, () => L.route());
+    v.querySelectorAll('[data-tv]').forEach((b) => b.addEventListener('click', () => { const l = mie.find((x) => x.id === b.dataset.tv); if (l) tavolaModulo(fr, l, gradiOk, () => L.route()); }));
+    v.querySelectorAll('[data-tv-del]').forEach((b) => b.addEventListener('click', () => {
+      const l = mie.find((x) => x.id === b.dataset.tvDel); if (!l) return;
+      L.eliminaConAnnulla({
+        domanda: 'Eliminare la tavola «' + l.titolo + '» e il suo file?', messaggio: 'Tavola eliminata', el: b.closest('tr'),
+        esegui: async () => {
+          const path = chk(await state.sb.rpc('fratello_elimina_tavola', { p_id: l.id }));
+          if (path) { try { await state.sb.storage.from('tavole').remove([path]); } catch (e) { /* file rimasto nell'archivio */ } }
+        }, dopo: () => L.route(),
+      });
+    }));
     v.querySelectorAll('.scarica-tavola').forEach((a) => a.addEventListener('click', async () => {
       try {
         await L.zipFile.scarica('tavole', a.dataset.p, a.dataset.n);
