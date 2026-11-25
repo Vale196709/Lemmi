@@ -110,10 +110,10 @@
       leggi(state.sb.from('tornate').select('*').gte('data', oggi()).neq('stato', 'annullata').order('data').limit(20)),
     ]);
     const proprie = await leggi(state.sb.from('lavori').select('id,titolo,tema,stato,file_path,file_nome,data_presentazione,grado_tornata,grado_autore,data_discussione').eq('fratello_id', fr.id).order('created_at', { ascending: false }));
-    const mie = proprie.length ? proprie : lav.filter((l) => l.mia), altre = lav.filter((l) => !l.mia);
+    const mie = proprie.length ? proprie : lav.filter((l) => l.mia), altre = lav;   // l'elenco della Loggia comprende anche le proprie (segnate «tua»)
     const mioGrado = pass.reduce((m, p) => Math.max(m, GRADI.indexOf(String(p.grado))), 0);
     const mioGradoNome = cap(GRADI[mioGrado]);
-    const linkFile = (l) => (l.file_path ? ` <a href="javascript:void(0)" class="scarica-tavola" data-p="${esc(l.file_path)}" data-n="${esc(l.file_nome || 'tavola')}" title="Scarica il file">⬇ file</a>` : '');
+    const linkFile = (l) => (l.file_path ? ` <a href="javascript:void(0)" class="scarica-tavola" data-p="${esc(l.file_path)}" data-n="${esc(l.file_nome || 'tavola')}" title="Scarica il file">⬇ scarica</a>` : '');
     const tornate = tor.filter((t) => !pass.length || !t.grado || GRADI.indexOf(String(t.grado)) <= mioGrado).slice(0, 5);   // grado non registrato: si mostrano tutte
     const aperte = quote.filter((q) => Number(q.residuo) > 0 && q.stato !== 'Esente');
     const daVersare = aperte.reduce((a, q) => a + Number(q.residuo), 0);
@@ -150,15 +150,16 @@
           ${storia.length ? `<div class="timeline tl-v">${storia.map((s) => L.vocetl({ tipo: s.tipo, etichetta: s.d, titolo: s.t, dettaglio: s.n })).join('')}</div>` : '<div class="empty"><div>Nessun dato registrato.</div></div>'}</div>
         <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Le mie tavole</h2>
             <button class="btn gold small" type="button" id="tv-carica">+ Carica una tavola</button></div>
-          ${mie.length ? `<div class="table-wrap" style="margin-top:10px"><table><tbody>${mie.map((l) => `<tr data-riga="${esc(l.id || '')}"><td><b>${esc(l.titolo)}</b>${linkFile(l)}
+          ${mie.length ? `<div class="table-wrap tv-mie" style="margin-top:10px"><table><tbody>${mie.map((l) => `<tr data-riga="${esc(l.id || '')}"><td><b>${esc(l.titolo)}</b>${linkFile(l)}
               <div class="hint">${(l.grado_tornata || l.grado_autore) ? L.badgeGrado(l.grado_tornata || l.grado_autore) + ' · ' : ''}${l.data_presentazione ? fmtData(l.data_presentazione) : 'senza data'}${l.data_discussione ? ' · discussa il ' + fmtData(l.data_discussione) : ''}${l.tema ? ' · ' + esc(l.tema) : ''}</div></td>
             <td class="act">${l.id ? `<button class="btn ghost small" type="button" data-tv="${esc(l.id)}">Modifica</button> <button class="btn ghost small" type="button" data-tv-del="${esc(l.id)}">Elimina</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div>Nessuna tavola. Con «Carica una tavola» puoi aggiungere la tua.</div></div>'}
           <p class="hint" style="margin-top:8px">Formati ammessi: PDF, Word, ODT o testo, fino a 10 MB. Il grado che scegli decide chi può leggere la tavola.</p></div>
       </div>
-      ${altre.length ? `<div class="card"><h2>Tavole della Loggia</h2><p class="hint" style="margin-bottom:8px">${mioGradoNome === 'Maestro' ? 'Come Maestro vedi tutte le tavole.' : 'Vedi le tavole in grado di ' + (mioGradoNome === 'Compagno' ? 'Compagno e di Apprendista' : 'Apprendista') + '.'}</p>
+      <div class="card"><h2>Tavole della Loggia</h2><p class="hint" style="margin-bottom:8px">${mioGradoNome === 'Maestro' ? 'Come Maestro vedi tutte le tavole.' : mioGradoNome === 'Compagno' ? 'Vedi le tavole in grado di Compagno e di Apprendista, oltre alle tue.' : 'Come Apprendista vedi le tue tavole; quelle degli altri Fratelli le vedrai salendo di grado.'}</p>
+        ${altre.length ? `
         <div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Data</th><th>Discussa il</th></tr></thead><tbody>${altre.map((l) => `<tr><td><b>${esc(l.titolo)}</b>${linkFile(l)}${l.tema ? `<div class="hint">${esc(l.tema)}</div>` : ''}</td>
-          <td>${esc(l.autore)}</td><td>${l.grado_tornata ? L.badgeGrado(l.grado_tornata) : '—'}</td>
-          <td>${l.data_presentazione ? fmtData(l.data_presentazione) : '—'}</td><td>${l.data_discussione ? fmtData(l.data_discussione) : '—'}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
+          <td>${esc(l.autore)}${l.mia ? ' <span class="badge info">tua</span>' : ''}</td><td>${l.grado_tornata ? L.badgeGrado(l.grado_tornata) : '—'}</td>
+          <td>${l.data_presentazione ? fmtData(l.data_presentazione) : '—'}</td><td>${l.data_discussione ? fmtData(l.data_discussione) : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div>Nessuna tavola disponibile.</div></div>'}</div>
       <div class="card"><h2>I miei dati</h2><div class="kv">
         ${kv('Data di nascita', fr.data_nascita ? fmtData(fr.data_nascita) : '')}${kv('Luogo di nascita', [fr.luogo_nascita, fr.provincia_nascita ? '(' + fr.provincia_nascita + ')' : ''].filter(Boolean).join(' '))}
         ${kv('Indirizzo', [fr.indirizzo, fr.cap, fr.citta, fr.provincia ? '(' + fr.provincia + ')' : ''].filter(Boolean).join(' '))}

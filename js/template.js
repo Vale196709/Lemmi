@@ -523,6 +523,19 @@
     if (rec.testo) { vb.g[rec.grado].testo = rec.testo; vb.g[rec.grado].modificato = true; }
     location.hash = '#/template/verbale/' + rec.grado;
   };
+  // usata dalla modalità «Tornata»: porta nel generatore data, grado, presenze, ospiti e Tronco già raccolti
+  L.preparaVerbale = async function (o) {
+    if (!vb.init) await inizializza();
+    const g = GRADI[o.grado] ? o.grado : 'apprendista', c = vb.c;
+    const dataIt = isoToIt(o.data);
+    if (c.data !== dataIt) { c.data = dataIt; c.tocco = {}; await applicaData(true); }
+    const x = vb.g[g] || (vb.g[g] = { tav: '', extra: '', testo: '', modificato: false, tocco: false });
+    x.pres = Object.assign({}, o.pres || {});
+    if (o.ospiti !== undefined) { c.ospiti = o.ospiti || ''; c.tocco.ospiti = true; }
+    if (o.tronco) { c.tronco = o.tronco; c.tocco.tronco = true; }
+    if (!x.modificato) x.testo = '';   // si ricompone con i dati nuovi
+    location.hash = '#/template/verbale/' + g;
+  };
   L.eleggibiliPerGrado = async function () { if (!vb.init) await inizializza(); return { attivi: vb.attivi, gradoFr, GRADO_N }; };
 
   async function scaricaDocx(g, testo, err) {

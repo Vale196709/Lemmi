@@ -277,7 +277,7 @@
       const pross = lista.filter((t) => t.data >= oggiIso && t.stato !== 'annullata').sort((a, b) => (a.data + hhmm(a.ora)).localeCompare(b.data + hhmm(b.ora)))[0] || null;
       const box = $('#c-pross');
       box.innerHTML = pross ? `<div class="notice drillable" id="c-vai" role="button" tabindex="0" style="margin:0 0 14px;background:var(--gold-soft);color:var(--gold-ink)">
-          <b>Prossima tornata${pross.data === oggiIso ? ' (oggi)' : ''}:</b> ${giornoSettimana(pross.data)} ${fmtData(pross.data)}${hhmm(pross.ora) ? ' ore ' + esc(hhmm(pross.ora)) : ''} · ${esc(TIPI[pross.tipo] || '')}${pross.tipo !== 'informale' && pross.grado ? ' · ' + esc(GRADI[pross.grado]) : ''} · <u>vai</u></div>` : '';
+          <b>Prossima tornata${pross.data === oggiIso ? ' (oggi)' : ''}:</b> ${giornoSettimana(pross.data)} ${fmtData(pross.data)}${hhmm(pross.ora) ? ' ore ' + esc(hhmm(pross.ora)) : ''} · ${esc(TIPI[pross.tipo] || '')}${pross.tipo !== 'informale' && pross.grado ? ' · ' + esc(GRADI[pross.grado]) : ''} · <u>vai</u>${puoScrivere() && pross.tipo !== 'agape' ? ` · <a href="#/tornata/${esc(pross.id)}" id="c-serata" style="color:inherit;font-weight:700">apri la serata</a>` : ''}</div>` : '';
       $('#c-conta').textContent = lista.length + (lista.length === 1 ? ' tornata' : ' tornate');
       const c = $('#c-corpo');
       const FE = Object.assign({}, festivita(st.anno - 1), festivita(st.anno), festivita(st.anno + 1));
@@ -295,7 +295,7 @@
           const extra = [t.relatore ? 'Relatore: ' + esc(t.relatore) : '', ...(st.lavori[t.id] || []).map((x) => 'Lavoro: ' + esc(x)), t.ordine_del_giorno ? esc(t.ordine_del_giorno).replace(/\n/g, '<br>') : ''].filter(Boolean).join('<br>');
           const passata = t.data < oggiIso, fe = FE[t.data];
           return `<tr id="t-${esc(t.id)}" class="${fe ? 'festa-riga' : ''}${pross && t.id === pross.id ? ' prossima-riga' : ''}" style="${t.stato === 'annullata' ? 'opacity:.55;' : ''}">
-            <td data-sort="${t.data} ${hhmm(t.ora)}"><b ${fe ? 'class="festa"' : ''}>${fmtData(t.data)}</b><br><span class="${fe ? 'festa' : 'muted'}">${giornoSettimana(t.data)}${hhmm(t.ora) ? ' · ' + esc(hhmm(t.ora)) : ''}</span>${fe ? `<br><span class="badge bad">Festa: ${esc(fe)}</span>` : ''}${t.data === oggiIso ? ' <span class="badge ok">oggi</span>' : ''}</td>
+            <td data-sort="${t.data} ${hhmm(t.ora)}">${puoScrivere() && t.tipo !== 'agape' ? `<a href="#/tornata/${esc(t.id)}" class="tn-link" title="Apri la serata (modalità Tornata)">` : ''}<b ${fe ? 'class="festa"' : ''}>${fmtData(t.data)}</b>${puoScrivere() && t.tipo !== 'agape' ? '</a>' : ''}<br><span class="${fe ? 'festa' : 'muted'}">${giornoSettimana(t.data)}${hhmm(t.ora) ? ' · ' + esc(hhmm(t.ora)) : ''}</span>${fe ? `<br><span class="badge bad">Festa: ${esc(fe)}</span>` : ''}${t.data === oggiIso ? ' <span class="badge ok">oggi</span>' : ''}</td>
             <td><span class="badge ${TIPO_BADGE[t.tipo]}">${esc(TIPI[t.tipo])}</span></td>
             <td>${t.tipo === 'informale' ? '—' : (t.grado ? esc(GRADI[t.grado]) : '<span class="muted">da stabilire</span>')}</td>
             <td>${dove}</td>
@@ -307,7 +307,7 @@
       $$('[data-agape]', c).forEach((b) => b.addEventListener('click', () => L.agapi.apri(st.righe.find((x) => x.id === b.dataset.agape))));
       const vai = () => { const r = pross && document.getElementById('t-' + pross.id); if (r && r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' }); };
       if (pross) {
-        $('#c-vai').addEventListener('click', vai);
+        $('#c-vai').addEventListener('click', (e) => { if (e.target.closest('#c-serata')) return; vai(); });
         $('#c-vai').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vai(); } });
         if (scorri) { scorri = false; setTimeout(vai, 60); }
       }
