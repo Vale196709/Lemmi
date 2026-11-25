@@ -30,6 +30,14 @@
       return;
     }
     const fratelli = await L.caricaFratelli();
+    // e-mail dell'anagrafica, per precompilare «Nuovo utente» (la seconda e-mail esiste dopo lo script 49)
+    const mailFr = {};
+    let haSeconda = true;
+    try {
+      let r = await state.sb.from('fratelli').select('id,email,email_2');
+      if (r.error) { haSeconda = false; r = await state.sb.from('fratelli').select('id,email'); }
+      (r.data || []).forEach((f) => { mailFr[f.id] = [f.email, f.email_2].map((x) => String(x || '').trim()).filter(Boolean); });
+    } catch (_) { /* senza e-mail si compila a mano */ }
 
     const conta = {};
     righe.forEach((r) => { conta[r.ruolo] = (conta[r.ruolo] || 0) + 1; });
@@ -42,10 +50,10 @@
         <p class="muted" style="margin:0 0 14px">Crea l’accesso a Lemmi: l’utente entra con la sua e-mail e la password temporanea che gli comunichi, poi può cambiarla dalla pagina Loggia.</p>
         <form id="nu-form" autocomplete="off">
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
-            <div><label for="nu-email">E-mail</label><input id="nu-email" type="email" required placeholder="nome@esempio.it"></div>
+            <div id="nu-fr-box"><label for="nu-fr">Fratello dell’anagrafica</label><select id="nu-fr"><option value="">— nessuno / dall’e-mail, se coincide —</option>${fratelli.map((f) => `<option value="${esc(f.id)}">${esc(f.cognome)} ${esc(f.nome)}</option>`).join('')}</select></div>
+            <div><label for="nu-email">E-mail</label><input id="nu-email" type="email" required placeholder="nome@esempio.it"><div id="nu-mail-sug" class="hint" style="margin-top:6px"></div></div>
             <div><label for="nu-nome">Nome da mostrare</label><input id="nu-nome" type="text" required placeholder="es. Mario Rossi"></div>
             <div><label for="nu-ruolo">Profilo</label><select id="nu-ruolo">${Object.keys(PROFILI).map((k) => `<option value="${k}" ${k === 'segretario' ? 'selected' : ''}>${esc(PROFILI[k])}</option>`).join('')}</select></div>
-            <div id="nu-fr-box"><label for="nu-fr">Fratello dell’anagrafica</label><select id="nu-fr"><option value="">— dall’e-mail, se coincide —</option>${fratelli.map((f) => `<option value="${esc(f.id)}">${esc(f.cognome)} ${esc(f.nome)}</option>`).join('')}</select></div>
             <div><label for="nu-pw">Password temporanea</label><input id="nu-pw" type="text" required minlength="8" autocomplete="off"></div>
           </div>
           <div class="actions" style="margin-top:14px"><button class="btn" type="submit" id="nu-ok">Crea utente</button>
@@ -90,14 +98,57 @@
       return Array.from(r, (n) => set[n % set.length]).join('');
     };
     const box = $('#nu-box', v), form = $('#nu-form', v), esito = $('#nu-esito', v);
-    $('#b-nu', v).addEventListener('click', () => { box.hidden = !box.hidden; if (!box.hidden) { $('#nu-pw', v).value = genPw(); $('#nu-email', v).focus(); } });
-    $('#nu-ann', v).addEventListener('click', () => { box.hidden = true; esito.innerHTML = ''; form.reset(); });
+    $('#b-nu', v).addEventListener('click', () => { box.hidden = !box.hidden; if (!box.hidden) { $('#nu-pw', v).value = genPw(); $('#nu-fr', v).focus(); } });
+    // precompilazione dal Fratello scelto: e-mail e nome restano modificabili; si sovrascrivono solo se non toccati a mano
+    const inMail = $('#nu-email', v), inNome = $('#nu-nome', v), selRuolo = $('#nu-ruolo', v), selFr = $('#nu-fr', v), sug = $('#nu-mail-sug', v);
+    let autoMail = '', autoNome = '', ruoloToccato = false;
+    selRuolo.addEventListener('change', () => { ruoloToccato = true; });
+    const mostraSug = () => {
+      const lista = mailFr[selFr.value] || [];
+      if (!selFr.value) { sug.innerHTML = ''; return; }
+      if (!lista.length) { sug.innerHTML = 'Nessuna e-mail nell’anagrafica di questo Fratello: scrivila qui.'; return; }
+      sug.innerHTML = lista.length > 1
+        ? '<div>Dall’anagrafica, scegli quale usare:</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">' + lista.map((m) => { const on = m === inMail.value.trim(); return `<button type="button" class="btn ghost small nu-mail-pick" data-m="${esc(m)}" aria-pressed="${on}" style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap${on ? ';border-color:var(--gold);background:var(--gold-soft);color:var(--gold-ink)' : ''}">${esc(m)}</button>`; }).join('') + '</div>'
+        : 'Dall’anagrafica del Fratello (puoi cambiarla).';
+      $$('.nu-mail-pick', sug).forEach((b) => b.addEventListener('click', () => { inMail.value = autoMail = b.dataset.m; mostraSug(); }));
+    };
+    selFr.addEventListener('change', () => {
+      const f = fratelli.find((x) => String(x.id) === selFr.value);
+      const lista = mailFr[selFr.value] || [];
+      if (!inMail.value.trim() || inMail.value.trim() === autoMail) inMail.value = autoMail = (f && lista[0]) || '';
+      const nome = f ? (f.nome + ' ' + f.cognome).trim() : '';
+      if (!inNome.value.trim() || inNome.value.trim() === autoNome) inNome.value = autoNome = nome;
+      if (f && !ruoloToccato) selRuolo.value = 'fratello';
+      mostraSug();
+    });
+    inMail.addEventListener('input', mostraSug);
+    const azzera = () => { form.reset(); autoMail = autoNome = ''; ruoloToccato = false; sug.innerHTML = ''; };
+    $('#nu-ann', v).addEventListener('click', () => { box.hidden = true; esito.innerHTML = ''; azzera(); });
     $('#nu-gen', v).addEventListener('click', () => { $('#nu-pw', v).value = genPw(); });
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const body = { email: $('#nu-email', v).value.trim(), nome: $('#nu-nome', v).value.trim(), ruolo: $('#nu-ruolo', v).value, password: $('#nu-pw', v).value, fratello_id: $('#nu-fr', v).value || null };
       if (body.ruolo === 'fratello' && !body.fratello_id && !fratelli.length) { esito.innerHTML = '<div class="notice bad" style="margin-top:14px">Per il profilo Fratello serve il collegamento a un Fratello dell’anagrafica.</div>'; return; }
-      if (!window.confirm('Creare l’utente ' + body.email + ' con il profilo «' + PROFILI[body.ruolo] + '»?')) return;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) { esito.innerHTML = '<div class="notice bad" style="margin-top:14px">E-mail non valida.</div>'; return; }
+      // e-mail diversa da quelle dell'anagrafica: chiede se salvarla anche nella scheda del Fratello
+      let aggiornaAnag = null;
+      const giaInAnag = mailFr[body.fratello_id] || [];
+      if (body.fratello_id && !giaInAnag.some((m) => m.toLowerCase() === body.email.toLowerCase())) {
+        const f = fratelli.find((x) => String(x.id) === String(body.fratello_id));
+        const chi = f ? f.cognome + ' ' + f.nome : 'il Fratello';
+        // dove va: nella prima e-mail se vuota, altrimenti nella seconda; se sono già piene (o manca la colonna) sostituisce l'ultima
+        const r0 = await state.sb.from('fratelli').select('email' + (haSeconda ? ',email_2' : '')).eq('id', body.fratello_id).maybeSingle();
+        const ora = r0.data || { email: giaInAnag[0] || '', email_2: giaInAnag[1] || '' };   // se la lettura non riesce, usa quanto già noto
+        const campo = !String(ora.email || '').trim() ? 'email' : (haSeconda ? 'email_2' : 'email');
+        const sostituita = String(ora[campo] || '').trim();
+        if (await window.LemmiDialogo.conferma({
+          titolo: 'Aggiornare anche l’anagrafica?',
+          testo: 'L’e-mail ' + body.email + ' non è nella scheda di ' + chi + '. Vuoi salvarla anche lì?',
+          punti: [sostituita ? 'Andrà al posto di ' + sostituita + ' (' + (campo === 'email' ? 'prima' : 'seconda') + ' e-mail).' : 'Andrà nella ' + (campo === 'email' ? 'prima' : 'seconda') + ' e-mail, oggi vuota.'],
+          ok: 'Sì, salvala', annulla: 'No, solo per l’accesso', focus: 'annulla',
+        })) aggiornaAnag = { id: body.fratello_id, campo };
+      }
+      if (!(await window.LemmiDialogo.conferma({ titolo: 'Creare l’utente?', testo: body.email + ' con il profilo «' + PROFILI[body.ruolo] + '».', ok: 'Crea utente' }))) return;
       const ok = $('#nu-ok', v); ok.disabled = true; esito.innerHTML = '';
       try {
         const { data: ses } = await state.sb.auth.getSession();
@@ -114,7 +165,13 @@
         esito.innerHTML = `<div class="notice" style="margin-top:14px;background:var(--ok-bg);color:var(--ok)"><b>Utente creato.</b> Comunicagli, possibilmente a voce, questi dati di accesso:<br>
           E-mail: <b>${esc(body.email)}</b> · Password temporanea: <b>${esc(body.password)}</b><br><span class="hint">La password non verrà più mostrata. L’utente può cambiarla dalla pagina Loggia.</span><div class="actions" style="margin-top:10px"><button class="btn ghost small" type="button" id="nu-agg">Aggiorna l’elenco</button></div></div>`;
         toast('Utente creato', 'ok');
-        form.reset();
+        if (aggiornaAnag) {
+          try {
+            chk(await state.sb.from('fratelli').update({ [aggiornaAnag.campo]: body.email }).eq('id', aggiornaAnag.id));
+            toast('E-mail salvata anche nell’anagrafica', 'ok');
+          } catch (e) { toast('Utente creato, ma l’anagrafica non è stata aggiornata: ' + messaggioErrore(e), 'bad'); }
+        }
+        azzera();
         $('#nu-agg', v).addEventListener('click', () => L.route());
       } catch (e) { esito.innerHTML = `<div class="notice bad" style="margin-top:14px">${esc(messaggioErrore(e))}</div>`; }
       ok.disabled = false;

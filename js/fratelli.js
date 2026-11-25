@@ -164,7 +164,7 @@
       <div class="card"><h2>Dati</h2><div class="kv">
         ${kv('Matricola', f.matricola)}${kv('Data di nascita', f.data_nascita ? fmtData(f.data_nascita) + (e !== null ? ' · ' + e + ' anni' : '') : '')}
         ${kv('Iniziazione', f.data_iniziazione ? fmtData(f.data_iniziazione) : f.anno_iniziazione ? String(f.anno_iniziazione) : '')}
-        ${kv('Residenza', residenza)}${kv('Professione', f.professione)}${kv('Cellulare', f.cellulare)}${kv('E-mail', f.email)}
+        ${kv('Residenza', residenza)}${kv('Professione', f.professione)}${kv('Cellulare', f.cellulare)}${kv('E-mail', f.email)}${'email_2' in f ? kv('Seconda e-mail', f.email_2) : ''}
         ${f.data_uscita ? kv(f.stato === 'oriente_eterno' ? 'Passato all’Oriente Eterno' : 'Trasferito ad altra Loggia', fmtData(f.data_uscita)) : ''}
         ${f.loggia_destinazione ? kv('Loggia di destinazione', f.loggia_destinazione) : ''}${f.exeat_rif ? kv('Exeat', f.exeat_rif) : ''}${f.note_uscita ? kv('Note sull’uscita', f.note_uscita) : ''}</div></div>
 
@@ -246,7 +246,7 @@
     { k: 'data_nascita', t: 'Data di nascita', c: 's4', d: true }, { k: 'luogo_nascita', t: 'Luogo di nascita', c: 's5' }, { k: 'provincia_nascita', t: 'Prov. nascita', c: 's3', sigla: true },
     { k: 'codice_fiscale', t: 'Codice fiscale', c: 's6', cf: true }, { k: 'professione', t: 'Professione', c: 's6' },
     { k: 'indirizzo', t: 'Indirizzo', c: 's6' }, { k: 'cap', t: 'CAP', c: 's2', cap: true }, { k: 'citta', t: 'Città', c: 's4' }, { k: 'provincia', t: 'Prov.', c: 's2', sigla: true },
-    { k: 'cellulare', t: 'Cellulare', c: 's6' }, { k: 'email', t: 'E-mail', c: 's6', mail: true },
+    { k: 'cellulare', t: 'Cellulare', c: 's4' }, { k: 'email', t: 'E-mail', c: 's4', mail: true }, { k: 'email_2', t: 'Seconda e-mail', c: 's4', mail: true },
     { k: 'matricola', t: 'Matricola', c: 's4' }, { k: 'stato', t: 'Stato', c: 's4', lista: true },
     { k: 'data_iniziazione', t: 'Data di iniziazione', c: 's4', d: true }, { k: 'anno_iniziazione', t: 'Anno di iniziazione', c: 's4', anno: true },
   ];
@@ -267,7 +267,7 @@
           const el = fm.elements[c.k]; let v = el ? String(el.value).trim() : '';
           if (c.d) { const i = itToIso(v); if (i === 'ERR') return errore(c.t + ': data non valida, usa gg/mm/aaaa.'); dati[c.k] = i; continue; }
           if (c.req && !v) return errore(c.t + ' è obbligatorio.');
-          if (c.mail && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return errore('E-mail non valida.');
+          if (c.mail && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return errore(c.t + ' non valida.');
           if (c.cap && v && !/^\d{5}$/.test(v)) return errore('Il CAP deve avere 5 cifre.');
           if (c.sigla && v) { if (!/^[A-Za-z]{2}$/.test(v)) return errore(c.t + ': usa la sigla di due lettere.'); v = v.toUpperCase(); }
           if (c.cf && v) {

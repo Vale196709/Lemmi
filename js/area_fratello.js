@@ -162,7 +162,7 @@
       <div class="card"><h2>I miei dati</h2><div class="kv">
         ${kv('Data di nascita', fr.data_nascita ? fmtData(fr.data_nascita) : '')}${kv('Luogo di nascita', [fr.luogo_nascita, fr.provincia_nascita ? '(' + fr.provincia_nascita + ')' : ''].filter(Boolean).join(' '))}
         ${kv('Indirizzo', [fr.indirizzo, fr.cap, fr.citta, fr.provincia ? '(' + fr.provincia + ')' : ''].filter(Boolean).join(' '))}
-        ${kv('Professione', fr.professione)}${kv('Cellulare', fr.cellulare)}${kv('E-mail', fr.email)}
+        ${kv('Professione', fr.professione)}${kv('Cellulare', fr.cellulare)}${kv('E-mail', fr.email)}${'email_2' in fr && fr.email_2 ? kv('Seconda e-mail', fr.email_2) : ''}
       </div><p class="hint" style="margin-top:12px">Se un dato è sbagliato o manca, comunicalo al Segretario. Le notifiche sul telefono si attivano da «Il mio accesso».</p></div>`;
     const gradiOk = GRADI.slice(0, mioGrado + 1);
     const carica = $('#tv-carica', v); if (carica) carica.onclick = () => tavolaModulo(fr, null, gradiOk, () => L.route());
