@@ -285,7 +285,7 @@
         c.innerHTML = `<div class="card empty">${IC.inbox}<div>Nessuna tornata in calendario per il ${st.anno}.${puoScrivere() ? ' Usa “Genera calendario” per creare i rituali e le conferenze.' : ''}</div></div>`;
         return;
       }
-      c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Data e ora</th><th>Tipo</th><th>Grado</th><th>Luogo / collegamento</th><th>Dettagli</th><th>Stato</th><th></th></tr></thead><tbody>
+      c.innerHTML = `<div class="table-wrap tab-cal"><table><thead><tr><th>Data e ora</th><th>Tipo</th><th>Grado</th><th>Luogo / collegamento</th><th>Dettagli</th><th>Stato</th><th></th></tr></thead><tbody>
         ${lista.map((t) => {
           const link = urlSicuro(t.link_online);
           const dove = t.tipo === 'informale'

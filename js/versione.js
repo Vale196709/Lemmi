@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.66.1',
+  numero: '0.66.2',
   data: '2026-11-25',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.66.2', data: '2026-11-25', t: 'Calendario e piè di lista restano nel riquadro anche con caratteri più larghi (computer Linux, come quello delle prove su GitHub)' },
     { n: '0.66.1', data: '2026-11-25', t: 'Prove automatiche delle pagine in un browser vero (66 pagine, computer e telefono, quattro profili) con foto scaricabili da GitHub; piè di lista: tabella più compatta, le ultime colonne non escono più dal riquadro' },
     { n: '0.66.0', data: '2026-11-25', t: 'Apertura più veloce: l’app compare subito con il profilo dell’ultima volta mentre lo ricontrolla; i riquadri del Cruscotto caricano i dati tutti insieme invece che uno dopo l’altro; con rete molto lenta il telefono apre la copia salvata dell’app' },
     { n: '0.65.1', data: '2026-11-25', t: 'Versione e data dell’ultimo aggiornamento di nuovo sempre visibili in fondo al menu laterale (non più dentro il pannello delle preferenze)' },
