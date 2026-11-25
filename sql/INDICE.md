@@ -24,13 +24,14 @@ Si eseguono in **Supabase › SQL Editor › Run**. Salvo dove indicato, si poss
 | `lemmi_aggiornamento_47.sql` | Archivio cartaceo: registro degli originali, movimenti, funzione di prelievo/trasmissione/rientro |
 | `lemmi_aggiornamento_48.sql` | Tavole semplificate: nessuno stato, ogni Fratello carica/modifica/elimina le proprie (regole sui file e funzioni `fratello_salva_tavola`, `fratello_elimina_tavola`) |
 | `lemmi_aggiornamento_49.sql` | Seconda e-mail nell'anagrafica dei Fratelli (colonna `email_2`) |
+| `lemmi_aggiornamento_50.sql` | Sicurezza: vista `v_fratelli_completi` filtrata per profilo; codice segreto per l'invio automatico delle notifiche |
 | `pulizia_bussanti.sql` | Da usare solo dopo aver eliminato un bussante dall'app: toglie i dati rimasti |
 
 ## Attenzione alla numerazione
 
 - Il numero **43** è stato usato due volte: per le agapi (obiettivo coperti e ospiti, v0.44.0) e per gli utenti (v0.58.0). In questa cartella c'è solo quello degli utenti.
 - Gli script **44** e **45** delle agapi (pagamenti, collegamento con la Tesoreria) e le funzioni per disattivare ed eliminare gli utenti non sono più qui. I loro effetti sono nel database in uso; vanno verificati nello `schema_completo.sql` (vedi sotto).
-- Da ora in avanti ogni script nuovo prende il numero successivo all'ultimo (il prossimo è il **50**), e va aggiunto a questa tabella.
+- Da ora in avanti ogni script nuovo prende il numero successivo all'ultimo (il prossimo è il **51**), e va aggiunto a questa tabella.
 
 ## Come tenere allineato lo schema
 

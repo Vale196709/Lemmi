@@ -719,6 +719,7 @@ create table if not exists public.push_chiavi (
   pubblica text not null,
   privata text not null,
   creato_il timestamp with time zone not null default now(),
+  segreto_cron text,
   constraint push_chiavi_id_check CHECK ((id = 1)),
   constraint push_chiavi_pkey PRIMARY KEY (id)
 );
@@ -2300,7 +2301,10 @@ create or replace view public.v_fratelli_completi as
     stato,
     anno_iniziazione,
     data_iniziazione,
-    note_riservate,
+    CASE
+        WHEN ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app]) THEN note_riservate
+        ELSE NULL::text
+    END AS note_riservate,
     creato_il,
     aggiornato_il,
     ( SELECT p.grado
@@ -2311,7 +2315,8 @@ create or replace view public.v_fratelli_completi as
     ( SELECT string_agg(c.carica, ', '::text ORDER BY c.carica) AS string_agg
            FROM cariche_storico c
           WHERE c.fratello_id = f.id AND c.anno_al IS NULL) AS carica_attuale
-   FROM fratelli f;
+   FROM fratelli f
+  WHERE (ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'venerabile'::ruolo_app, 'segretario'::ruolo_app, 'tesoriere'::ruolo_app])) OR f.id = fratello_mio();
 
 create or replace view public.v_fratelli_tesoreria as
  SELECT id,

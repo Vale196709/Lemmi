@@ -76,11 +76,14 @@ begin
 
   -- 3. viste
   for r in
-    select c.oid, c.relname::text as nome
+    select c.oid, c.relname::text as nome, c.reloptions as opzioni
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relkind in ('v', 'm') order by c.relname
   loop
-    begin return next format(E'create or replace view public.%I as\n%s', r.nome, pg_get_viewdef(r.oid, true));
+    -- le opzioni della vista (es. security_invoker) si conservano: cambiano chi può leggere i dati
+    begin return next format(E'create or replace view public.%I%s as\n%s', r.nome,
+                             case when r.opzioni is null then '' else ' with (' || array_to_string(r.opzioni, ', ') || ')' end,
+                             pg_get_viewdef(r.oid, true));
     exception when others then return next format('-- ERRORE sulla vista %s: %s', r.nome, sqlerrm);
     end;
   end loop;
