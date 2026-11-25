@@ -1,7 +1,8 @@
 /* Lemmi - service worker, per rendere l'app installabile su telefono.
  * Prima prova sempre la rete (così gli aggiornamenti arrivano subito); la copia salvata serve solo se non c'è
  * connessione, e solo per i file del sito. I dati di Supabase (altro indirizzo) non vengono mai salvati qui. */
-const CACHE = 'lemmi-guscio-v7';
+const CACHE = 'lemmi-guscio-v8';
+const ATTESA_MS = 4000;   // oltre questo tempo, con rete lenta, si apre la copia salvata
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -28,15 +29,24 @@ self.addEventListener('fetch', (e) => {
     })));
     return;
   }
-  e.respondWith(
-    fetch(r).then((risp) => {
-      if (risp && risp.ok && risp.type === 'basic') {
-        const copia = risp.clone();
-        caches.open(CACHE).then((c) => c.put(r, copia)).catch(() => {});
-      }
-      return risp;
-    }).catch(() => caches.match(r).then((c) => c || (r.mode === 'navigate' ? caches.match('./index.html') : undefined)))
-  );
+  // Codice dell'app: prima la rete; se la rete è lenta (oltre ATTESA_MS) e c'è una copia, si usa la copia
+  // e intanto la risposta della rete aggiorna la copia per la prossima apertura.
+  const rete = fetch(r).then((risp) => {
+    if (risp && risp.ok && risp.type === 'basic') {
+      const copia = risp.clone();
+      caches.open(CACHE).then((c) => c.put(r, copia)).catch(() => {});
+    }
+    return risp;
+  });
+  const copia = () => caches.match(r).then((c) => c || (r.mode === 'navigate' ? caches.match('./index.html') : undefined));
+  e.waitUntil(rete.catch(() => {}));
+  e.respondWith(new Promise((risolvi) => {
+    let fatto = false;
+    const usa = (x) => { if (!fatto && x) { fatto = true; risolvi(x); } };
+    const t = setTimeout(() => copia().then(usa), ATTESA_MS);
+    rete.then((x) => { clearTimeout(t); usa(x); })
+      .catch(() => { clearTimeout(t); copia().then((c) => { if (c) usa(c); else if (!fatto) { fatto = true; risolvi(Response.error()); } }); });
+  }));
 });
 
 // ---- notifiche (aggiornamento 35): mostra l'avviso e, al tocco, apre l'app nella pagina giusta ----
