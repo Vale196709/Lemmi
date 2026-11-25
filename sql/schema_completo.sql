@@ -40,6 +40,7 @@ create table if not exists public.fratelli (
   professione text,
   cellulare text,
   email text,
+  email_2 text,
   stato stato_fratello not null default 'attivo'::stato_fratello,
   anno_iniziazione integer,
   data_iniziazione date,
