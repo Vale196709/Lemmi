@@ -68,6 +68,16 @@
       ]);
     });
 
+    // originali cartacei fuori dall'archivio (prelevati o trasmessi senza copia in cartellina)
+    const originali = await leggi('originali_cartacei', 'cartellina,descrizione,riferimento,stato,destinatario,data_uscita,rientro_previsto,copia_in_cartellina');
+    (originali || []).filter((o) => o.stato === 'prelevato' || (o.stato === 'trasmesso' && !o.copia_in_cartellina)).forEach((o) => {
+      righe.push([
+        'Originale cartaceo fuori sede', o.descrizione, 'Archivio cartaceo', o.riferimento || '', '', o.stato === 'prelevato' ? 'prelevato' : 'trasmesso',
+        fmtData(o.data_uscita), o.destinatario || '', o.stato === 'prelevato' ? 'Rientro dell’originale in archivio' : 'Lasciare in cartellina la copia con data e destinatario',
+        o.rientro_previsto ? 'entro il ' + fmtData(o.rientro_previsto) : '', '',
+      ]);
+    });
+
     // conteggi per l'inventario
     const [verbali, bussanti, passaggi, tornate] = await Promise.all([
       leggi('verbali', 'data,grado'), leggi('bussanti', 'tipo_domanda,data_domanda,creato_il'),
@@ -81,6 +91,7 @@
       lavori: lavori && lavori.filter((l) => nelPeriodo(l.data_presentazione || l.data_assegnazione, dal, al)),
       pratiche: pratiche.filter((x) => nelPeriodo(giorno(x.p.creata_il), dal, al) && x.p.stato !== 'annullata'),
       usciti: fr.filter((f) => ['oriente_eterno', 'trasferito'].includes(f.stato) && nelPeriodo(f.data_uscita, dal, al)),
+      originali,
       attivi: fr.filter((f) => f.stato === 'attivo').length,
       sonno: fr.filter((f) => f.stato === 'in_sonno').length,
     };
@@ -89,6 +100,17 @@
 
   /* ---------- fogli ---------- */
   const non = (v) => (v === null ? 'non leggibile con questo profilo' : null);
+  const CARTELLINE = [['bussanti', 'Bussanti e iniziazioni'], ['regolarizzazioni', 'Regolarizzazioni ed exeat in entrata e in uscita'],
+    ['assemblee_goi', 'Deleghe e inviti alle assemblee del GOI'], ['elezioni', 'Tornata elettorale e insediamento delle cariche'],
+    ['associazione', 'Associazione Lemmi 812'], ['passaggi_grado', 'Passaggi di grado']];
+  // riga di riepilogo dal registro dell'Archivio cartaceo
+  function registro(orig, k) {
+    if (orig === null || orig === undefined) return 'Registro non leggibile con questo profilo';
+    const a = orig.filter((o) => o.cartellina === k);
+    if (!a.length) return 'Nel registro non risultano originali';
+    const f = a.filter((o) => o.stato !== 'in_archivio');
+    return pl(a.length, 'originale registrato', 'originali registrati') + (f.length ? `; fuori sede: ${f.map((o) => o.descrizione + ' (' + (o.destinatario || '') + ')').join(', ')}` : '; tutti in archivio');
+  }
   function inventario(dati, dal, al) {
     const c = (arr, f) => (arr === null ? non(null) : f(arr));
     const FUORI = 'Non gestita nell’app';
@@ -111,14 +133,8 @@
       [],
       ['Piè di lista alla data di oggi', '', '', `${dati.attivi} attivi, ${dati.sonno} in sonno`, ''],
       [],
-      ['Archivio cartaceo (Parte II)', 'Da elencare nel verbale di consegna', 'Cartellina', 'Consegnata (sì/no)', 'Originali trasmessi ad altri organi / note'],
-      ['', 'Bussanti e iniziazioni', 'Cartellina 1', '', ''],
-      ['', 'Regolarizzazioni ed exeat in entrata e in uscita', 'Cartellina 2', '', ''],
-      ['', 'Deleghe e inviti alle assemblee del GOI', 'Cartellina 3', '', ''],
-      ['', 'Tornata elettorale e insediamento delle cariche', 'Cartellina 4', '', ''],
-      ['', 'Associazione Lemmi 812', 'Cartellina 5', '', ''],
-      ['', 'Passaggi di grado', 'Cartellina 6', '', ''],
-    ];
+      ['Archivio cartaceo (Parte II)', 'Da elencare nel verbale di consegna', 'Cartellina', 'Consegnata (sì/no)', 'Dal registro dell’Archivio cartaceo / note'],
+    ].concat(CARTELLINE.map(([k, nome], i) => ['', nome, 'Cartellina ' + (i + 1), '', registro(dati.originali, k)]));
   }
 
   const VERIFICA = [
@@ -153,7 +169,7 @@
     const intest = [
       [`Prospetto delle pratiche pendenti — ${nomeLoggia}${num}`],
       [`Periodo di gestione: dal ${fmtData(dal)} al ${fmtData(al)} · Generato il ${fmtData(oggi())}`],
-      ['Dall’app: pratiche aperte e tavole non ancora presentate. Il “soggetto di riferimento” è chi deve compiere il prossimo passo.'],
+      ['Dall’app: pratiche aperte, tavole non ancora presentate e originali cartacei fuori sede. Il “soggetto di riferimento” è chi deve compiere il prossimo passo.'],
       [],
     ];
     const colP = ['Tipo', 'Oggetto', 'Procedura', 'Persona di riferimento', 'Avviata il', 'Avanzamento', 'Ultima attività', 'Soggetto di riferimento', 'Prossimo adempimento', 'Scadenza', 'Avvertenze'];

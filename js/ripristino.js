@@ -6,7 +6,7 @@
   const L = window.Lemmi;
   if (!L) return;
   const { state, $, $$, esc, chk, toast, messaggioErrore } = L;
-  const NOMI = { fratelli: 'Fratelli', bussanti: 'Bussanti', versamenti: 'Versamenti', scadenze: 'Scadenze', voci_quota: 'Voci di quota', conto_movimenti: 'Conto di Loggia', eventi_conto: 'Eventi del conto', conto_saldi: 'Saldi del conto', pratiche: 'Pratiche', pratiche_passi: 'Passi delle pratiche', pratiche_date: 'Date delle pratiche', documenti: 'Documenti', cariche_storico: 'Cariche', profili: 'Utenti', loggia: 'Loggia' };
+  const NOMI = { fratelli: 'Fratelli', bussanti: 'Bussanti', versamenti: 'Versamenti', scadenze: 'Scadenze', voci_quota: 'Voci di quota', conto_movimenti: 'Conto di Loggia', eventi_conto: 'Eventi del conto', conto_saldi: 'Saldi del conto', pratiche: 'Pratiche', pratiche_passi: 'Passi delle pratiche', pratiche_date: 'Date delle pratiche', originali_cartacei: 'Archivio cartaceo', originali_movimenti: 'Movimenti dell’archivio cartaceo', documenti: 'Documenti', cariche_storico: 'Cariche', profili: 'Utenti', loggia: 'Loggia' };
   const nome = (t) => NOMI[t] || t.replace(/_/g, ' ');
   const val = (x) => { const s = x !== null && typeof x === 'object' ? JSON.stringify(x) : String(x); return s.length > 90 ? s.slice(0, 90) + '…' : s; };
   const dato = (o) => Object.keys(o || {}).filter((k) => o[k] !== null && o[k] !== '').slice(0, 5).map((k) => `${k}: ${val(o[k])}`).join(' · ');
