@@ -3,7 +3,8 @@
 // Azioni (corpo JSON {"azione": ...}):
 //   "chiave" -> restituisce la chiave pubblica con cui il telefono si iscrive (la crea la prima volta)
 //   "prova"  -> manda subito un avviso di prova ai dispositivi di chi la chiama (serve aver fatto l'accesso)
-//   "invia"  -> controlla tornate, votazioni, quote e tavole e manda gli avvisi del giorno (la chiama il database ogni mattina)
+//   "invia"  -> controlla tornate, votazioni e quote e manda gli avvisi del giorno (la chiama il database ogni mattina,
+//               con il codice segreto x-lemmi-segreto: senza codice risponde 403)
 // Ogni avviso parte una sola volta (registro push_inviati), quindi richiamare "invia" più volte non crea doppioni.
 // Le chiavi stanno nella tabella push_chiavi, leggibile solo da questa funzione.
 // Nessuna libreria esterna per le notifiche: cifratura e firma con la crittografia integrata (Web Crypto).
@@ -135,7 +136,7 @@ async function spedisci(userIds: string[] | null, avvisi: Map<string, Avviso[]>)
 const GRADI = ['apprendista', 'compagno', 'maestro'];
 
 async function avvisiDelGiorno() {
-  const oggi = traGiorni(0), domani = traGiorni(1), tra3 = traGiorni(3), tra7 = traGiorni(7);
+  const oggi = traGiorni(0), domani = traGiorni(1), tra7 = traGiorni(7);
   const { data: prof } = await db.from('profili').select('user_id, ruolo, fratello_id');
   const { data: utentiIscritti } = await db.from('push_iscrizioni').select('user_id');
   const iscritti = new Set((utentiIscritti || []).map((x) => x.user_id));
@@ -197,14 +198,6 @@ async function avvisiDelGiorno() {
     }
   }
 
-  // tavole da consegnare tra 3 giorni (al Fratello autore)
-  const { data: lav } = await db.from('lavori').select('id, titolo, fratello_id, data_consegna_prevista, stato').eq('data_consegna_prevista', tra3);
-  for (const l of lav || []) {
-    if (['presentato', 'consegnato', 'archiviato'].includes(String(l.stato))) continue;
-    for (const p of profili.filter((x) => x.fratello_id === l.fratello_id)) {
-      add(p.user_id, { chiave: `tavola|${l.id}|${p.user_id}`, titolo: 'Consegna della tavola', testo: `«${l.titolo}» va consegnata entro il ${it(tra3)}`, url: '#/' });
-    }
-  }
   void oggi;
   return avvisi;
 }
@@ -227,6 +220,10 @@ Deno.serve(async (req) => {
     }
 
     if (azione === 'invia') {
+      // l'invio a tutti lo fa solo la pianificazione del mattino, che porta il codice segreto (sql/lemmi_aggiornamento_50.sql)
+      const { data: cfg, error: errCfg } = await db.from('push_chiavi').select('segreto_cron').eq('id', 1).maybeSingle();
+      const atteso = !errCfg && cfg && cfg.segreto_cron ? String(cfg.segreto_cron) : '';
+      if (atteso && req.headers.get('x-lemmi-segreto') !== atteso) return risposta({ errore: 'Invio non autorizzato.' }, 403);
       const avvisi = await avvisiDelGiorno();
       if (!avvisi.size) return risposta({ inviati: 0, nota: 'nessun avviso oggi' });
       return risposta(await spedisci([...avvisi.keys()], avvisi));
