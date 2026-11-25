@@ -872,9 +872,14 @@ select[data-pres].pres-nascosta { display: none; }
 }
 .side .who > .ver { margin-top: 8px; }   /* versione e data sempre visibili sotto il nome */
 /* tabelle con molte colonne (es. piè di lista): testo più fitto, le e-mail vanno a capo invece di uscire dal riquadro */
-.tab-fitta th { padding: 9px 8px; letter-spacing: .03em; }
+.tab-fitta th { padding: 9px 8px; letter-spacing: .03em; white-space: normal; }
 .tab-fitta td { padding: 9px 8px; font-size: .88rem; }
 .tab-fitta td:nth-child(2) { white-space: nowrap; }
 .tab-fitta td:nth-child(8) { overflow-wrap: anywhere; }
 .tab-fitta input { width: 56px !important; }
 .tab-fitta td:first-child, .tab-fitta th:first-child { padding-left: 14px; }
+/* Calendario: intestazioni su due righe se serve e colonna delle azioni compatta (sta nel riquadro anche con caratteri larghi) */
+.tab-cal th { white-space: normal; }
+.tab-cal th, .tab-cal td { padding-left: 10px; padding-right: 10px; }
+.tab-cal td.act .btn { padding-left: 10px; padding-right: 10px; }
+.tab-cal td:first-child { white-space: nowrap; }
