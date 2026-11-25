@@ -1,0 +1,22 @@
+AGGIORNAMENTO 65 (versione 0.64.0) - E-mail precompilata per i nuovi utenti e seconda e-mail dei Fratelli
+
+PASSO 1 (Supabase > SQL Editor) - esegui sql/lemmi_aggiornamento_49.sql
+   (aggiunge la colonna "seconda e-mail" all'anagrafica). Atteso: una riga con email_2 / text.
+PASSO 2 (sito) - carica su GitHub, mantenendo le cartelle:
+   js/utenti.js, js/fratelli.js, js/area_fratello.js, js/versione.js,
+   sql/lemmi_aggiornamento_49.sql, sql/schema_completo.sql, sql/INDICE.md,
+   docs/funzioni.md, docs/aggiornamenti/LEGGIMI-aggiornamento-65.txt
+   Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+   L'ordine dei passi non e' vincolante: senza lo script la seconda e-mail semplicemente non compare.
+
+Come funziona:
+ - Fratelli > scheda > "Modifica anagrafica": nuovo campo "Seconda e-mail" accanto a Cellulare ed E-mail.
+   Compare anche nella scheda e nell'area personale del Fratello (se compilata).
+ - Info di sistema > Utenti del sistema > "Nuovo utente": scegliendo il Fratello dell'anagrafica si compilano
+   da soli E-mail (la prima), Nome da mostrare e Profilo "Fratello". Tutto resta modificabile.
+   Se il Fratello ha due e-mail, sotto il campo compaiono due pulsanti per scegliere quale usare.
+   I campi gia' scritti a mano non vengono sovrascritti; il profilo resta quello scelto se l'hai cambiato.
+ - Se crei l'utente con un'e-mail che non e' in anagrafica, l'app chiede se salvarla anche nella scheda del
+   Fratello: va nella prima e-mail se vuota, altrimenti nella seconda (indicando quale sostituisce).
+   "No, solo per l'accesso" lascia l'anagrafica com'e'.
+ - L'accesso all'app (login) usa una sola e-mail: quella scritta nel campo E-mail del nuovo utente.
