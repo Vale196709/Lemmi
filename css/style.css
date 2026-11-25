@@ -871,3 +871,10 @@ select[data-pres].pres-nascosta { display: none; }
   .altro-account .ver { display: block; text-align: center; color: var(--muted); font-size: .72rem; }
 }
 .side .who > .ver { margin-top: 8px; }   /* versione e data sempre visibili sotto il nome */
+/* tabelle con molte colonne (es. piè di lista): testo più fitto, le e-mail vanno a capo invece di uscire dal riquadro */
+.tab-fitta th { padding: 9px 8px; letter-spacing: .03em; }
+.tab-fitta td { padding: 9px 8px; font-size: .88rem; }
+.tab-fitta td:nth-child(2) { white-space: nowrap; }
+.tab-fitta td:nth-child(8) { overflow-wrap: anywhere; }
+.tab-fitta input { width: 56px !important; }
+.tab-fitta td:first-child, .tab-fitta th:first-child { padding-left: 14px; }
