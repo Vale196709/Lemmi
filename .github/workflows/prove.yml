@@ -32,3 +32,14 @@ jobs:
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
+      - name: Prova delle pagine nel browser (con dati finti)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:pagine
+      - name: Foto delle pagine (scaricabili da «Artifacts» in fondo alla pagina della prova)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: foto-pagine
+          path: test/foto/risultati/
+          retention-days: 14
