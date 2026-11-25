@@ -1,0 +1,22 @@
+AGGIORNAMENTO 68 (versione 0.66.1) - Prove automatiche delle pagine con le foto
+
+Nessuno script SQL, nessuna funzione Supabase da ripubblicare.
+PASSO 1 (GitHub) - carica i file dello ZIP mantenendo le cartelle. Attenzione a due file "nascosti":
+   .gitignore (nella cartella principale) e .github/workflows/prove.yml.
+   Se il caricamento dal sito di GitHub non mostra i file che iniziano con il punto, aprili su GitHub
+   e incolla il contenuto a mano ("Edit" sulla matita), oppure dimmelo e ti guido.
+   Elenco: .gitignore, .github/workflows/prove.yml, package.json, package-lock.json, README.md,
+   test/foto/prova_pagine.js, js/pie_di_lista.js, js/versione.js, css/style.css,
+   docs/aggiornamenti/LEGGIMI-aggiornamento-68.txt
+PASSO 2 (GitHub > Actions) - dopo il caricamento parte da sola la "Prova automatica" (qualche minuto in più di prima,
+   gratis sui repository pubblici). Se è verde va tutto bene. Per vedere le foto: apri la prova,
+   in fondo alla pagina "Artifacts" > foto-pagine (uno ZIP con circa 66 immagini, tenuto 14 giorni).
+   Se è rossa, ti arriva l'e-mail di GitHub: nel passo "Prova delle pagine nel browser" c'è scritto
+   quale pagina ha il problema (errore, pagina vuota o tabella che esce dal riquadro).
+
+Cosa cambia nell'app:
+ - Piè di lista: tabella più compatta (le colonne E-mail e % esonero non escono più dal riquadro su un portatile).
+Cosa si controlla a ogni aggiornamento:
+ - 24 pagine per l'Amministratore e alcune per Segretario, Tesoriere e Fratello, su computer e su telefono:
+   nessun errore, nessuna pagina vuota, nessuna pagina che scorre di lato sul telefono, nessuna tabella che esce
+   dal riquadro sul computer. I dati usati sono finti: Supabase e i dati veri non vengono toccati.
