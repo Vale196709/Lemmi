@@ -343,7 +343,7 @@
       const data = $('#ag-vdata', ov).value, dav = pag.filter((p) => p.metodo === 'contanti' && !p.versato_il);
       if (!data) { toast('Indica la data del versamento.', 'bad'); return; }
       if (!dav.length) return;
-      if (!confirm('Segnare come versati in banca ' + eur(somma(dav)) + ' di contanti (' + dav.length + (dav.length === 1 ? ' pagamento' : ' pagamenti') + ') con data ' + fmtData(data) + '?')) return;
+      if (!(await window.LemmiDialogo.chiedi('Segnare come versati in banca ' + eur(somma(dav)) + ' di contanti?\n' + dav.length + (dav.length === 1 ? ' pagamento' : ' pagamenti') + ', con data ' + fmtData(data) + '.', { ok: 'Segna come versati' }))) return;
       try {
         const r = chk(await state.sb.from('agape_pagamenti').update({ versato_il: data }).eq('tornata_id', t.id).eq('metodo', 'contanti').is('versato_il', null).select());
         const m = {}; r.forEach((x) => { m[x.id] = x; });
@@ -513,7 +513,7 @@
         if (chi === 'c') {
           dav = pag.filter((p) => p.metodo === 'contanti' && !p.versato_il);
           if (!dav.length) { toast('Non ci sono contanti da versare: registra prima i pagamenti in contanti.', 'bad'); return; }
-          if (Math.abs(somma(dav) - num(m.importo)) > 0.005 && !confirm('I contanti da versare sono ' + eur(somma(dav)) + ' ma il movimento è di ' + eur(m.importo) + '. Segnarli lo stesso come versati con questo movimento?')) return;
+          if (Math.abs(somma(dav) - num(m.importo)) > 0.005 && !(await window.LemmiDialogo.chiedi('Gli importi non coincidono: segnarli lo stesso come versati?\nI contanti da versare sono ' + eur(somma(dav)) + ' ma il movimento è di ' + eur(m.importo) + '.', { ok: 'Segna come versati' }))) return;
         }
         b.disabled = true;
         try {

@@ -19,7 +19,7 @@
         (o.testo ? '<p style="margin:0 0 6px">' + esc(o.testo) + '</p>' : '') +
         (punti ? '<ul class="dlg-punti">' + punti + '</ul>' : '') +
         '<div class="dlg-az"><button type="button" class="btn ghost" data-r="no">' + esc(o.annulla || 'Annulla') + '</button>' +
-        '<button type="button" class="btn" data-r="si">' + esc(o.ok || 'Conferma') + '</button></div></div></div>';
+        '<button type="button" class="btn' + (o.pericolo ? ' danger' : '') + '" data-r="si">' + esc(o.ok || 'Conferma') + '</button></div></div></div>';
       const precedente = document.activeElement;
       const bottoni = () => Array.from(ov.querySelectorAll('button'));
       const chiudi = (valore) => {
@@ -56,7 +56,20 @@
     }, opz || {}));
   }
 
-  const API = { conferma, punti };
+  // chiedi(domanda, opz): sostituisce window.confirm. Il primo paragrafo diventa il titolo (se breve), gli altri il testo.
+  // opz.elimina = true: pulsante «Elimina» e fuoco su «Annulla».
+  function chiedi(domanda, opz) {
+    opz = opz || {};
+    const parti = String(domanda || 'Confermi?').split(/\n\s*\n|\n/).map((x) => x.trim()).filter(Boolean);
+    const breve = parti[0].length <= 90;
+    return conferma(Object.assign({
+      titolo: breve ? parti[0] : (opz.elimina ? 'Confermi l’eliminazione?' : 'Confermi?'),
+      testo: (breve ? parti.slice(1) : parti).join(' '),
+      ok: opz.elimina ? 'Elimina' : 'Conferma', focus: 'annulla', pericolo: !!opz.elimina,
+    }, opz));
+  }
+
+  const API = { conferma, punti, chiedi };
   if (typeof window !== 'undefined') window.LemmiDialogo = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })();

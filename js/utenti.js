@@ -180,7 +180,7 @@
     $$('.sel-ruolo', v).forEach((sel) => sel.addEventListener('change', async () => {
       const nuovo = sel.value, prima = sel.dataset.prima;
       if (!nuovo || nuovo === prima) return;
-      if (!window.confirm('Cambiare il profilo di ' + sel.dataset.nome + ' da «' + (PROFILI[prima] || prima || 'nessuno') + '» a «' + PROFILI[nuovo] + '»?\nCambiano subito le sezioni che può vedere e modificare.')) { sel.value = prima; return; }
+      if (!(await window.LemmiDialogo.chiedi('Cambiare il profilo di ' + sel.dataset.nome + ' da «' + (PROFILI[prima] || prima || 'nessuno') + '» a «' + PROFILI[nuovo] + '»?\nCambiano subito le sezioni che può vedere e modificare.', { ok: 'Cambia profilo' }))) { sel.value = prima; return; }
       sel.disabled = true;
       try {
         chk(await state.sb.rpc('imposta_ruolo_utente', { p_user: sel.dataset.u, p_ruolo: nuovo }));
@@ -202,8 +202,8 @@
       const az = btn.dataset.az;
       const chi = btn.dataset.nome ? btn.dataset.nome + ' (' + btn.dataset.email + ')' : btn.dataset.email;
       const [c1, c2, ok] = TESTI[az](chi);
-      if (!window.confirm(c1)) return;
-      if (c2 && !window.confirm(c2)) return;
+      if (!(await window.LemmiDialogo.chiedi(c1, { elimina: az === 'elimina', ok: ({ disattiva: 'Disattiva', riattiva: 'Riattiva', elimina: 'Elimina' })[az] }))) return;
+      if (c2 && !(await window.LemmiDialogo.chiedi(c2, { elimina: az === 'elimina', ok: ({ disattiva: 'Disattiva', riattiva: 'Riattiva', elimina: 'Elimina' })[az] }))) return;
       btn.disabled = true;
       try {
         // tutto direttamente sul database (script lemmi_aggiornamento_44.sql e _45.sql)
@@ -216,7 +216,7 @@
     // ---- reimposta password (funzione del database, script lemmi_aggiornamento_46.sql) ----
     $$('.btn-pw', v).forEach((btn) => btn.addEventListener('click', async () => {
       const chi = btn.dataset.nome && btn.dataset.nome !== btn.dataset.email ? btn.dataset.nome + ' (' + btn.dataset.email + ')' : btn.dataset.email;
-      if (!window.confirm('Reimpostare la password di ' + chi + '?\n\nLa vecchia password smette di funzionare e l’utente esce da eventuali sessioni aperte.\nTi mostro la nuova password temporanea da comunicargli.')) return;
+      if (!(await window.LemmiDialogo.chiedi('Reimpostare la password di ' + chi + '?\nLa vecchia password smette di funzionare e l’utente esce da eventuali sessioni aperte. Ti mostro la nuova password temporanea da comunicargli.', { ok: 'Reimposta' }))) return;
       const nuova = genPw();
       btn.disabled = true;
       try {

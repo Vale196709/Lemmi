@@ -1,7 +1,7 @@
 /* Lemmi - WhatsApp con un tocco (gratuito, link ufficiali wa.me: nessun account aziendale, nessun costo).
  * L'app prepara il messaggio già scritto e apre WhatsApp; chi lo usa sceglie il contatto o il gruppo e preme Invia.
  * Pulsanti: Calendario (convocazione da inoltrare al gruppo), scheda del Fratello e quote scadute (messaggio e sollecito),
- * Lavori e tavole (promemoria all'autore), scheda del bussante (date al Fratello presentatore). */
+ * scheda del bussante (date al Fratello presentatore). */
 (function () {
   'use strict';
   const L = window.Lemmi;

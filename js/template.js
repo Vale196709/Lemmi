@@ -128,7 +128,7 @@
   }
 
   async function elimina(r) {
-    if (!r || !confirm('Eliminare il modello «' + r.nome + '»? L’operazione non si può annullare.')) return;
+    if (!r || !(await window.LemmiDialogo.chiedi('Eliminare il modello «' + r.nome + '»?\nL’operazione non si può annullare.', { elimina: true }))) return;
     try {
       const rm = await state.sb.storage.from(BUCKET).remove([r.file_path]);
       if (rm.error) throw rm.error;
@@ -403,8 +403,8 @@
       c.assenti = sel.join(', '); $('#v-assenti', v).value = c.assenti; rigenera();
     }));
     ta.addEventListener('input', () => { x.testo = ta.value; x.modificato = true; });
-    $('#v-rec', v).addEventListener('click', () => {
-      if (x.modificato && !confirm('Il testo modificato a mano verrà sostituito con quello preparato dai dati. Continuare?')) return;
+    $('#v-rec', v).addEventListener('click', async () => {
+      if (x.modificato && !(await window.LemmiDialogo.chiedi('Sostituire il testo modificato a mano?\nVerrà rimesso quello preparato dai dati.', { ok: 'Sostituisci' }))) return;
       x.modificato = false; ta.value = x.testo = costruisciTesto(g);
     });
     $('#v-copia', v).addEventListener('click', async () => { try { await navigator.clipboard.writeText(ta.value); toast('Testo copiato', 'ok'); } catch (e) { toast('Copia non riuscita: seleziona il testo e usa Ctrl+C.', 'bad'); } });
@@ -525,13 +525,13 @@
   };
   L.eleggibiliPerGrado = async function () { if (!vb.init) await inizializza(); return { attivi: vb.attivi, gradoFr, GRADO_N }; };
 
-  function scaricaDocx(g, testo, err) {
+  async function scaricaDocx(g, testo, err) {
     err.textContent = '';
     const iso = itToIso(vb.c.data), di = infoData(iso);
     if (!di) { err.textContent = 'Scrivi la data della tornata nel formato gg/mm/aaaa.'; $('#v-data').focus(); return; }
     const paragrafi = String(testo || '').split(/\n+/).map((t) => t.trim()).filter(Boolean);
     if (!paragrafi.length) { err.textContent = 'Il testo del verbale è vuoto.'; return; }
-    if (/\[[^\]\n]+\]/.test(testo) && !confirm('Il testo contiene ancora parti tra parentesi quadre da completare. Scaricare comunque?')) return;
+    if (/\[[^\]\n]+\]/.test(testo) && !(await window.LemmiDialogo.chiedi('Scaricare comunque?\nIl testo contiene ancora parti tra parentesi quadre da completare.', { ok: 'Scarica comunque', annulla: 'Completa prima' }))) return;
     const c = vb.c;
     const blob = window.LemmiDocx.crea({
       intestazione: ['A:.G:.D:.G:.A:.D:.U:.', 'MASSONERIA UNIVERSALE', 'GRANDE ORIENTE D’ITALIA – PALAZZO GIUSTINIANI',

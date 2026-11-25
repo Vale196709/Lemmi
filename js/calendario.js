@@ -285,7 +285,7 @@
         c.innerHTML = `<div class="card empty">${IC.inbox}<div>Nessuna tornata in calendario per il ${st.anno}.${puoScrivere() ? ' Usa “Genera calendario” per creare i rituali e le conferenze.' : ''}</div></div>`;
         return;
       }
-      c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Ora</th><th>Tipo</th><th>Grado</th><th>Luogo / collegamento</th><th>Dettagli</th><th>Stato</th><th></th></tr></thead><tbody>
+      c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Data e ora</th><th>Tipo</th><th>Grado</th><th>Luogo / collegamento</th><th>Dettagli</th><th>Stato</th><th></th></tr></thead><tbody>
         ${lista.map((t) => {
           const link = urlSicuro(t.link_online);
           const dove = t.tipo === 'informale'
@@ -295,8 +295,7 @@
           const extra = [t.relatore ? 'Relatore: ' + esc(t.relatore) : '', ...(st.lavori[t.id] || []).map((x) => 'Lavoro: ' + esc(x)), t.ordine_del_giorno ? esc(t.ordine_del_giorno).replace(/\n/g, '<br>') : ''].filter(Boolean).join('<br>');
           const passata = t.data < oggiIso, fe = FE[t.data];
           return `<tr id="t-${esc(t.id)}" class="${fe ? 'festa-riga' : ''}${pross && t.id === pross.id ? ' prossima-riga' : ''}" style="${t.stato === 'annullata' ? 'opacity:.55;' : ''}">
-            <td data-sort="${t.data} ${hhmm(t.ora)}"><b ${fe ? 'class="festa"' : ''}>${fmtData(t.data)}</b><br><span class="${fe ? 'festa' : 'muted'}">${giornoSettimana(t.data)}</span>${fe ? `<br><span class="badge bad">Festa: ${esc(fe)}</span>` : ''}${t.data === oggiIso ? ' <span class="badge ok">oggi</span>' : ''}</td>
-            <td>${esc(hhmm(t.ora) || '—')}</td>
+            <td data-sort="${t.data} ${hhmm(t.ora)}"><b ${fe ? 'class="festa"' : ''}>${fmtData(t.data)}</b><br><span class="${fe ? 'festa' : 'muted'}">${giornoSettimana(t.data)}${hhmm(t.ora) ? ' · ' + esc(hhmm(t.ora)) : ''}</span>${fe ? `<br><span class="badge bad">Festa: ${esc(fe)}</span>` : ''}${t.data === oggiIso ? ' <span class="badge ok">oggi</span>' : ''}</td>
             <td><span class="badge ${TIPO_BADGE[t.tipo]}">${esc(TIPI[t.tipo])}</span></td>
             <td>${t.tipo === 'informale' ? '—' : (t.grado ? esc(GRADI[t.grado]) : '<span class="muted">da stabilire</span>')}</td>
             <td>${dove}</td>

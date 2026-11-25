@@ -98,12 +98,12 @@
     return String(testo || '').split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean).map((t) => (t.startsWith('## ') ? { titolo: t.slice(3).trim() } : t.replace(/\n+/g, ' ')));
   }
 
-  function scaricaDocx(anno, testo, err) {
+  async function scaricaDocx(anno, testo, err) {
     err.textContent = '';
     if (!window.LemmiDocx) { err.textContent = 'Generatore Word non caricato: ricarica la pagina.'; return; }
     const par = daTesto(testo);
     if (!par.length) { err.textContent = 'Il testo è vuoto.'; return; }
-    if (/\[[^\]\n]+\]/.test(testo) && !confirm('Il testo contiene ancora parti tra parentesi quadre da completare. Scaricare comunque?')) return;
+    if (/\[[^\]\n]+\]/.test(testo) && !(await window.LemmiDialogo.chiedi('Scaricare comunque?\nIl testo contiene ancora parti tra parentesi quadre da completare.', { ok: 'Scarica comunque', annulla: 'Completa prima' }))) return;
     const l = state.loggia || {};
     const blob = window.LemmiDocx.crea({
       intestazione: ['A:.G:.D:.G:.A:.D:.U:.', 'MASSONERIA UNIVERSALE', 'GRANDE ORIENTE D’ITALIA – PALAZZO GIUSTINIANI',
@@ -138,11 +138,11 @@
       try { ta.value = scrivi(await raccogli(anno)); modificato = false; }
       catch (e) { ta.value = ''; err.textContent = messaggioErrore(e); }
     }
-    $('#rl-anno', v).addEventListener('change', (e) => {
-      if (modificato && !confirm('Hai modificato il testo: cambiando anno lo perdi. Continuare?')) { e.target.value = String(anno); return; }
+    $('#rl-anno', v).addEventListener('change', async (e) => {
+      if (modificato && !(await window.LemmiDialogo.chiedi('Cambiare anno?\nHai modificato il testo: cambiando anno lo perdi.', { ok: 'Cambia anno' }))) { e.target.value = String(anno); return; }
       anno = Number(e.target.value); carica();
     });
-    $('#rl-rigenera', v).addEventListener('click', () => { if (!modificato || confirm('Il testo che hai scritto andrà perso. Continuare?')) carica(); });
+    $('#rl-rigenera', v).addEventListener('click', async () => { if (!modificato || (await window.LemmiDialogo.chiedi('Rigenerare il testo?\nIl testo che hai scritto andrà perso.', { ok: 'Rigenera' }))) carica(); });
     $('#rl-docx', v).addEventListener('click', () => scaricaDocx(anno, ta.value, err));
     $('#rl-stampa', v).addEventListener('click', () => {
       const w = window.open('', '_blank');

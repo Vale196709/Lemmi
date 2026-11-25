@@ -261,7 +261,7 @@
         const bp = $('#pr-prospetto', v); if (bp) bp.onclick = () => L.consegne && L.consegne.apri();
         $$('[data-st]', v).forEach((b) => b.addEventListener('click', async () => {
           const st = b.dataset.st;
-          if (st === 'annullata' && !confirm('Annullare questa pratica?')) return;
+          if (st === 'annullata' && !(await window.LemmiDialogo.chiedi('Annullare questa pratica?', { ok: 'Annulla la pratica', annulla: 'Indietro' }))) return;
           try {
             chk(await sb().from('pratiche').update({ stato: st, chiusa_il: st === 'in_corso' ? null : new Date().toISOString() }).eq('id', id));
             L.route();

@@ -118,10 +118,10 @@
    * Al posto della conferma: l'elemento sparisce subito, l'avviso resta qualche secondo con «Annulla»;
    * solo allo scadere l'eliminazione viene davvero eseguita sul database. Se si chiude l'app prima, non si elimina nulla. */
   const SECONDI_ANNULLA = 7;
-  function eliminaConAnnulla(opz) {
+  async function eliminaConAnnulla(opz) {
     // opz: { domanda, messaggio, esegui: async () => {}, el: elemento da nascondere (facoltativo), dopo: () => {} (facoltativo) }
     // prima di ogni eliminazione si chiede sempre conferma; dopo resta qualche secondo per «Annulla»
-    if (!confirm(opz.domanda || 'Confermi l’eliminazione?')) return false;
+    if (!(await window.LemmiDialogo.chiedi((opz.domanda || 'Confermi l’eliminazione?') + '\nDopo la conferma hai ancora qualche secondo per annullare.', { elimina: true }))) return false;
     const el = opz.el || null;
     if (el) el.classList.add('in-eliminazione');
     const t = document.createElement('div');
@@ -449,6 +449,7 @@
       `<button type="button" data-tema="${k}" aria-pressed="${k === t}" title="Tema: ${n}"><span class="t-ic" aria-hidden="true">${ic}</span><span class="t-txt">${n}</span></button>`).join('')}</div>`;
   }
 
+  const IC_PREF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>';
   // Versione dell'app (da js/versione.js), in fondo al menu laterale
   function versioneHtml() {
     const v = window.LEMMI_VERSIONE;
@@ -463,21 +464,30 @@
       <aside class="side">
         <div class="brand"><div class="logo-mark">${logoSvg()}</div><div><b>Lemmi</b><small>${esc(nomeLoggia('Gestione di Loggia'))}</small></div></div>
         <nav class="nav">${menuHtml(p)}</nav>
-        <div class="who"><b>${esc(p.nome_visualizzato || state.user.email)}</b><span>${esc(ETICHETTA_RUOLO[p.ruolo] || p.ruolo)}</span>
-          <button class="btn ghost small" id="b-logout">Esci</button>${temaHtml()}${testoHtml()}${versioneHtml()}</div>
+        <div class="who"><div class="who-riga"><div class="who-nome"><b>${esc(p.nome_visualizzato || state.user.email)}</b><span>${esc(ETICHETTA_RUOLO[p.ruolo] || p.ruolo)}</span></div>
+            <button class="btn ghost small b-logout" type="button">Esci</button>
+            <button class="who-tog" type="button" aria-expanded="false" aria-controls="who-pannello" title="Tema, dimensione del testo e versione" aria-label="Tema, dimensione del testo e versione">${IC_PREF}</button></div>
+          <div class="who-pannello" id="who-pannello" hidden>${temaHtml()}${testoHtml()}${versioneHtml()}</div></div>
       </aside>
       <main id="view" data-stampa="${esc(nomeLoggia('Gestione di Loggia') + (state.loggia.oriente ? ' · Oriente di ' + state.loggia.oriente : ''))}"></main></div>
       <div class="altro-velo" hidden></div>
-      <div class="altro-sheet" id="altro-sheet" role="dialog" aria-label="Altre sezioni" hidden><div class="altro-grid"></div></div>`;
+      <div class="altro-sheet" id="altro-sheet" role="dialog" aria-label="Altre sezioni" hidden><div class="altro-grid"></div>
+        <div class="altro-account"><div class="who-nome"><b>${esc(p.nome_visualizzato || state.user.email)}</b><span>${esc(ETICHETTA_RUOLO[p.ruolo] || p.ruolo)}</span></div>
+          ${temaHtml()}${testoHtml()}<button class="btn ghost b-logout" type="button">Esci</button>${versioneHtml()}</div></div>`;
     osservaTabelle.disconnect();
     osservaTabelle.observe(document.body, { childList: true, subtree: true });
-    $('#b-logout').onclick = () => state.sb.auth.signOut();
-    // un clic sul tema già attivo passa al successivo (sul telefono si vede solo quello attivo)
-    $$('.tema-sw button').forEach((b) => b.addEventListener('click', () => {
-      const k = b.dataset.tema;
-      const i = TEMI.findIndex((x) => x[0] === k);
-      applicaTema(b.getAttribute('aria-pressed') === 'true' ? TEMI[(i + 1) % TEMI.length][0] : k);
-    }));
+    $$('.b-logout').forEach((b) => { b.onclick = () => state.sb.auth.signOut(); });
+    // pannello delle preferenze nel menu laterale (chiuso di solito, così le voci del menu restano visibili)
+    const tog = $('.who-tog');
+    if (tog) {
+      try { if (localStorage.getItem('lemmi.pref') === '1') { $('#who-pannello').hidden = false; tog.setAttribute('aria-expanded', 'true'); } } catch (e) { /* nessuna memoria */ }
+      tog.addEventListener('click', () => {
+        const pan = $('#who-pannello'), apri = pan.hidden;
+        pan.hidden = !apri; tog.setAttribute('aria-expanded', apri ? 'true' : 'false');
+        try { localStorage.setItem('lemmi.pref', apri ? '1' : '0'); } catch (e) { /* nessuna memoria */ }
+      });
+    }
+    $$('.tema-sw button').forEach((b) => b.addEventListener('click', () => applicaTema(b.dataset.tema)));
     $$('.testo-sw button').forEach((b) => b.addEventListener('click', () => applicaTesto(b.dataset.testo)));
     $$('.nav-head, .nav-tog').forEach((b) => b.addEventListener('click', () => {
       const g = b.closest('.nav-group');
@@ -501,7 +511,6 @@
     const prim = PRIOR.filter((s) => nav.querySelector(`a[data-nav="${s}"]`)).slice(0, 4);
     nav.querySelectorAll('a[data-nav]').forEach((a) => a.classList.toggle('prim', prim.includes(a.dataset.nav)));
     const altre = [...nav.querySelectorAll('a[data-nav]')].filter((a) => !prim.includes(a.dataset.nav));
-    if (!altre.length) return;
     $('.altro-grid', foglio).innerHTML = altre.map((a) => `<a href="${esc(a.getAttribute('href'))}" data-nav="${esc(a.dataset.nav)}">${a.querySelector('svg') ? a.querySelector('svg').outerHTML : ''}<span>${a.querySelector('span').innerHTML}</span></a>`).join('');
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'nav-altro'; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'altro-sheet');
@@ -965,7 +974,7 @@
   }
 
   async function eliminaDoc(docId, percorso, bid) {
-    if (!confirm('Eliminare definitivamente questo documento?')) return;
+    if (!(await window.LemmiDialogo.chiedi('Eliminare definitivamente questo documento?', { elimina: true }))) return;
     try {
       const r1 = await state.sb.storage.from(BUCKET).remove([percorso]);
       if (r1.error) throw r1.error;
@@ -976,7 +985,7 @@
   }
 
   async function eliminaBussante(b, docs) {
-    if (!confirm('Eliminare la pratica di ' + b.cognome + ' ' + b.nome + ' e tutti i suoi documenti? L’operazione non si può annullare.')) return;
+    if (!(await window.LemmiDialogo.chiedi('Eliminare la pratica di ' + b.cognome + ' ' + b.nome + ' e tutti i suoi documenti?\nL’operazione non si può annullare.', { elimina: true }))) return;
     try {
       if (docs.length) { const r = await state.sb.storage.from(BUCKET).remove(docs.map((d) => d.percorso)); if (r.error) throw r.error; }
       chk(await state.sb.from('bussanti').delete().eq('id', b.id));

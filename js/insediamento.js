@@ -233,7 +233,7 @@
     /* registra le cariche nella storia dei Fratelli */
     $('#i-cariche', box).onclick = async (ev) => {
       const b = ev.currentTarget;
-      if (!window.confirm('Registrare nella storia dei Fratelli le cariche di Venerabile, Dignitari e Segretario per il ' + el.anno + '?')) return;
+      if (!(await window.LemmiDialogo.chiedi('Registrare le cariche nella storia dei Fratelli?\nVenerabile, Dignitari e Segretario per il ' + el.anno + '.', { ok: 'Registra' }))) return;
       b.disabled = true;
       try {
         const voc = chk(await state.sb.from('elenco_cariche').select('nome'));
