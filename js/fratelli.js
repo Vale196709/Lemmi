@@ -59,7 +59,7 @@
       $('#righe').innerHTML = f.length ? f.map((x) => `<tr><td>${esc(x.matricola) || '—'}</td>
         <td><a class="nome" href="#/fratelli/${esc(x.id)}">${esc(x.cognome)} ${esc(x.nome)}</a></td>
         <td>${L.badgeStato(x.stato)}</td>
-        <td>${esc(cap(x.grado_attuale)) || '—'}</td><td>${esc(x.carica_attuale) || '—'}</td><td>${esc(x.citta) || '—'}</td>
+        <td>${L.badgeGrado(x.grado_attuale)}</td><td>${esc(x.carica_attuale) || '—'}</td><td>${esc(x.citta) || '—'}</td>
         <td>${esc(x.cellulare || x.email) || '—'}</td></tr>`).join('') : '<tr><td colspan="7"><div class="empty">Nessun risultato.</div></td></tr>';
     };
     const ordinaPer = (id) => { lista.sort = { col: id, dir: lista.sort.col === id ? -lista.sort.dir : 1 }; disegna(); };
@@ -158,7 +158,7 @@
     v.innerHTML = `
       <div class="crumb"><a href="#/fratelli">Fratelli</a> › ${esc(f.cognome)} ${esc(f.nome)}</div>
       <div class="page-head"><div><h1>${esc(f.cognome)} ${esc(f.nome)}</h1>
-        <p>${f.stato ? L.badgeStato(f.stato) + ' ' : ''}${att.grado_attuale ? `<span class="badge gold">${esc(cap(att.grado_attuale))}</span> ` : ''}${att.carica_attuale ? `<span class="badge info">${esc(att.carica_attuale)}</span>` : ''}</p></div>
+        <p>${f.stato ? L.badgeStato(f.stato) + ' ' : ''}${att.grado_attuale ? L.badgeGrado(att.grado_attuale) + ' ' : ''}${att.carica_attuale ? `<span class="badge info">${esc(att.carica_attuale)}</span>` : ''}</p></div>
         ${canEdit() ? `<div class="right actions"><button class="btn gold" id="s-car">${IC.plus} Aggiungi carica</button><button class="btn ghost" id="s-gra">Passaggio di grado</button><button class="btn ghost" id="s-ana">Modifica anagrafica</button><button class="btn ghost" id="s-usc">${f.data_uscita ? 'Modifica uscita' : 'Uscita (O.E. / trasferimento)'}</button>${L.wa && f.cellulare ? L.wa.fratello(f.id) + L.wa.sollecito(f.id) : ''}</div>` : ''}</div>
 
       <div class="card"><h2>Dati</h2><div class="kv">

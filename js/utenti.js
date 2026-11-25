@@ -64,7 +64,7 @@
           const etic = nomeC || r.nome_visualizzato || r.email || '';
           const dati = `data-u="${esc(r.user_id)}" data-email="${esc(r.email || '')}" data-nome="${esc(etic)}"`;
           return `<tr class="${r.disattivato ? 'u-off' : ''}">
-          <td data-label="Utente"><div class="u-nome">${esc(nomeC || r.nome_visualizzato || '—')}${r.grado ? ` <span class="badge gray">${esc(cap(r.grado))}</span>` : ''}</div>
+          <td data-label="Utente"><div class="u-nome">${esc(nomeC || r.nome_visualizzato || '—')}${r.grado ? ' ' + L.badgeGrado(r.grado) : ''}</div>
             <div class="u-mail">${esc(r.email || '—')}</div></td>
           <td data-label="Profilo" data-sort="${esc(r.ruolo || '')}">${io
             ? `<span class="badge ${BADGE[r.ruolo] || 'gray'}">${esc(PROFILI[r.ruolo] || r.ruolo || '—')}</span><div class="hint">il tuo profilo</div>`

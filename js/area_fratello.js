@@ -55,7 +55,7 @@
       <div class="grid cols-2">
         <div class="card"><h2>Prossime tornate</h2>
           ${tornate.length ? `<div class="table-wrap"><table><tbody>${tornate.map((t) => `<tr><td><b>${fmtData(t.data)}</b>${t.ora ? `<div class="hint">ore ${esc(String(t.ora).slice(0, 5))}</div>` : ''}</td>
-            <td data-tornata="${esc(t.id)}">${esc(TIPO_T[t.tipo] || cap(t.tipo))}${t.grado ? ` <span class="badge gold">${esc(cap(t.grado))}</span>` : ''}
+            <td data-tornata="${esc(t.id)}">${esc(TIPO_T[t.tipo] || cap(t.tipo))}${t.grado ? ' ' + L.badgeGrado(t.grado) : ''}
               ${t.ordine_del_giorno ? `<div class="hint">${esc(t.ordine_del_giorno)}</div>` : ''}
               ${t.link_online && /^https:\/\//i.test(t.link_online) ? `<div><a href="${esc(t.link_online)}" target="_blank" rel="noopener">Collegamento online</a></div>` : t.luogo ? `<div class="hint">${esc(t.luogo)}</div>` : ''}</td></tr>`).join('')}</tbody></table></div>
             <div style="margin-top:10px"><a href="#/calendario">Tutto il calendario</a></div>` : '<div class="empty"><div>Nessuna tornata in calendario.</div></div>'}</div>

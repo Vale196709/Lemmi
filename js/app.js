@@ -163,6 +163,13 @@
     return Object.keys(COLORE_STATO).find((c) => COLORE_STATO[c].includes(k)) || 'gray';
   }
   const etichettaStato = (s) => ETICHETTA_STATO[s] || (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1).replace(/_/g, ' ') : '—');
+  // Etichetta del grado con un colore fisso per ciascun grado (azzurro Apprendista, viola Compagno, oro Maestro)
+  const badgeGrado = (g) => {
+    const t = String(g || '').trim();
+    if (!t) return '—';
+    const k = /^app/i.test(t) ? 'apprendista' : /^comp/i.test(t) ? 'compagno' : /^mae/i.test(t) ? 'maestro' : 'altro';
+    return `<span class="badge g-${k}">${esc(t.charAt(0).toUpperCase() + t.slice(1).toLowerCase())}</span>`;
+  };
   const badgeStato = (s, etichetta) => (s ? `<span class="badge st ${coloreStato(s)}">${esc(etichetta || etichettaStato(s))}</span>` : '—');
   // stato di una quota con l'avviso «In scadenza» (da pagare entro 30 giorni)
   function statoQuota(r) {
@@ -383,7 +390,7 @@
     { sez: 'cerca', href: '#/cerca', t: 'Cerca', ic: IC.search },
     { sez: 'calendario', href: '#/calendario', t: 'Calendario', ic: IC.calendar },
     { sez: 'pagamenti', href: '#/pagamenti', t: 'Tesoreria', ic: IC.euro },
-    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli/Bussanti', ic: IC.users, sub: [{ sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user }, { sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'verbali', href: '#/verbali', t: 'Verbali e presenze', ic: IC.lavori }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }, { sez: 'libromatricola', href: '#/libromatricola', t: 'Libro Matricola', ic: IC.storia }, { sez: 'completa', href: '#/completa', t: 'Dati da completare', ic: IC.lista }] },
+    { sez: 'fratelli', href: '#/fratelli', t: 'Fratelli/Bussanti', corto: 'Fratelli', ic: IC.users, sub: [{ sez: 'bussanti', href: '#/bussanti', t: 'Bussanti', ic: IC.user }, { sez: 'storia', href: '#/storia', t: 'Storia', ic: IC.storia }, { sez: 'verbali', href: '#/verbali', t: 'Verbali e presenze', ic: IC.lavori }, { sez: 'lavori', href: '#/lavori', t: 'Lavori e tavole', ic: IC.lavori }, { sez: 'elezioni', href: '#/elezioni', t: 'Elezioni cariche', ic: IC.elezioni }, { sez: 'piedilista', href: '#/piedilista', t: 'Piè di lista', ic: IC.lista }, { sez: 'libromatricola', href: '#/libromatricola', t: 'Libro Matricola', ic: IC.storia }, { sez: 'completa', href: '#/completa', t: 'Dati da completare', ic: IC.lista }] },
     { sez: 'procedure', href: '#/procedure', t: 'Procedure', ic: IC.procedure },
     { sez: 'template', href: '#/template', t: 'Template', ic: IC.template },
     { sez: 'biblioteca', href: '#/biblioteca', t: 'Biblioteca', ic: IC.libro },
@@ -401,7 +408,7 @@
   function menuHtml(p) {
     const puo = (sez) => ACCESSO_SEZ[sez].includes(p.ruolo);
     const titolo = (x) => (p.ruolo === 'fratello' && x.sez === 'home' ? 'La mia scheda' : p.ruolo === 'fratello' && x.sez === 'loggia' ? 'Il mio accesso' : x.t);
-    const link = (x, cls) => `<a href="${x.href}" data-nav="${x.sez}"${cls ? ` class="${cls}"` : ''}>${x.ic}<span>${esc(titolo(x))}</span></a>`;
+    const link = (x, cls) => `<a href="${x.href}" data-nav="${x.sez}"${cls ? ` class="${cls}"` : ''}>${x.ic}${x.corto ? `<span class="lungo">${esc(titolo(x))}</span><span class="corto">${esc(x.corto)}</span>` : `<span>${esc(titolo(x))}</span>`}</a>`;
     return MENU.map((x) => {
       if (!x.sub) return puo(x.sez) ? link(x) : '';
       const subs = x.sub.filter((s) => puo(s.sez));
@@ -458,7 +465,9 @@
         <div class="who"><b>${esc(p.nome_visualizzato || state.user.email)}</b><span>${esc(ETICHETTA_RUOLO[p.ruolo] || p.ruolo)}</span>
           <button class="btn ghost small" id="b-logout">Esci</button>${temaHtml()}${testoHtml()}${versioneHtml()}</div>
       </aside>
-      <main id="view" data-stampa="${esc(nomeLoggia('Gestione di Loggia') + (state.loggia.oriente ? ' · Oriente di ' + state.loggia.oriente : ''))}"></main></div>`;
+      <main id="view" data-stampa="${esc(nomeLoggia('Gestione di Loggia') + (state.loggia.oriente ? ' · Oriente di ' + state.loggia.oriente : ''))}"></main></div>
+      <div class="altro-velo" hidden></div>
+      <div class="altro-sheet" id="altro-sheet" role="dialog" aria-label="Altre sezioni" hidden><div class="altro-grid"></div></div>`;
     osservaTabelle.disconnect();
     osservaTabelle.observe(document.body, { childList: true, subtree: true });
     $('#b-logout').onclick = () => state.sb.auth.signOut();
@@ -474,6 +483,36 @@
       const aperto = g.classList.toggle('open');
       b.setAttribute('aria-expanded', aperto ? 'true' : 'false');
     }));
+    preparaBarraTelefono();
+  }
+
+  /* ---------- telefono: barra di navigazione in basso (4 voci principali + «Altro») ---------- */
+  const IC_ALTRO = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
+  function chiudiAltro() {
+    const f = $('#altro-sheet'), v = $('.altro-velo'), b = $('.nav-altro');
+    if (f) f.hidden = true; if (v) v.hidden = true; if (b) b.setAttribute('aria-expanded', 'false');
+  }
+  function preparaBarraTelefono() {
+    const nav = $('.side .nav'), foglio = $('#altro-sheet');
+    if (!nav || !foglio) return;
+    // le quattro voci più usate che questo profilo può vedere (altre sezioni vanno in «Altro»)
+    const PRIOR = ['home', 'calendario', 'fratelli', 'pagamenti', 'cerca'];
+    const prim = PRIOR.filter((s) => nav.querySelector(`a[data-nav="${s}"]`)).slice(0, 4);
+    nav.querySelectorAll('a[data-nav]').forEach((a) => a.classList.toggle('prim', prim.includes(a.dataset.nav)));
+    const altre = [...nav.querySelectorAll('a[data-nav]')].filter((a) => !prim.includes(a.dataset.nav));
+    if (!altre.length) return;
+    $('.altro-grid', foglio).innerHTML = altre.map((a) => `<a href="${esc(a.getAttribute('href'))}" data-nav="${esc(a.dataset.nav)}">${a.querySelector('svg') ? a.querySelector('svg').outerHTML : ''}<span>${a.querySelector('span').innerHTML}</span></a>`).join('');
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'nav-altro'; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'altro-sheet');
+    btn.innerHTML = IC_ALTRO + '<span>Altro</span>';
+    nav.appendChild(btn);
+    btn.addEventListener('click', () => {
+      const apri = foglio.hidden;
+      foglio.hidden = !apri; $('.altro-velo').hidden = !apri; btn.setAttribute('aria-expanded', apri ? 'true' : 'false');
+    });
+    $('.altro-velo').addEventListener('click', chiudiAltro);
+    foglio.addEventListener('click', (e) => { if (e.target.closest('a')) chiudiAltro(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') chiudiAltro(); });
   }
 
   /* ---------- router ---------- */
@@ -491,7 +530,10 @@
     if (mia !== ultimaRichiesta) return;
     const parti = (location.hash.replace(/^#\/?/, '') || '').split('/');
     const sez = parti[0] || 'home';
-    $$('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.nav === sez));
+    $$('.nav a, .altro-grid a').forEach((a) => a.classList.toggle('active', a.dataset.nav === sez));
+    const bAltro = $('.nav-altro');
+    if (bAltro) bAltro.classList.toggle('active', !!$(`.altro-grid a[data-nav="${sez}"]`));
+    chiudiAltro();
     $$('.nav-group.chiudibile').forEach((g) => {
       if (g.querySelector('a.active')) { g.classList.add('open'); const h = $('.nav-head, .nav-tog', g); if (h) h.setAttribute('aria-expanded', 'true'); }
     });
@@ -1021,7 +1063,7 @@
   // Interfaccia messa a disposizione dei moduli aggiuntivi (es. js/pagamenti.js)
   // importi in euro nel formato 1.234,56 €
   const eur = (x) => { const n = Math.round(Number(x || 0) * 100) / 100; const [i, d] = Math.abs(n).toFixed(2).split('.'); return (n < 0 ? '-' : '') + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d + ' €'; };
-  const API = window.Lemmi = { state, $, $$, esc, chk, toast, eliminaConAnnulla, coloreStato, etichettaStato, badgeStato, statoQuota, schedeTabelle, SAGOMA, vocetl, messaggioErrore, senzaRete, fmtData, isoToIt, itToIso, oggi, isoLocale, libreria, eur, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
+  const API = window.Lemmi = { state, $, $$, esc, chk, toast, eliminaConAnnulla, coloreStato, etichettaStato, badgeStato, badgeGrado, statoQuota, schedeTabelle, SAGOMA, vocetl, messaggioErrore, senzaRete, fmtData, isoToIt, itToIso, oggi, isoLocale, libreria, eur, canEdit, isAdmin, IC, campo, mascheraDate, route, caricaFratelli, viste: {}, estensioniLoggia: [] };
   API.estensioniLoggia.push(schedaPassword);
 
   function schedaPassword(v) {
