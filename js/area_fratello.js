@@ -33,6 +33,7 @@
         <div class="f s12"><label for="tv-tema">Tema o argomento (facoltativo)</label><input id="tv-tema" name="tema" maxlength="300" autocomplete="off" value="${esc((lavoro && lavoro.tema) || '')}"></div>
         <div class="f s6"><label for="tv-grado">Grado della tavola <span class="req">*</span></label><select id="tv-grado" name="grado">${gradiOk.map((g) => `<option value="${g}" ${g === gradoIniz ? 'selected' : ''}>${esc(cap(g))}</option>`).join('')}</select></div>
         <div class="f s6"><label for="tv-data">Data</label><input id="tv-data" name="data" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off" value="${esc(L.isoToIt((lavoro && lavoro.data_presentazione) || oggi()))}"></div>
+        <div class="f s6"><label for="tv-disc">Discussa il (facoltativo)</label><input id="tv-disc" name="discussa" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off" value="${esc(L.isoToIt((lavoro && lavoro.data_discussione) || ''))}"></div>
         <div class="f s12"><label for="tv-file">${nuova ? 'File' : 'Sostituisci il file (facoltativo)'} <span class="hint">PDF, Word, ODT o testo, fino a 10 MB</span></label>
           ${!nuova && lavoro.file_nome ? `<div class="hint" style="margin-bottom:6px">File attuale: <b>${esc(lavoro.file_nome)}</b></div>` : ''}
           <input id="tv-file" name="file" type="file" accept=".pdf,.doc,.docx,.odt,.txt"></div></div>
@@ -53,6 +54,8 @@
       if (!titolo) return errore('Scrivi il titolo della tavola.');
       const data = f.elements.data.value.trim() ? L.itToIso(f.elements.data.value.trim()) : null;
       if (data === 'ERR') return errore('Scrivi la data nel formato gg/mm/aaaa.');
+      const disc = f.elements.discussa.value.trim() ? L.itToIso(f.elements.discussa.value.trim()) : null;
+      if (disc === 'ERR') return errore('Scrivi la data della discussione nel formato gg/mm/aaaa.');
       const file = f.elements.file.files && f.elements.file.files[0];
       if (nuova && !file) return errore('Scegli il file da caricare.');
       let ext = '';
@@ -72,7 +75,7 @@
           if (su.error) throw su.error;
         }
         const rr = chk(await state.sb.rpc('fratello_salva_tavola', {
-          p_id: lavoro ? lavoro.id : null, p_titolo: titolo, p_tema: f.elements.tema.value.trim() || null, p_grado: f.elements.grado.value, p_data: data,
+          p_id: lavoro ? lavoro.id : null, p_titolo: titolo, p_tema: f.elements.tema.value.trim() || null, p_grado: f.elements.grado.value, p_data: data, p_discussa: disc,
           p_file_path: path, p_file_nome: file ? file.name : null, p_file_tipo: file ? MIME[ext] : null, p_file_dimensione: file ? file.size : null,
         }));
         const vecchio = rr && rr.vecchio_file;
@@ -106,7 +109,7 @@
       leggi(state.sb.rpc('mie_quote')),
       leggi(state.sb.from('tornate').select('*').gte('data', oggi()).neq('stato', 'annullata').order('data').limit(20)),
     ]);
-    const proprie = await leggi(state.sb.from('lavori').select('id,titolo,tema,stato,file_path,file_nome,data_presentazione,grado_tornata,grado_autore').eq('fratello_id', fr.id).order('created_at', { ascending: false }));
+    const proprie = await leggi(state.sb.from('lavori').select('id,titolo,tema,stato,file_path,file_nome,data_presentazione,grado_tornata,grado_autore,data_discussione').eq('fratello_id', fr.id).order('created_at', { ascending: false }));
     const mie = proprie.length ? proprie : lav.filter((l) => l.mia), altre = lav.filter((l) => !l.mia);
     const mioGrado = pass.reduce((m, p) => Math.max(m, GRADI.indexOf(String(p.grado))), 0);
     const mioGradoNome = cap(GRADI[mioGrado]);
@@ -148,14 +151,14 @@
         <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Le mie tavole</h2>
             <button class="btn gold small" type="button" id="tv-carica">+ Carica una tavola</button></div>
           ${mie.length ? `<div class="table-wrap" style="margin-top:10px"><table><tbody>${mie.map((l) => `<tr data-riga="${esc(l.id || '')}"><td><b>${esc(l.titolo)}</b>${linkFile(l)}
-              <div class="hint">${(l.grado_tornata || l.grado_autore) ? L.badgeGrado(l.grado_tornata || l.grado_autore) + ' · ' : ''}${l.data_presentazione ? fmtData(l.data_presentazione) : 'senza data'}${l.tema ? ' · ' + esc(l.tema) : ''}</div></td>
+              <div class="hint">${(l.grado_tornata || l.grado_autore) ? L.badgeGrado(l.grado_tornata || l.grado_autore) + ' · ' : ''}${l.data_presentazione ? fmtData(l.data_presentazione) : 'senza data'}${l.data_discussione ? ' · discussa il ' + fmtData(l.data_discussione) : ''}${l.tema ? ' · ' + esc(l.tema) : ''}</div></td>
             <td class="act">${l.id ? `<button class="btn ghost small" type="button" data-tv="${esc(l.id)}">Modifica</button> <button class="btn ghost small" type="button" data-tv-del="${esc(l.id)}">Elimina</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div>Nessuna tavola. Con «Carica una tavola» puoi aggiungere la tua.</div></div>'}
           <p class="hint" style="margin-top:8px">Formati ammessi: PDF, Word, ODT o testo, fino a 10 MB. Il grado che scegli decide chi può leggere la tavola.</p></div>
       </div>
       ${altre.length ? `<div class="card"><h2>Tavole della Loggia</h2><p class="hint" style="margin-bottom:8px">${mioGradoNome === 'Maestro' ? 'Come Maestro vedi tutte le tavole.' : 'Vedi le tavole in grado di ' + (mioGradoNome === 'Compagno' ? 'Compagno e di Apprendista' : 'Apprendista') + '.'}</p>
-        <div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Data</th></tr></thead><tbody>${altre.map((l) => `<tr><td><b>${esc(l.titolo)}</b>${linkFile(l)}${l.tema ? `<div class="hint">${esc(l.tema)}</div>` : ''}</td>
+        <div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Data</th><th>Discussa il</th></tr></thead><tbody>${altre.map((l) => `<tr><td><b>${esc(l.titolo)}</b>${linkFile(l)}${l.tema ? `<div class="hint">${esc(l.tema)}</div>` : ''}</td>
           <td>${esc(l.autore)}</td><td>${l.grado_tornata ? L.badgeGrado(l.grado_tornata) : '—'}</td>
-          <td>${l.data_presentazione ? fmtData(l.data_presentazione) : '—'}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
+          <td>${l.data_presentazione ? fmtData(l.data_presentazione) : '—'}</td><td>${l.data_discussione ? fmtData(l.data_discussione) : '—'}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
       <div class="card"><h2>I miei dati</h2><div class="kv">
         ${kv('Data di nascita', fr.data_nascita ? fmtData(fr.data_nascita) : '')}${kv('Luogo di nascita', [fr.luogo_nascita, fr.provincia_nascita ? '(' + fr.provincia_nascita + ')' : ''].filter(Boolean).join(' '))}
         ${kv('Indirizzo', [fr.indirizzo, fr.cap, fr.citta, fr.provincia ? '(' + fr.provincia + ')' : ''].filter(Boolean).join(' '))}

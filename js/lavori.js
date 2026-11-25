@@ -85,7 +85,7 @@
   async function apriLavoro(l, predef) {
     const nuovo = !l;
     if (!lv.fratelli.length) lv.fratelli = chk(await state.sb.from('fratelli').select('id,cognome,nome,stato').order('cognome'));
-    const x = l || Object.assign({ titolo: '', tema: '', fratello_id: null, autore_esterno: '', grado_tornata: '', data_presentazione: oggi(), note: '' }, predef || {});
+    const x = l || Object.assign({ titolo: '', tema: '', fratello_id: null, autore_esterno: '', grado_tornata: '', data_presentazione: oggi(), data_discussione: null, note: '' }, predef || {});
     const esterno = !!(x.autore_esterno && !x.fratello_id);
 
     const corpo = `<div class="form-grid">
@@ -97,6 +97,7 @@
         <label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-top:6px"><input type="checkbox" name="esterno" ${esterno ? 'checked' : ''}> Autore non iscritto in Loggia (ospite o visitatore)</label></div>
       <div class="f s3"><label for="l-gt">Grado della tavola <span class="req">*</span></label><select id="l-gt" name="grado_tornata">${opzioni(GRADI, x.grado_tornata || x.grado_autore, 'Scegli…')}</select></div>
       <div class="f s3"><label for="l-d3">Data</label><input id="l-d3" name="data_presentazione" value="${esc(isoToIt(x.data_presentazione))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
+      <div class="f s3"><label for="l-dd">Discussa il</label><input id="l-dd" name="data_discussione" value="${esc(isoToIt(x.data_discussione))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
       <div class="f s12"><label for="l-note">Note</label><textarea id="l-note" name="note" rows="3">${esc(x.note || '')}</textarea></div>
       <div class="f s12"><label for="l-file">File della tavola (PDF, Word, ODT o testo, fino a 10 MB)</label>
         ${x.file_path ? `<div class="hint" style="margin-bottom:6px">File attuale: <b>${esc(x.file_nome || 'allegato')}</b>${x.file_dimensione ? ' · ' + kb(x.file_dimensione) : ''}. Scegliendone un altro, lo sostituisci.</div>
@@ -122,12 +123,14 @@
           fratello_id = fr.id;
         }
         const d3 = itToIso(e.data_presentazione.value);
+        const dd = itToIso(e.data_discussione.value);
+        if (dd === 'ERR') return errore('Controlla la data della discussione: usa il formato gg/mm/aaaa.');
         if (d3 === 'ERR') return errore('Controlla la data: usa il formato gg/mm/aaaa.');
         if (!e.grado_tornata.value) return errore('Scegli il grado della tavola: decide chi può leggerla.');
         const dati = {
           titolo, tema: e.tema.value.trim() || null, fratello_id, autore_esterno,
           grado_autore: e.grado_tornata.value, grado_tornata: e.grado_tornata.value,
-          data_presentazione: d3 || oggi(), stato: 'presentato', note: e.note.value.trim() || null,
+          data_presentazione: d3 || oggi(), data_discussione: dd || null, stato: 'presentato', note: e.note.value.trim() || null,
         };
         if (nuovo) dati.tipo = 'tavola';
 
@@ -231,12 +234,13 @@
         c.innerHTML = `<div class="card empty">${IC.inbox}<div>${lv.righe.length ? 'Nessun risultato.' : 'Nessuna tavola registrata.' + (puoGestire() ? ' Usa “Nuova tavola” per aggiungerne una.' : '')}</div></div>`;
         return;
       }
-      c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Data</th><th>File</th><th></th></tr></thead><tbody>
+      c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Data</th><th>Discussa il</th><th>File</th><th></th></tr></thead><tbody>
         ${lista.map((r) => `<tr>
             <td><b>${esc(r.titolo)}</b>${r.tema ? `<div class="hint">${esc(r.tema)}</div>` : ''}</td>
             <td>${esc(autoreDi(r))}</td>
             <td>${(r.grado_tornata || r.grado_autore) ? L.badgeGrado(r.grado_tornata || r.grado_autore) : '—'}</td>
             <td>${r.data_presentazione ? fmtData(r.data_presentazione) : '—'}</td>
+            <td>${r.data_discussione ? fmtData(r.data_discussione) : '—'}</td>
             <td>${r.file_path ? `<button class="btn ghost small" data-dl="${esc(r.id)}" title="${esc(r.file_nome || '')}">Scarica</button>` : '<span class="muted">—</span>'}</td>
             <td class="act">${puoGestire() ? `<button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
       $$('[data-mod]', c).forEach((b) => b.addEventListener('click', () => apriLavoro(lv.righe.find((x) => x.id === b.dataset.mod)).catch((e) => toast(messaggioErrore(e), 'bad'))));

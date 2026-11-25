@@ -4,7 +4,7 @@ window.LEMMI_VERSIONE = {
   numero: '0.63.0',
   data: '2026-11-25',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
-    { n: '0.63.0', data: '2026-11-25', t: 'Tavole semplificate: nessuno stato o assegnazione, ogni Fratello carica, modifica ed elimina le proprie tavole dalla sua scheda (titolo, grado, data, file in ZIP); tutti leggono le tavole in base al grado, l’amministratore modifica tutto. Script SQL 48' },
+    { n: '0.63.0', data: '2026-11-25', t: 'Tavole semplificate: nessuno stato o assegnazione, ogni Fratello carica, modifica ed elimina le proprie tavole dalla sua scheda (titolo, grado, data, «Discussa il» facoltativa, file in ZIP); tutti leggono le tavole in base al grado, l’amministratore modifica tutto. Script SQL 48' },
     { n: '0.62.0', data: '2026-11-25', t: 'Archivio cartaceo: registro degli originali (cartellina, dove si trova, prelievi e trasmissioni a un organo con rientro previsto, copia in cartellina, storico dei movimenti, avviso nel Cruscotto, elenco in Excel); gli originali fuori sede compaiono nel prospetto delle consegne. Script SQL 47' },
     { n: '0.61.0', data: '2026-11-24', t: 'Consegne tra segretari: prospetto delle pendenze, inventario dell’archivio e verifica congiunta in un file Excel (artt. 7-9 del regolamento della segreteria)' },
     { n: '0.60.0', data: '2026-11-24', t: 'Grafica: sul telefono intestazione sottile e barra di navigazione in basso (4 voci + «Altro»); colore fisso per ogni grado (azzurro Apprendista, viola Compagno, oro Maestro); testi in oro più leggibili' },
