@@ -467,7 +467,7 @@
         <div class="who"><div class="who-riga"><div class="who-nome"><b>${esc(p.nome_visualizzato || state.user.email)}</b><span>${esc(ETICHETTA_RUOLO[p.ruolo] || p.ruolo)}</span></div>
             <button class="btn ghost small b-logout" type="button">Esci</button>
             <button class="who-tog" type="button" aria-expanded="false" aria-controls="who-pannello" title="Tema, dimensione del testo e versione" aria-label="Tema, dimensione del testo e versione">${IC_PREF}</button></div>
-          <div class="who-pannello" id="who-pannello" hidden>${temaHtml()}${testoHtml()}${versioneHtml()}</div></div>
+          <div class="who-pannello" id="who-pannello" hidden>${temaHtml()}${testoHtml()}</div>${versioneHtml()}</div>
       </aside>
       <main id="view" data-stampa="${esc(nomeLoggia('Gestione di Loggia') + (state.loggia.oriente ? ' · Oriente di ' + state.loggia.oriente : ''))}"></main></div>
       <div class="altro-velo" hidden></div>

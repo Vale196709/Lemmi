@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.65.0',
+  numero: '0.65.1',
   data: '2026-11-25',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.65.1', data: '2026-11-25', t: 'Versione e data dell’ultimo aggiornamento di nuovo sempre visibili in fondo al menu laterale (non più dentro il pannello delle preferenze)' },
     { n: '0.65.0', data: '2026-11-25', t: 'Review globale: la vista completa dei Fratelli si legge solo in base al profilo (un Fratello vede solo sé stesso, note riservate solo ad amministratore, Venerabile e Segretario); invio automatico delle notifiche protetto da codice segreto; Calendario senza colonna tagliata (data e ora insieme); menu laterale con riquadro utente compatto (tema e testo dietro il pulsante delle preferenze); su telefono Esci, tema e testo in «Altro» e più spazio sotto il pulsante «+»; tutte le conferme nello stile dell’app; tolto il promemoria delle tavole. Script SQL 50' },
     { n: '0.64.0', data: '2026-11-25', t: 'Seconda e-mail nell’anagrafica dei Fratelli; in «Nuovo utente» scegliendo il Fratello si precompilano e-mail (prima o seconda, modificabile), nome e profilo, con la proposta di salvare in anagrafica un’e-mail nuova. Script SQL 49' },
     { n: '0.63.0', data: '2026-11-25', t: 'Tavole semplificate: nessuno stato o assegnazione, ogni Fratello carica, modifica ed elimina le proprie tavole dalla sua scheda (titolo, grado, data, «Discussa il» facoltativa, file in ZIP); tutti leggono le tavole in base al grado, l’amministratore modifica tutto. Script SQL 48' },
