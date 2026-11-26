@@ -26,13 +26,15 @@ Si eseguono in **Supabase › SQL Editor › Run**. Salvo dove indicato, si poss
 | `lemmi_aggiornamento_49.sql` | Seconda e-mail nell'anagrafica dei Fratelli (colonna `email_2`) |
 | `lemmi_aggiornamento_50.sql` | Sicurezza: vista `v_fratelli_completi` filtrata per profilo; codice segreto per l'invio automatico delle notifiche |
 | `lemmi_aggiornamento_51.sql` | Modalità «Tornata»: funzione `registra_tronco` per il Tronco della Vedova in Tesoreria (anche dal Segretario) |
+| `lemmi_aggiornamento_52.sql` | Archivi dei file: accettano anche gli ZIP creati dalla compressione (errore «mime type application/zip is not supported») |
+| `lemmi_aggiornamento_53.sql` | Caselle e rinnovi (cartella 04): PEC, PEO, dominio, scadenze, recupero, cambio password — senza password |
 | `pulizia_bussanti.sql` | Da usare solo dopo aver eliminato un bussante dall'app: toglie i dati rimasti |
 
 ## Attenzione alla numerazione
 
 - Il numero **43** è stato usato due volte: per le agapi (obiettivo coperti e ospiti, v0.44.0) e per gli utenti (v0.58.0). In questa cartella c'è solo quello degli utenti.
 - Gli script **44** e **45** delle agapi (pagamenti, collegamento con la Tesoreria) e le funzioni per disattivare ed eliminare gli utenti non sono più qui. I loro effetti sono nel database in uso; vanno verificati nello `schema_completo.sql` (vedi sotto).
-- Da ora in avanti ogni script nuovo prende il numero successivo all'ultimo (il prossimo è il **52**), e va aggiunto a questa tabella.
+- Da ora in avanti ogni script nuovo prende il numero successivo all'ultimo (il prossimo è il **54**), e va aggiunto a questa tabella.
 
 ## Come tenere allineato lo schema
 

@@ -124,8 +124,8 @@ begin
 
   -- 7. archivi dei file (bucket)
   begin
-    for r in execute 'select id::text as id, public, file_size_limit from storage.buckets order by id' loop
-      return next format('-- archivio file: %s (privato: %s, limite: %s byte)', r.id, not r.public, coalesce(r.file_size_limit::text, 'nessuno'));
+    for r in execute 'select id::text as id, public, file_size_limit, array_to_string(allowed_mime_types, '', '') as tipi from storage.buckets order by id' loop
+      return next format('-- archivio file: %s (privato: %s, limite: %s byte, tipi ammessi: %s)', r.id, not r.public, coalesce(r.file_size_limit::text, 'nessuno'), coalesce(r.tipi, 'tutti'));
     end loop;
   exception when others then return next '-- ERRORE sugli archivi dei file: ' || sqlerrm;
   end;

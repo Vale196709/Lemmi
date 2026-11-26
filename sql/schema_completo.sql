@@ -534,6 +534,31 @@ create table if not exists public.modelli_loggia (
 );
 alter table public.modelli_loggia enable row level security;
 
+create table if not exists public.caselle_rinnovi (
+  id uuid not null default gen_random_uuid(),
+  tipo text not null,
+  nome text not null,
+  indirizzo text,
+  gestore text,
+  scadenza date,
+  rinnovo_automatico boolean not null default false,
+  preavviso_giorni integer not null default 30,
+  recapiti_recupero text,
+  due_passaggi boolean not null default false,
+  ultimo_cambio_password date,
+  custodia_credenziali text,
+  chi_accede text,
+  note text,
+  attivo boolean not null default true,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  creato_da uuid default auth.uid(),
+  constraint caselle_rinnovi_pkey primary key (id),
+  constraint caselle_rinnovi_tipo_check check (tipo = any (array['pec'::text, 'peo'::text, 'dominio'::text, 'firma'::text, 'altro'::text])),
+  constraint caselle_rinnovi_preavviso_check check (preavviso_giorni between 0 and 365)
+);
+alter table public.caselle_rinnovi enable row level security;
+
 create table if not exists public.originali_cartacei (
   id uuid not null default gen_random_uuid(),
   cartellina text not null,
@@ -858,6 +883,7 @@ CREATE INDEX IF NOT EXISTS lavori_tornata_idx ON public.lavori USING btree (torn
 
 CREATE INDEX IF NOT EXISTS messaggi_destinatari_messaggio_id_idx ON public.messaggi_destinatari USING btree (messaggio_id);
 
+create index if not exists caselle_rinnovi_scadenza_idx on public.caselle_rinnovi (attivo, scadenza);
 CREATE INDEX IF NOT EXISTS originali_cartacei_cartellina_idx ON public.originali_cartacei USING btree (cartellina, stato);
 
 CREATE INDEX IF NOT EXISTS originali_movimenti_originale_idx ON public.originali_movimenti USING btree (originale_id, data);
@@ -2502,6 +2528,8 @@ CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.documenti 
 DROP TRIGGER IF EXISTS lemmi_audit ON public.loggia;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.loggia FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
+drop trigger if exists lemmi_audit on public.caselle_rinnovi;
+create trigger lemmi_audit after insert or update or delete on public.caselle_rinnovi for each row execute function public.lemmi_audit();
 DROP TRIGGER IF EXISTS lemmi_audit ON public.originali_cartacei;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.originali_cartacei FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
@@ -2989,6 +3017,14 @@ drop policy if exists modelli_scrittura on public.modelli_messaggio;
 create policy modelli_scrittura on public.modelli_messaggio as PERMISSIVE for ALL to public
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])))
   with check ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app])));
+
+drop policy if exists caselle_rinnovi_lettura on public.caselle_rinnovi;
+create policy caselle_rinnovi_lettura on public.caselle_rinnovi as permissive for select to authenticated
+  using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app, 'venerabile'::public.ruolo_app]));
+drop policy if exists caselle_rinnovi_scrittura on public.caselle_rinnovi;
+create policy caselle_rinnovi_scrittura on public.caselle_rinnovi as permissive for all to authenticated
+  using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]))
+  with check (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]));
 
 drop policy if exists originali_cartacei_lettura on public.originali_cartacei;
 create policy originali_cartacei_lettura on public.originali_cartacei as PERMISSIVE for SELECT to authenticated
