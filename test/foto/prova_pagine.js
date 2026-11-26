@@ -45,6 +45,7 @@ const TABELLE = {
 };
 const lavori = [
   { id: 'l1', titolo: 'I Quattro Triangoli Elementali', tema: 'Terra - Acqua - Aria - Fuoco', tipo: 'tavola', fratello_id: fratelli[0].id, stato: 'presentato', grado_autore: 'apprendista', grado_tornata: 'apprendista', data_presentazione: isoTra(0), file_path: 'fratelli/' + fratelli[0].id + '/u1/1_quattro.pdf.zip', file_nome: 'quattro.pdf' },
+  { id: 'l3', titolo: 'La Luce e le Tenebre', tipo: 'tavola', fratello_id: fratelli[2].id, caricata_da: fratelli[0].id, stato: 'presentato', grado_autore: 'apprendista', grado_tornata: 'apprendista', data_presentazione: isoTra(-400), file_path: 'fratelli/' + fratelli[0].id + '/u3/3_luce.pdf', file_nome: 'luce.pdf' },
   { id: 'l2', titolo: 'Il silenzio dell’Apprendista', tipo: 'tavola', fratello_id: fratelli[3].id, stato: 'presentato', grado_autore: 'maestro', grado_tornata: 'apprendista', data_presentazione: isoTra(-30), file_path: 'fratelli/x/u2/2_silenzio.pdf', file_nome: 'silenzio.pdf' },
 ];
 TABELLE.lavori = lavori;
@@ -53,10 +54,26 @@ TABELLE.caselle_rinnovi = [
   { id: 'r2', tipo: 'dominio', nome: 'Dominio del sito', indirizzo: 'lemmi812.esempio.it', gestore: 'Aruba', scadenza: isoTra(200), preavviso_giorni: 30, rinnovo_automatico: true, recapiti_recupero: null, due_passaggi: false, ultimo_cambio_password: isoTra(-30), custodia_credenziali: null, attivo: true },
   { id: 'r3', tipo: 'peo', nome: 'Vecchia casella', indirizzo: 'vecchia@esempio.it', gestore: 'Libero', scadenza: isoTra(-10), preavviso_giorni: 30, rinnovo_automatico: false, due_passaggi: false, attivo: false },
 ];
+TABELLE.segreteria_attivita = [
+  { id: 'd1', data: isoTra(-150), oggetto: 'Invio piè di lista al 30 giugno', destinatario: 'Anagrafe, Gran Segreteria e Segreteria del Collegio', ricorrente: 'piedilista_giugno', anno_riferimento: anno, stato: 'chiusa', chiusa_il: isoTra(-140), rif_archivio: 'x_Invio_pie_di_lista_al_30_giugno_Anagrafe' },
+  { id: 'd2', data: isoTra(-20), oggetto: 'Richiesta Nulla Osta per l’insediamento', destinatario: 'Segreteria del Collegio', stato: 'attesa', prossimo_adempimento: 'Attendere il Nulla Osta', attesa_da: 'Collegio', scadenza: isoTra(-2), rif_archivio: 'x_Richiesta_Nulla_Osta_Segreteria_del_Collegio' },
+];
+TABELLE.segreteria_eventi = [{ id: 'ev1', attivita_id: 'd2', data: isoTra(-20), tipo: 'invio', mezzo: 'PEC', descrizione: 'Inviata con il verbale delle elezioni' }];
 TABELLE.elezioni = [{ id: 'e1', anno_massonico: 2027, data_elezione: isoTra(-60) }];
 const RPC = {
-  tavole_per_grado: lavori.map((l) => ({ id: l.id, titolo: l.titolo, tema: l.tema || null, tipo: 'tavola', autore: l.fratello_id === fratelli[0].id ? 'Rossi Mario' : 'Neri Giorgio', grado_tornata: l.grado_tornata, stato: l.stato, data_presentazione: l.data_presentazione, file_path: l.file_path, file_nome: l.file_nome, mia: l.fratello_id === fratelli[0].id })),
+  elenco_autori_tavole: fratelli.map((f, i) => ({ id: f.id, cognome: f.cognome, nome: f.nome, stato: i === 2 ? 'oriente_eterno' : 'attivo' })),
+  tavole_per_grado: lavori.map((l) => ({ id: l.id, titolo: l.titolo, tema: l.tema || null, tipo: 'tavola', autore: l.fratello_id === fratelli[0].id ? 'Rossi Mario' : 'Neri Giorgio', grado_tornata: l.grado_tornata, stato: l.stato, data_presentazione: l.data_presentazione, file_path: l.file_path, file_nome: l.file_nome, mia: l.fratello_id === fratelli[0].id, autore_id: l.fratello_id, autore_esterno: null, caricata_da_nome: l.caricata_da ? 'Rossi Mario' : null, gestibile: l.fratello_id === fratelli[0].id || l.caricata_da === fratelli[0].id })),
 };
+const UTENTI = [
+  { user_id: '11111111-1111-1111-1111-111111111111', email: 'prova@esempio.it', nome: 'Utente', cognome: 'di prova', ruolo: 'amministratore', ultimo_accesso: new Date().toISOString(), disattivato: false },
+  { user_id: 'u2', email: 'mario@esempio.it', nome: 'Mario', cognome: 'Rossi', grado: 'maestro', ruolo: 'segretario', fratello_id: fratelli[0].id, collegamento: 'manuale', ultimo_accesso: new Date(Date.now() - 3 * 86400000).toISOString(), disattivato: false },
+  { user_id: 'u3', email: 'luca@esempio.it', nome: 'Luca', cognome: 'Bianchi', grado: 'compagno', ruolo: 'fratello', fratello_id: fratelli[1].id, collegamento: 'e-mail', ultimo_accesso: new Date(Date.now() - 200 * 86400000).toISOString(), disattivato: false },
+  { user_id: 'u4', email: 'paolo@esempio.it', nome: 'Paolo', cognome: 'Verdi', grado: 'apprendista', ruolo: 'fratello', fratello_id: fratelli[2].id, collegamento: 'manuale', ultimo_accesso: null, disattivato: true },
+];
+TABELLE.registro_attivita = [
+  { quando: new Date(Date.now() - 3600000).toISOString(), utente_email: 'prova@esempio.it', tabella: 'utenti_sistema', operazione: 'modifica', dopo: { azione: 'password', utente: 'luca@esempio.it' } },
+  { quando: new Date(Date.now() - 86400000).toISOString(), utente_email: 'prova@esempio.it', tabella: 'profili', operazione: 'modifica', prima: { ruolo: 'fratello' }, dopo: { ruolo: 'segretario', nome_visualizzato: 'Mario Rossi' } },
+];
 const ruoloDi = { fratello: { ruolo: 'fratello', nome_visualizzato: 'Rossi Mario', fratello_id: fratelli[0].id } };
 
 /* ---------- server del sito ---------- */
@@ -87,6 +104,7 @@ function rispostaSupabase(route, ruolo) {
   if (url.pathname.startsWith('/storage/v1/')) return json([]);
   const m = /^\/rest\/v1\/(rpc\/)?([a-z_0-9]+)/.exec(url.pathname);
   if (!m) return json([]);
+  if (m[1] && m[2] === 'info_utenti_sistema') return json(UTENTI);
   if (m[1]) return json(ruolo === 'fratello' ? (RPC[m[2]] || []) : []);
   let dati = m[2] === 'profili' ? [ruoloDi[ruolo] || { ruolo, nome_visualizzato: 'Utente di prova' }] : (TABELLE[m[2]] || []);
   const id = url.searchParams.get('id');
@@ -103,10 +121,10 @@ const sessione = { access_token: 'a.b.c', token_type: 'bearer', expires_in: 3600
 
 /* ---------- pagine da provare ---------- */
 const TUTTE = ['', 'cerca', 'calendario', 'pagamenti', 'fratelli', 'fratelli/' + fratelli[0].id, 'bussanti', 'bussanti/nuovo', 'storia', 'verbali', 'lavori',
-  'elezioni', 'piedilista', 'libromatricola', 'procedure', 'archivio', 'template', 'biblioteca', 'relazione', 'completa', 'loggia', 'utenti', 'sistema', 'registro', 'tornata', 'tornata/t2', 'rinnovi'];
+  'elezioni', 'piedilista', 'libromatricola', 'procedure', 'archivio', 'template', 'biblioteca', 'relazione', 'completa', 'loggia', 'utenti', 'sistema', 'registro', 'tornata', 'tornata/t2', 'rinnovi', 'diario'];
 const PROVE = [
   { ruolo: 'amministratore', pagine: TUTTE },
-  { ruolo: 'venerabile', pagine: ['tornata/t0', 'rinnovi'] },
+  { ruolo: 'venerabile', pagine: ['tornata/t0', 'rinnovi', 'diario'] },
   { ruolo: 'segretario', pagine: ['', 'fratelli', 'procedure', 'tornata/t0'] },
   { ruolo: 'tesoriere', pagine: ['', 'pagamenti'] },
   { ruolo: 'fratello', pagine: ['', 'calendario', 'biblioteca', 'loggia'] },
@@ -149,7 +167,9 @@ const SCHERMI = [{ nome: 'computer', viewport: { width: 1366, height: 860 } }, {
           .filter((i) => i.offsetParent === null && !(i.id && document.querySelector('label.btn[for="' + i.id + '"]')))
           .map((i) => i.id || i.name || 'senza nome'));
         if (prova.ruolo === 'fratello' && h === '' && await pg.$('#tv-carica')) {
-          await pg.click('#tv-carica'); await pg.waitForTimeout(200);
+          await pg.click('#tv-carica'); await pg.waitForTimeout(300);
+          await pg.selectOption('#tv-chi', 'altro'); await pg.waitForTimeout(100);
+          if (await pg.isVisible('#tv-autore-est')) esito.fuori.push('modulo tavola: il campo «autore non in anagrafica» si vede anche scegliendo un Fratello');
           await pg.screenshot({ path: path.join(cartellaFoto, nome + '_carica-tavola.png') });
           (await fileNascosti()).forEach((x) => esito.fuori.push('campo file nascosto senza pulsante: ' + x));
           await pg.click('.modal [data-x]');
