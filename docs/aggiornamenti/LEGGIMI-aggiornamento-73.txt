@@ -1,0 +1,19 @@
+AGGIORNAMENTO 73 (versione 0.69.0) - Tavole caricate per conto di altri autori
+
+PASSO 1 (Supabase > SQL Editor) - esegui sql/lemmi_aggiornamento_54.sql. Atteso: "pronto".
+PASSO 2 (GitHub) - carica i file dello ZIP mantenendo le cartelle (l'elenco completo è nello ZIP; contiene anche
+   i file dell'aggiornamento 72, se non li hai ancora caricati).
+   Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Area del Fratello > Le mie tavole > "+ Carica una tavola":
+ - nuovo campo "Di chi è la tavola": "È mia" (come prima), "Di un altro Fratello della Loggia" (elenco con lo stato:
+   in sonno, trasferito, Oriente Eterno) oppure "Di un autore non presente in anagrafica" (nome scritto a mano).
+ - la tavola va nel fascicolo e nella storia dell'autore; in "Le mie tavole" di chi l'ha caricata compare con
+   "di <autore> · caricata da te" e la può modificare o eliminare; in "Tavole della Loggia" si legge "caricata da ...".
+ - il grado della tavola non può superare quello di chi carica; la tavola si vede subito, in base al grado.
+ - l'autore (se ha un accesso) la vede, ma non la può modificare: la gestiscono chi l'ha caricata, Segretario e amministratore.
+Fratelli/Bussanti > Lavori e tavole (amministratore e Segretario):
+ - nell'elenco degli autori, accanto al nome, lo stato (es. "Rossi Mario — Oriente Eterno"); nell'elenco delle tavole
+   lo stato dell'autore e "caricata da ..." quando l'ha caricata un Fratello;
+ - la casella per gli autori non in anagrafica si chiama "Autore non presente in anagrafica (ospite, visitatore o
+   Fratello non registrato)".
