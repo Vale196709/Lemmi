@@ -1,0 +1,29 @@
+AGGIORNAMENTO 66 (versione 0.65.0) - Modifiche della review globale: sicurezza, pulizia e grafica
+Contiene anche l'aggiornamento 65 (e-mail precompilata e seconda e-mail): se non l'hai ancora caricato, basta questo.
+
+PASSO 1 (Supabase > SQL Editor) - se non l'hai gia' fatto, esegui sql/lemmi_aggiornamento_49.sql (seconda e-mail).
+PASSO 2 (Supabase > SQL Editor) - esegui sql/lemmi_aggiornamento_50.sql
+   Nei risultati compare prima l'elenco delle viste con le loro opzioni (solo informativo: se vuoi, mandamelo),
+   alla fine una riga con "filtro attivo" e "codice presente".
+PASSO 3 (Supabase > Edge Functions > notifiche) - ripubblica la funzione: apri "notifiche", sostituisci tutto il codice
+   con il contenuto di supabase/functions/notifiche/index.ts e premi "Deploy". Nessuna altra impostazione da cambiare.
+   Importante: fai il PASSO 2 prima del PASSO 3 (la funzione nuova cerca il codice creato dallo script).
+PASSO 4 (sito) - carica su GitHub tutti i file dello ZIP, mantenendo le cartelle.
+PASSO 5 (GitHub) - elimina il file utenti.js che si trova nella CARTELLA PRINCIPALE del repository (non quello in js/):
+   aprilo su GitHub, menu "..." in alto a destra > "Delete file" > "Commit changes". E' una copia vecchia non usata.
+   Aspetta 1-2 minuti e ricarica l'app con Ctrl+F5 (sul telefono: chiudi e riapri l'app).
+
+Cosa cambia:
+ - Sicurezza: un utente con profilo Fratello non puo' piu' leggere, nemmeno con strumenti tecnici, i dati degli altri
+   Fratelli dalla vista completa; le note riservate le vedono solo amministratore, Venerabile e Segretario.
+   Tesoreria, capitazione, elezioni, piè di lista e area del Fratello funzionano come prima.
+ - Notifiche: l'invio di tutti gli avvisi del giorno lo puo' chiedere solo la pianificazione del mattino.
+   Il pulsante "Prova" sul telefono funziona come prima. Tolto il promemoria "consegna della tavola" (le tavole non
+   hanno piu' scadenza dalla versione 0.63).
+ - Calendario: data e ora nella stessa colonna, cosi' "Modifica" non viene piu' tagliato sui portatili.
+ - Menu laterale: riquadro utente compatto (nome, Esci, pulsante preferenze): le voci del menu restano visibili.
+ - Telefono: in alto solo il logo; Esci, tema e dimensione del testo sono in fondo a "Altro"; piu' spazio
+   in fondo alle pagine, cosi' il pulsante "+" non copre l'ultima riga.
+ - Tutte le conferme (eliminazioni, profili, password, cariche, contanti delle agapi, testi da scaricare) sono
+   nello stile dell'app; per le eliminazioni il pulsante e' rosso e il fuoco parte da "Annulla".
+ - Copia della struttura del database: sql/esporta_schema.sql ora conserva le opzioni di sicurezza delle viste.

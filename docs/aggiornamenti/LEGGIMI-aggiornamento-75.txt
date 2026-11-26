@@ -1,0 +1,18 @@
+AGGIORNAMENTO 75 (versione 0.71.0) - Utenti del sistema: ricerca, inattivi, eliminazione sicura, avviso, registro
+Contiene anche l'aggiornamento 74 (diario della segreteria), che sul repository non risulta ancora caricato.
+
+PASSO 1 (Supabase > SQL Editor) - se non l'hai già fatto, esegui nell'ordine sql/lemmi_aggiornamento_54.sql ("pronto")
+   e sql/lemmi_aggiornamento_55.sql ("diario pronto").
+PASSO 2 (Supabase > SQL Editor) - esegui sql/lemmi_aggiornamento_56.sql. Atteso: "registro pronto".
+PASSO 3 (GitHub) - carica i file dello ZIP mantenendo le cartelle. Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+   (Se la funzione "notifiche" su Supabase non l'hai ripubblicata con l'aggiornamento 72, fallo ora con
+   supabase/functions/notifiche/index.ts.)
+
+Info di sistema > Utenti del sistema (solo amministratore):
+ - Ricerca per nome, cognome o e-mail; filtri per profilo e per stato (attivi, senza accessi da tempo, disattivati).
+ - Chi non accede da oltre 90 giorni o non è mai entrato ha l'avviso arancione; il conteggio è in alto.
+ - "Elimina": dopo la prima conferma si scrive l'e-mail dell'utente; il pulsante si attiva solo se coincide.
+ - Dopo "Nuovo utente" e dopo "Password": pulsanti WhatsApp (se l'utente è collegato a un Fratello con cellulare),
+   E-mail e "Copia il messaggio" con indirizzo dell'app, e-mail e password temporanea. Si invia a mano, gratis.
+ - "Ultime operazioni sugli utenti" in fondo alla pagina; l'elenco completo è in Registro attività.
+   Le password non vengono mai registrate.

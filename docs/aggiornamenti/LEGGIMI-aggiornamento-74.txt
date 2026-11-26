@@ -1,0 +1,18 @@
+AGGIORNAMENTO 74 (versione 0.70.0) - Diario della segreteria (cartella 08)
+
+PASSO 1 (Supabase > SQL Editor) - esegui sql/lemmi_aggiornamento_55.sql. Atteso: "diario pronto".
+PASSO 2 (GitHub) - carica i file dello ZIP mantenendo le cartelle (js/diario.js è nuovo). Lo ZIP contiene anche
+   l'aggiornamento 73 (tavole per conto di altri): se non l'hai ancora fatto, esegui prima anche lo script 54.
+   Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Come si usa (menu "Diario della segreteria", dopo "Caselle e rinnovi"):
+ - "Adempimenti ricorrenti" dell'anno: piè di lista al 30 giugno e al 31 dicembre, verbale delle elezioni al GOI,
+   calendario dei lavori. "Registra" apre il fascicolo già compilato; quelli scaduti e non registrati sono "da fare".
+ - "+ Nuova attività": data, oggetto, destinatario (Gran Segreteria, Anagrafe, Collegio...), stato, prossimo
+   adempimento, da chi si attende riscontro, entro quando. Il nome della cartella d'archivio si propone da solo come
+   chiede il Regolamento (es. 2026-10-04_Invio_pie_di_lista_Anagrafe).
+ - Clic su un'attività: cronologia e pulsanti "+ Invio" (con il mezzo: PEC, PEO, a mano...), "+ Riscontro"
+   (propone di chiudere l'attività), "+ Sollecito", "+ Documento", "+ Nota"; "Copia il nome" della cartella.
+ - "Indice dell'anno (Excel)": l'elenco della cartella 08 dell'anno con la cronologia, da conservare nell'archivio.
+ - Avvisi nel Cruscotto (scadenze superate, ricorrenti da fare); le attività aperte compaiono nel prospetto
+   delle consegne tra Segretari. Leggono Venerabile, Segretario e amministratore; scrivono Segretario e amministratore.
