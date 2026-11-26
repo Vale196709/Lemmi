@@ -68,6 +68,16 @@
       ]);
     });
 
+    // attività del diario della segreteria ancora aperte (cartella 08): prossimo adempimento e da chi si attende riscontro
+    const attivita = await leggi('segreteria_attivita', 'data,oggetto,destinatario,stato,prossimo_adempimento,attesa_da,scadenza,rif_archivio');
+    (attivita || []).filter((a) => a.stato !== 'chiusa').forEach((a) => {
+      righe.push([
+        'Attività della segreteria in corso', a.oggetto, 'Diario della segreteria (cartella 08)', a.destinatario || '', fmtData(a.data),
+        a.stato === 'attesa' ? 'in attesa di riscontro' : 'in corso', '', a.attesa_da || a.destinatario || '', a.prossimo_adempimento || '',
+        a.scadenza ? 'entro il ' + fmtData(a.scadenza) : '', a.rif_archivio ? 'cartella ' + a.rif_archivio : '',
+      ]);
+    });
+
     // caselle e servizi (cartella 04): al passaggio di consegne vanno cambiate le password e verificati recupero e due passaggi
     const caselle = await leggi('caselle_rinnovi', 'nome,tipo,indirizzo,gestore,scadenza,rinnovo_automatico,ultimo_cambio_password,due_passaggi,recapiti_recupero,custodia_credenziali,attivo');
     (caselle || []).filter((c) => c.attivo).forEach((c) => {

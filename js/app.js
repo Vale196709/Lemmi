@@ -9,7 +9,7 @@
   const TUTTI = ['amministratore', 'venerabile', 'segretario', 'tesoriere'];
   const SOCI = ['amministratore', 'venerabile', 'segretario'];
   const CONFRATELLI = TUTTI.concat('fratello');   // il profilo Fratello vede solo la propria scheda, il calendario e il proprio accesso
-  const ACCESSO_SEZ = { home: CONFRATELLI, libromatricola: SOCI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: CONFRATELLI, biblioteca: CONFRATELLI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: ['amministratore', 'venerabile', 'tesoriere'], template: SOCI, procedure: SOCI, verbali: SOCI, loggia: CONFRATELLI, utenti: ['amministratore'], sistema: ['amministratore'], registro: ['amministratore'], cerca: SOCI, completa: SOCI, relazione: SOCI, archivio: SOCI, tornata: SOCI, rinnovi: SOCI };
+  const ACCESSO_SEZ = { home: CONFRATELLI, libromatricola: SOCI, bussanti: SOCI, fratelli: SOCI, storia: SOCI, calendario: CONFRATELLI, biblioteca: CONFRATELLI, lavori: SOCI, elezioni: SOCI, piedilista: SOCI, pagamenti: ['amministratore', 'venerabile', 'tesoriere'], template: SOCI, procedure: SOCI, verbali: SOCI, loggia: CONFRATELLI, utenti: ['amministratore'], sistema: ['amministratore'], registro: ['amministratore'], cerca: SOCI, completa: SOCI, relazione: SOCI, archivio: SOCI, tornata: SOCI, rinnovi: SOCI, diario: SOCI };
   const ETICHETTA_RUOLO = { amministratore: 'Amministratore', venerabile: 'Maestro Venerabile', segretario: 'Segretario', tesoriere: 'Tesoriere', fratello: 'Fratello' };
 
   const TIPI_DOMANDA = {
@@ -103,6 +103,7 @@
     procedure: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="4.5" rx="1"/><rect x="3" y="16.5" width="6" height="4.5" rx="1"/><rect x="15" y="16.5" width="6" height="4.5" rx="1"/><path d="M12 7.5V12M6 16.5V12h12v4.5"/></svg>',
     template: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M3.5 9h17M9 9v11.5"/></svg>',
     shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+    diario: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg>',
     chiave: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3M14 9l2 2"/></svg>',
     inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6z"/></svg>',
   };
@@ -400,6 +401,7 @@
     { sez: 'procedure', href: '#/procedure', t: 'Procedure', ic: IC.procedure },
     { sez: 'archivio', href: '#/archivio', t: 'Archivio cartaceo', ic: IC.inbox },
     { sez: 'rinnovi', href: '#/rinnovi', t: 'Caselle e rinnovi', ic: IC.chiave },
+    { sez: 'diario', href: '#/diario', t: 'Diario della segreteria', ic: IC.diario },
     { sez: 'template', href: '#/template', t: 'Template', ic: IC.template },
     { sez: 'biblioteca', href: '#/biblioteca', t: 'Biblioteca', ic: IC.libro },
     { sez: 'relazione', href: '#/relazione', t: 'Relazione annuale', ic: IC.lavori },

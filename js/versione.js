@@ -1,9 +1,11 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.69.0',
+  numero: '0.71.0',
   data: '2026-11-26',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.71.0', data: '2026-11-26', t: 'Utenti del sistema: ricerca e filtri per profilo e stato, evidenza di chi non accede da oltre 90 giorni o non è mai entrato, eliminazione confermata scrivendo l’e-mail, avviso all’utente via WhatsApp o e-mail dopo creazione e reimpostazione della password, registro delle ultime operazioni (senza password). Script SQL 56' },
+    { n: '0.70.0', data: '2026-11-26', t: 'Diario della segreteria (cartella 08): attività verso Loggia e GOI con destinatario, stato, prossimo adempimento e cronologia di invii, riscontri e solleciti; nome della cartella d’archivio proposto come da Regolamento; adempimenti ricorrenti dell’anno (piè di lista, verbale delle elezioni, calendario dei lavori); indice Excel dell’anno; avvisi nel Cruscotto; attività aperte nel prospetto delle consegne. Script SQL 55' },
     { n: '0.69.0', data: '2026-11-26', t: 'Tavole caricate per conto di altri: ogni Fratello può caricare la tavola di un altro Fratello (anche in sonno, trasferito o all’Oriente Eterno) o di un autore non presente in anagrafica; la tavola va nel fascicolo dell’autore e la gestisce chi l’ha caricata (oltre a Segretario e amministratore). In Lavori e tavole lo stato accanto al nome dell’autore e la casella «Autore non presente in anagrafica». Script SQL 54' },
     { n: '0.68.0', data: '2026-11-26', t: 'Caselle e rinnovi (cartella 04): PEC, PEO, dominio e altri servizi con gestore, scadenza, recupero, verifica in due passaggi, ultimo cambio password e custodia delle credenziali (senza password); avvisi nel Cruscotto e sul telefono; inclusi nel prospetto delle consegne e nei backup. Script SQL 53' },
     { n: '0.67.2', data: '2026-11-25', t: 'Area del Fratello, «Carica una tavola»: di nuovo visibile il campo per scegliere il file; le prove automatiche ora controllano che ogni campo file si veda' },
