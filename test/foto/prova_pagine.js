@@ -48,6 +48,12 @@ const lavori = [
   { id: 'l2', titolo: 'Il silenzio dell’Apprendista', tipo: 'tavola', fratello_id: fratelli[3].id, stato: 'presentato', grado_autore: 'maestro', grado_tornata: 'apprendista', data_presentazione: isoTra(-30), file_path: 'fratelli/x/u2/2_silenzio.pdf', file_nome: 'silenzio.pdf' },
 ];
 TABELLE.lavori = lavori;
+TABELLE.caselle_rinnovi = [
+  { id: 'r1', tipo: 'pec', nome: 'PEC della Loggia', indirizzo: 'loggia812@pec.esempio.it', gestore: 'Aruba', scadenza: isoTra(20), preavviso_giorni: 30, rinnovo_automatico: false, recapiti_recupero: 'segretario@esempio.it', due_passaggi: true, ultimo_cambio_password: isoTra(-400), custodia_credenziali: 'Busta chiusa, cartella 04', chi_accede: 'Venerabile e Segretario', attivo: true },
+  { id: 'r2', tipo: 'dominio', nome: 'Dominio del sito', indirizzo: 'lemmi812.esempio.it', gestore: 'Aruba', scadenza: isoTra(200), preavviso_giorni: 30, rinnovo_automatico: true, recapiti_recupero: null, due_passaggi: false, ultimo_cambio_password: isoTra(-30), custodia_credenziali: null, attivo: true },
+  { id: 'r3', tipo: 'peo', nome: 'Vecchia casella', indirizzo: 'vecchia@esempio.it', gestore: 'Libero', scadenza: isoTra(-10), preavviso_giorni: 30, rinnovo_automatico: false, due_passaggi: false, attivo: false },
+];
+TABELLE.elezioni = [{ id: 'e1', anno_massonico: 2027, data_elezione: isoTra(-60) }];
 const RPC = {
   tavole_per_grado: lavori.map((l) => ({ id: l.id, titolo: l.titolo, tema: l.tema || null, tipo: 'tavola', autore: l.fratello_id === fratelli[0].id ? 'Rossi Mario' : 'Neri Giorgio', grado_tornata: l.grado_tornata, stato: l.stato, data_presentazione: l.data_presentazione, file_path: l.file_path, file_nome: l.file_nome, mia: l.fratello_id === fratelli[0].id })),
 };
@@ -97,10 +103,10 @@ const sessione = { access_token: 'a.b.c', token_type: 'bearer', expires_in: 3600
 
 /* ---------- pagine da provare ---------- */
 const TUTTE = ['', 'cerca', 'calendario', 'pagamenti', 'fratelli', 'fratelli/' + fratelli[0].id, 'bussanti', 'bussanti/nuovo', 'storia', 'verbali', 'lavori',
-  'elezioni', 'piedilista', 'libromatricola', 'procedure', 'archivio', 'template', 'biblioteca', 'relazione', 'completa', 'loggia', 'utenti', 'sistema', 'registro', 'tornata', 'tornata/t2'];
+  'elezioni', 'piedilista', 'libromatricola', 'procedure', 'archivio', 'template', 'biblioteca', 'relazione', 'completa', 'loggia', 'utenti', 'sistema', 'registro', 'tornata', 'tornata/t2', 'rinnovi'];
 const PROVE = [
   { ruolo: 'amministratore', pagine: TUTTE },
-  { ruolo: 'venerabile', pagine: ['tornata/t0'] },
+  { ruolo: 'venerabile', pagine: ['tornata/t0', 'rinnovi'] },
   { ruolo: 'segretario', pagine: ['', 'fratelli', 'procedure', 'tornata/t0'] },
   { ruolo: 'tesoriere', pagine: ['', 'pagamenti'] },
   { ruolo: 'fratello', pagine: ['', 'calendario', 'biblioteca', 'loggia'] },
