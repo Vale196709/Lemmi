@@ -561,6 +561,28 @@ create table if not exists public.caselle_rinnovi (
 );
 alter table public.caselle_rinnovi enable row level security;
 
+create table if not exists public.segreteria_attivita (
+  id uuid not null default gen_random_uuid(),
+  data date not null default current_date,
+  oggetto text not null,
+  destinatario text,
+  ricorrente text,
+  anno_riferimento integer,
+  stato text not null default 'aperta',
+  prossimo_adempimento text,
+  attesa_da text,
+  scadenza date,
+  rif_archivio text,
+  note text,
+  chiusa_il date,
+  creato_il timestamp with time zone not null default now(),
+  aggiornato_il timestamp with time zone not null default now(),
+  creato_da uuid default auth.uid(),
+  constraint segreteria_attivita_pkey primary key (id),
+  constraint segreteria_attivita_stato_check check (stato = any (array['aperta'::text, 'attesa'::text, 'chiusa'::text]))
+);
+alter table public.segreteria_attivita enable row level security;
+
 create table if not exists public.originali_cartacei (
   id uuid not null default gen_random_uuid(),
   cartellina text not null,
@@ -583,6 +605,21 @@ create table if not exists public.originali_cartacei (
   constraint originali_cartacei_pkey PRIMARY KEY (id)
 );
 alter table public.originali_cartacei enable row level security;
+
+create table if not exists public.segreteria_eventi (
+  id uuid not null default gen_random_uuid(),
+  attivita_id uuid not null,
+  data date not null default current_date,
+  tipo text not null,
+  descrizione text,
+  mezzo text,
+  creato_il timestamp with time zone not null default now(),
+  creato_da uuid default auth.uid(),
+  constraint segreteria_eventi_pkey primary key (id),
+  constraint segreteria_eventi_attivita_fkey foreign key (attivita_id) references public.segreteria_attivita(id) on delete cascade,
+  constraint segreteria_eventi_tipo_check check (tipo = any (array['invio'::text, 'riscontro'::text, 'sollecito'::text, 'documento'::text, 'nota'::text]))
+);
+alter table public.segreteria_eventi enable row level security;
 
 create table if not exists public.originali_movimenti (
   id uuid not null default gen_random_uuid(),
@@ -886,6 +923,9 @@ CREATE INDEX IF NOT EXISTS lavori_tornata_idx ON public.lavori USING btree (torn
 CREATE INDEX IF NOT EXISTS messaggi_destinatari_messaggio_id_idx ON public.messaggi_destinatari USING btree (messaggio_id);
 
 create index if not exists caselle_rinnovi_scadenza_idx on public.caselle_rinnovi (attivo, scadenza);
+create index if not exists segreteria_attivita_data_idx on public.segreteria_attivita (data desc);
+create index if not exists segreteria_attivita_ricorrente_idx on public.segreteria_attivita (ricorrente, anno_riferimento);
+create index if not exists segreteria_eventi_attivita_idx on public.segreteria_eventi (attivita_id, data);
 CREATE INDEX IF NOT EXISTS originali_cartacei_cartellina_idx ON public.originali_cartacei USING btree (cartellina, stato);
 
 CREATE INDEX IF NOT EXISTS originali_movimenti_originale_idx ON public.originali_movimenti USING btree (originale_id, data);
@@ -2234,6 +2274,35 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.registra_operazione_utente(p_user uuid, p_azione text, p_dettaglio jsonb default '{}'::jsonb)
+ returns void
+ language plpgsql
+ security definer
+ set search_path to 'public', 'auth', 'pg_temp'
+as $function$
+declare
+  v_azioni text[] := array['creazione', 'profilo', 'collegamento', 'disattivazione', 'riattivazione', 'password', 'eliminazione', 'avviso'];
+  v_email_admin text;
+  v_email text;
+  v_det jsonb := coalesce(p_dettaglio, '{}'::jsonb) - 'password';   -- la password non si registra mai
+begin
+  if not public.lemmi_e_admin() then
+    raise exception 'Solo l''amministratore può registrare operazioni sugli utenti.';
+  end if;
+  if p_azione is null or array_position(v_azioni, p_azione) is null then
+    raise exception 'Operazione non riconosciuta.';
+  end if;
+  select email::text into v_email_admin from auth.users where id = auth.uid();
+  select email::text into v_email from auth.users where id = p_user;
+  insert into public.registro_attivita (utente_id, utente_email, tabella, operazione, riga_id, prima, dopo)
+  values (auth.uid(), v_email_admin, 'utenti_sistema',
+          case p_azione when 'creazione' then 'inserimento' when 'eliminazione' then 'eliminazione' else 'modifica' end,
+          p_user::text, null,
+          jsonb_build_object('azione', p_azione, 'utente', coalesce(v_det->>'email', v_email)) || v_det);
+end;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.ruolo_corrente()
  RETURNS ruolo_app
  LANGUAGE sql
@@ -2655,6 +2724,10 @@ CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.loggia FOR
 
 drop trigger if exists lemmi_audit on public.caselle_rinnovi;
 create trigger lemmi_audit after insert or update or delete on public.caselle_rinnovi for each row execute function public.lemmi_audit();
+drop trigger if exists lemmi_audit on public.segreteria_attivita;
+create trigger lemmi_audit after insert or update or delete on public.segreteria_attivita for each row execute function public.lemmi_audit();
+drop trigger if exists lemmi_audit on public.segreteria_eventi;
+create trigger lemmi_audit after insert or update or delete on public.segreteria_eventi for each row execute function public.lemmi_audit();
 DROP TRIGGER IF EXISTS lemmi_audit ON public.originali_cartacei;
 CREATE TRIGGER lemmi_audit AFTER INSERT OR DELETE OR UPDATE ON public.originali_cartacei FOR EACH ROW EXECUTE FUNCTION lemmi_audit();
 
@@ -3155,6 +3228,21 @@ create policy caselle_rinnovi_scrittura on public.caselle_rinnovi as permissive 
   using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]))
   with check (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]));
 
+drop policy if exists segreteria_attivita_lettura on public.segreteria_attivita;
+create policy segreteria_attivita_lettura on public.segreteria_attivita as permissive for select to authenticated
+  using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app, 'venerabile'::public.ruolo_app]));
+drop policy if exists segreteria_attivita_scrittura on public.segreteria_attivita;
+create policy segreteria_attivita_scrittura on public.segreteria_attivita as permissive for all to authenticated
+  using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]))
+  with check (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]));
+drop policy if exists segreteria_eventi_lettura on public.segreteria_eventi;
+create policy segreteria_eventi_lettura on public.segreteria_eventi as permissive for select to authenticated
+  using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app, 'venerabile'::public.ruolo_app]));
+drop policy if exists segreteria_eventi_scrittura on public.segreteria_eventi;
+create policy segreteria_eventi_scrittura on public.segreteria_eventi as permissive for all to authenticated
+  using (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]))
+  with check (public.ruolo_corrente() = any (array['amministratore'::public.ruolo_app, 'segretario'::public.ruolo_app]));
+
 drop policy if exists originali_cartacei_lettura on public.originali_cartacei;
 create policy originali_cartacei_lettura on public.originali_cartacei as PERMISSIVE for SELECT to authenticated
   using ((ruolo_corrente() = ANY (ARRAY['amministratore'::ruolo_app, 'segretario'::ruolo_app, 'venerabile'::ruolo_app])));
@@ -3483,3 +3571,5 @@ revoke all on function public.fratello_salva_tavola(uuid, text, text, text, date
 grant execute on function public.fratello_salva_tavola(uuid, text, text, text, date, date, text, text, text, bigint, uuid, text) to authenticated;
 revoke all on function public.fratello_elimina_tavola(uuid) from public, anon;
 grant execute on function public.fratello_elimina_tavola(uuid) to authenticated;
+revoke all on function public.registra_operazione_utente(uuid, text, jsonb) from public, anon;
+grant execute on function public.registra_operazione_utente(uuid, text, jsonb) to authenticated;
