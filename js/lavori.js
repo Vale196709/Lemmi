@@ -29,6 +29,8 @@
   const opzioni = (mappa, sel, vuoto) => (vuoto !== undefined ? `<option value="">${esc(vuoto)}</option>` : '') +
     Object.keys(mappa).map((k) => `<option value="${esc(k)}" ${k === sel ? 'selected' : ''}>${esc(mappa[k])}</option>`).join('');
   const nomeFratello = (id) => { const f = lv.fratelli.find((x) => x.id === id); return f ? f.cognome + ' ' + f.nome : ''; };
+  const STATO_FR = { in_sonno: 'in sonno', oriente_eterno: 'Oriente Eterno', trasferito: 'trasferito' };
+  const etichettaFr = (f) => f.cognome + ' ' + f.nome + (STATO_FR[f.stato] ? ' — ' + STATO_FR[f.stato] : '');
   const autoreDi = (l) => (l.fratello_id ? nomeFratello(l.fratello_id) : (l.autore_esterno || '')) || '—';
   const etichettaTornata = (t) => (t ? `${fmtData(t.data)} · ${TIPI_TORNATA[t.tipo] || t.tipo}${t.grado ? ' · ' + GRADI[t.grado] : ''}` : '');
   const kb = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB');
@@ -93,8 +95,9 @@
       <div class="f s12"><label for="l-tema">Tema / argomento</label><input id="l-tema" name="tema" value="${esc(x.tema || '')}"></div>
       <div class="f s6"><label for="l-aut">Autore <span class="req">*</span></label>
         <input id="l-aut" name="autore" list="dl-l-aut" autocomplete="off" placeholder="${esterno ? 'Nome e cognome dell’autore' : 'Scrivi il cognome e scegli dall’elenco'}" value="${esc(esterno ? x.autore_esterno : (x.fratello_id ? nomeFratello(x.fratello_id) : ''))}">
-        <datalist id="dl-l-aut">${lv.fratelli.map((f) => `<option value="${esc(f.cognome + ' ' + f.nome)}"></option>`).join('')}</datalist>
-        <label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-top:6px"><input type="checkbox" name="esterno" ${esterno ? 'checked' : ''}> Autore non iscritto in Loggia (ospite o visitatore)</label></div>
+        <datalist id="dl-l-aut">${lv.fratelli.map((f) => `<option value="${esc(etichettaFr(f))}"></option>`).join('')}</datalist>
+        <label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-top:6px"><input type="checkbox" name="esterno" ${esterno ? 'checked' : ''}> Autore non presente in anagrafica (ospite, visitatore o Fratello non registrato)</label>
+        ${x.caricata_da ? `<div class="hint" style="margin-top:4px">Caricata da ${esc(nomeFratello(x.caricata_da) || 'un Fratello')} per conto dell’autore.</div>` : ''}</div>
       <div class="f s3"><label for="l-gt">Grado della tavola <span class="req">*</span></label><select id="l-gt" name="grado_tornata">${opzioni(GRADI, x.grado_tornata || x.grado_autore, 'Scegli…')}</select></div>
       <div class="f s3"><label for="l-d3">Data</label><input id="l-d3" name="data_presentazione" value="${esc(isoToIt(x.data_presentazione))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
       <div class="f s3"><label for="l-dd">Discussa il</label><input id="l-dd" name="data_discussione" value="${esc(isoToIt(x.data_discussione))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
@@ -118,8 +121,8 @@
           autore_esterno = testoAutore;
         } else {
           const t = testoAutore.toLowerCase().replace(/\s+/g, ' ');
-          const fr = lv.fratelli.find((q) => (q.cognome + ' ' + q.nome).toLowerCase() === t || (q.nome + ' ' + q.cognome).toLowerCase() === t);
-          if (!fr) return errore(testoAutore ? 'Autore non trovato: scegli dall’elenco, oppure spunta “Autore non iscritto in Loggia”.' : 'Indica l’autore: scrivi il cognome e scegli dall’elenco.');
+          const fr = lv.fratelli.find((q) => etichettaFr(q).toLowerCase() === t || (q.cognome + ' ' + q.nome).toLowerCase() === t || (q.nome + ' ' + q.cognome).toLowerCase() === t);
+          if (!fr) return errore(testoAutore ? 'Autore non trovato: scegli dall’elenco, oppure spunta “Autore non presente in anagrafica”.' : 'Indica l’autore: scrivi il cognome e scegli dall’elenco.');
           fratello_id = fr.id;
         }
         const d3 = itToIso(e.data_presentazione.value);
@@ -237,7 +240,7 @@
       c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Data</th><th>Discussa il</th><th>File</th><th></th></tr></thead><tbody>
         ${lista.map((r) => `<tr>
             <td><b>${esc(r.titolo)}</b>${r.tema ? `<div class="hint">${esc(r.tema)}</div>` : ''}</td>
-            <td>${esc(autoreDi(r))}</td>
+            <td>${esc(autoreDi(r))}${r.fratello_id && STATO_FR[(lv.fratelli.find((f) => f.id === r.fratello_id) || {}).stato] ? ` <span class="muted">(${esc(STATO_FR[lv.fratelli.find((f) => f.id === r.fratello_id).stato])})</span>` : ''}${r.caricata_da ? `<div class="hint">caricata da ${esc(nomeFratello(r.caricata_da))}</div>` : ''}</td>
             <td>${(r.grado_tornata || r.grado_autore) ? L.badgeGrado(r.grado_tornata || r.grado_autore) : '—'}</td>
             <td>${r.data_presentazione ? fmtData(r.data_presentazione) : '—'}</td>
             <td>${r.data_discussione ? fmtData(r.data_discussione) : '—'}</td>

@@ -1,6 +1,7 @@
 /* Lemmi - Area del Fratello: con il profilo "fratello" ciascuno vede i propri dati
  * (anagrafica, storia, tavole, quote) e le prossime tornate del suo grado. Sola lettura, tranne il caricamento
- * delle proprie tavole (script sql/lemmi_aggiornamento_48.sql).
+ * delle proprie tavole (script sql/lemmi_aggiornamento_48.sql) e di quelle caricate per conto di altri autori
+ * (anche Fratelli in sonno, trasferiti o all'Oriente Eterno, o autori non presenti in anagrafica: script 54).
  * Tavole degli altri: il Maestro le vede tutte, il Compagno quelle di Compagno e Apprendista, l'Apprendista solo le proprie.
  * Le regole di sicurezza del database (lemmi_aggiornamento_35.sql) garantiscono che non possa leggere altro. */
 (function () {
@@ -21,7 +22,21 @@
   const nuovoId = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
 
   // Finestra per una tavola: nuova (lavoro = null) oppure modifica di una propria (il file si cambia solo se ne scegli un altro)
-  function tavolaModulo(fr, lavoro, gradiOk, dopo) {
+  const STATO_FR = { in_sonno: 'in sonno', oriente_eterno: 'Oriente Eterno', trasferito: 'trasferito' };
+  const nomeAutore = (a) => a.cognome + ' ' + a.nome;
+  const etichettaAutore = (a) => nomeAutore(a) + (STATO_FR[a.stato] ? ' — ' + STATO_FR[a.stato] : '');
+  let autoriCache = null;
+  async function elencoAutori() {
+    if (autoriCache) return autoriCache;
+    try { autoriCache = chk(await state.sb.rpc('elenco_autori_tavole')) || []; } catch (e) { autoriCache = null; return []; }
+    return autoriCache;
+  }
+
+  async function tavolaModulo(fr, lavoro, gradiOk, dopo) {
+    const autori = (await elencoAutori()).filter((a) => a.id !== fr.id);
+    // di chi è la tavola: «mia», di un altro Fratello dell'anagrafica, o di un autore non presente in anagrafica
+    const chiIniz = !lavoro ? 'mia' : lavoro.autore_esterno && !lavoro.autore_id ? 'esterno' : lavoro.autore_id && lavoro.autore_id !== fr.id ? 'altro' : 'mia';
+    const autIniz = lavoro && lavoro.autore_id && lavoro.autore_id !== fr.id ? (autori.find((a) => a.id === lavoro.autore_id) || null) : null;
     const nuova = !lavoro;
     const gradoIniz = (lavoro && (lavoro.grado_tornata || lavoro.grado_autore)) || gradiOk[gradiOk.length - 1];
     const ov = document.createElement('div');
@@ -30,6 +45,16 @@
       <div class="modal-h"><h2 style="margin:0">${nuova ? 'Carica una tavola' : 'Modifica la tavola'}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
       <div class="modal-b"><form novalidate><div class="form-grid">
         <div class="f s12"><label for="tv-titolo">Titolo <span class="req">*</span></label><input id="tv-titolo" name="titolo" maxlength="200" autocomplete="off" value="${esc(lavoro ? lavoro.titolo : '')}"></div>
+        <div class="f s12"><label for="tv-chi">Di chi è la tavola</label><select id="tv-chi" name="chi">
+            <option value="mia" ${chiIniz === 'mia' ? 'selected' : ''}>È mia</option>
+            ${autori.length ? `<option value="altro" ${chiIniz === 'altro' ? 'selected' : ''}>Di un altro Fratello della Loggia (anche in sonno, trasferito o all’Oriente Eterno)</option>` : ''}
+            <option value="esterno" ${chiIniz === 'esterno' ? 'selected' : ''}>Di un autore non presente in anagrafica</option></select></div>
+        <div class="f s12" id="tv-box-altro" ${chiIniz === 'altro' ? '' : 'style="display:none"'}><label for="tv-autore">Autore</label>
+          <input id="tv-autore" name="autore" list="tv-dl-autori" autocomplete="off" placeholder="Scrivi il cognome e scegli dall’elenco" value="${esc(autIniz ? etichettaAutore(autIniz) : '')}">
+          <datalist id="tv-dl-autori">${autori.map((a) => `<option value="${esc(etichettaAutore(a))}"></option>`).join('')}</datalist>
+          <div class="hint">La tavola andrà nel fascicolo dell’autore; risulterà caricata da te e potrai modificarla o eliminarla.</div></div>
+        <div class="f s12" id="tv-box-est" ${chiIniz === 'esterno' ? '' : 'style="display:none"'}><label for="tv-autore-est">Nome e cognome dell’autore</label>
+          <input id="tv-autore-est" name="autore_est" maxlength="120" autocomplete="off" placeholder="Es. un Fratello scomparso prima dell’app, o un ospite" value="${esc((lavoro && !lavoro.autore_id && lavoro.autore_esterno) || '')}"></div>
         <div class="f s12"><label for="tv-tema">Tema o argomento (facoltativo)</label><input id="tv-tema" name="tema" maxlength="300" autocomplete="off" value="${esc((lavoro && lavoro.tema) || '')}"></div>
         <div class="f s6"><label for="tv-grado">Grado della tavola <span class="req">*</span></label><select id="tv-grado" name="grado">${gradiOk.map((g) => `<option value="${g}" ${g === gradoIniz ? 'selected' : ''}>${esc(cap(g))}</option>`).join('')}</select></div>
         <div class="f s6"><label for="tv-data">Data</label><input id="tv-data" name="data" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off" value="${esc(L.isoToIt((lavoro && lavoro.data_presentazione) || oggi()))}"></div>
@@ -47,6 +72,8 @@
     $('[data-x]', ov).onclick = chiudi;
     ov.addEventListener('mousedown', (e) => { if (e.target === ov) chiudi(); });
     const errore = (m) => { $('[data-err]', ov).textContent = m; };
+    const selChi = $('#tv-chi', ov);
+    selChi.addEventListener('change', () => { $('#tv-box-altro', ov).style.display = selChi.value === 'altro' ? '' : 'none'; $('#tv-box-est', ov).style.display = selChi.value === 'esterno' ? '' : 'none'; });
     $('form', ov).addEventListener('submit', async (ev) => {
       ev.preventDefault(); errore('');
       const f = ev.target, b = $('button[type=submit]', f);
@@ -56,6 +83,17 @@
       if (data === 'ERR') return errore('Scrivi la data nel formato gg/mm/aaaa.');
       const disc = f.elements.discussa.value.trim() ? L.itToIso(f.elements.discussa.value.trim()) : null;
       if (disc === 'ERR') return errore('Scrivi la data della discussione nel formato gg/mm/aaaa.');
+      // autore
+      let pAutore = null, pEsterno = null;
+      if (selChi.value === 'altro') {
+        const t = f.elements.autore.value.trim().toLowerCase().replace(/\s+/g, ' ');
+        const a = autori.find((x) => etichettaAutore(x).toLowerCase() === t || nomeAutore(x).toLowerCase() === t || (x.nome + ' ' + x.cognome).toLowerCase() === t);
+        if (!a) return errore(t ? 'Autore non trovato: scegli dall’elenco, oppure indica «Di un autore non presente in anagrafica».' : 'Indica l’autore: scrivi il cognome e scegli dall’elenco.');
+        pAutore = a.id;
+      } else if (selChi.value === 'esterno') {
+        pEsterno = f.elements.autore_est.value.trim();
+        if (!pEsterno) return errore('Scrivi nome e cognome dell’autore.');
+      }
       const file = f.elements.file.files && f.elements.file.files[0];
       if (nuova && !file) return errore('Scegli il file da caricare.');
       let ext = '';
@@ -77,6 +115,7 @@
         const rr = chk(await state.sb.rpc('fratello_salva_tavola', {
           p_id: lavoro ? lavoro.id : null, p_titolo: titolo, p_tema: f.elements.tema.value.trim() || null, p_grado: f.elements.grado.value, p_data: data, p_discussa: disc,
           p_file_path: path, p_file_nome: file ? file.name : null, p_file_tipo: file ? MIME[ext] : null, p_file_dimensione: file ? file.size : null,
+          ...(selChi.value !== 'mia' || chiIniz !== 'mia' ? { p_autore: pAutore, p_autore_esterno: pEsterno } : {}),   // senza autore diverso si chiama come prima (va anche senza lo script 54)
         }));
         const vecchio = rr && rr.vecchio_file;
         if (vecchio) { try { await state.sb.storage.from('tavole').remove([vecchio]); } catch (e2) { /* il file sostituito resta nell'archivio */ } }
@@ -85,6 +124,7 @@
         if (path) { try { await state.sb.storage.from('tavole').remove([path]); } catch (e3) { /* niente file orfani, se possibile */ } }
         const t = String((e && e.message) || e);
         errore(/bucket not found/i.test(t) ? 'L’archivio delle tavole non è pronto: avvisa l’amministratore.'
+          : /could not find the function.*p_autore/i.test(t) ? 'Per caricare la tavola di un altro autore serve lo script 54 su Supabase: avvisa l’amministratore.'
           : /row-level security|not authorized|unauthorized|violates|does not exist|could not find the function/i.test(t) ? 'Non è possibile salvare: l’accesso potrebbe non essere collegato alla tua scheda, oppure manca lo script 48 su Supabase. Avvisa l’amministratore.'
           : t);
         b.disabled = false; b.textContent = nuova ? 'Carica' : 'Salva';
@@ -110,7 +150,10 @@
       leggi(state.sb.from('tornate').select('*').gte('data', oggi()).neq('stato', 'annullata').order('data').limit(20)),
     ]);
     const proprie = await leggi(state.sb.from('lavori').select('id,titolo,tema,stato,file_path,file_nome,data_presentazione,grado_tornata,grado_autore,data_discussione').eq('fratello_id', fr.id).order('created_at', { ascending: false }));
-    const mie = proprie.length ? proprie : lav.filter((l) => l.mia), altre = lav;   // l'elenco della Loggia comprende anche le proprie (segnate «tua»)
+    // «Le mie tavole»: quelle che posso gestire (le mie e quelle caricate da me per conto di altri); senza lo script 54 come prima
+    const conScript54 = lav.length && 'gestibile' in lav[0];
+    const mie = conScript54 ? lav.filter((l) => l.gestibile) : (proprie.length ? proprie : lav.filter((l) => l.mia));
+    const altre = lav;   // l'elenco della Loggia comprende anche le proprie (segnate «tua»)
     const mioGrado = pass.reduce((m, p) => Math.max(m, GRADI.indexOf(String(p.grado))), 0);
     const mioGradoNome = cap(GRADI[mioGrado]);
     const linkFile = (l) => (l.file_path ? ` <a href="javascript:void(0)" class="scarica-tavola" data-p="${esc(l.file_path)}" data-n="${esc(l.file_nome || 'tavola')}" title="Scarica il file">⬇ scarica</a>` : '');
@@ -150,7 +193,7 @@
           ${storia.length ? `<div class="timeline tl-v">${storia.map((s) => L.vocetl({ tipo: s.tipo, etichetta: s.d, titolo: s.t, dettaglio: s.n })).join('')}</div>` : '<div class="empty"><div>Nessun dato registrato.</div></div>'}</div>
         <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Le mie tavole</h2>
             <button class="btn gold small" type="button" id="tv-carica">+ Carica una tavola</button></div>
-          ${mie.length ? `<div class="table-wrap tv-mie" style="margin-top:10px"><table><tbody>${mie.map((l) => `<tr data-riga="${esc(l.id || '')}"><td><b>${esc(l.titolo)}</b>${linkFile(l)}
+          ${mie.length ? `<div class="table-wrap tv-mie" style="margin-top:10px"><table><tbody>${mie.map((l) => `<tr data-riga="${esc(l.id || '')}"><td><b>${esc(l.titolo)}</b>${linkFile(l)}${conScript54 && !l.mia ? `<div class="hint">di <b>${esc(l.autore)}</b> · caricata da te</div>` : ''}
               <div class="hint">${(l.grado_tornata || l.grado_autore) ? L.badgeGrado(l.grado_tornata || l.grado_autore) + ' · ' : ''}${l.data_presentazione ? fmtData(l.data_presentazione) : 'senza data'}${l.data_discussione ? ' · discussa il ' + fmtData(l.data_discussione) : ''}${l.tema ? ' · ' + esc(l.tema) : ''}</div></td>
             <td class="act">${l.id ? `<button class="btn ghost small" type="button" data-tv="${esc(l.id)}">Modifica</button> <button class="btn ghost small" type="button" data-tv-del="${esc(l.id)}">Elimina</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div>Nessuna tavola. Con «Carica una tavola» puoi aggiungere la tua.</div></div>'}
           <p class="hint" style="margin-top:8px">Formati ammessi: PDF, Word, ODT o testo, fino a 10 MB. Il grado che scegli decide chi può leggere la tavola.</p></div>
@@ -158,7 +201,7 @@
       <div class="card"><h2>Tavole della Loggia</h2><p class="hint" style="margin-bottom:8px">${mioGradoNome === 'Maestro' ? 'Come Maestro vedi tutte le tavole.' : mioGradoNome === 'Compagno' ? 'Vedi le tavole in grado di Compagno e di Apprendista, oltre alle tue.' : 'Come Apprendista vedi le tue tavole; quelle degli altri Fratelli le vedrai salendo di grado.'}</p>
         ${altre.length ? `
         <div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Data</th><th>Discussa il</th></tr></thead><tbody>${altre.map((l) => `<tr><td><b>${esc(l.titolo)}</b>${linkFile(l)}${l.tema ? `<div class="hint">${esc(l.tema)}</div>` : ''}</td>
-          <td>${esc(l.autore)}${l.mia ? ' <span class="badge info">tua</span>' : ''}</td><td>${l.grado_tornata ? L.badgeGrado(l.grado_tornata) : '—'}</td>
+          <td>${esc(l.autore)}${l.mia ? ' <span class="badge info">tua</span>' : ''}${l.caricata_da_nome ? `<div class="hint">caricata da ${esc(l.caricata_da_nome)}</div>` : ''}</td><td>${l.grado_tornata ? L.badgeGrado(l.grado_tornata) : '—'}</td>
           <td>${l.data_presentazione ? fmtData(l.data_presentazione) : '—'}</td><td>${l.data_discussione ? fmtData(l.data_discussione) : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div>Nessuna tavola disponibile.</div></div>'}</div>
       <div class="card"><h2>I miei dati</h2><div class="kv">
         ${kv('Data di nascita', fr.data_nascita ? fmtData(fr.data_nascita) : '')}${kv('Luogo di nascita', [fr.luogo_nascita, fr.provincia_nascita ? '(' + fr.provincia_nascita + ')' : ''].filter(Boolean).join(' '))}
@@ -166,12 +209,13 @@
         ${kv('Professione', fr.professione)}${kv('Cellulare', fr.cellulare)}${kv('E-mail', fr.email)}${'email_2' in fr && fr.email_2 ? kv('Seconda e-mail', fr.email_2) : ''}
       </div><p class="hint" style="margin-top:12px">Se un dato è sbagliato o manca, comunicalo al Segretario. Le notifiche sul telefono si attivano da «Il mio accesso».</p></div>`;
     const gradiOk = GRADI.slice(0, mioGrado + 1);
-    const carica = $('#tv-carica', v); if (carica) carica.onclick = () => tavolaModulo(fr, null, gradiOk, () => L.route());
-    v.querySelectorAll('[data-tv]').forEach((b) => b.addEventListener('click', () => { const l = mie.find((x) => x.id === b.dataset.tv); if (l) tavolaModulo(fr, l, gradiOk, () => L.route()); }));
+    const apri = (l) => tavolaModulo(fr, l, gradiOk, () => L.route()).catch((e) => L.toast(L.messaggioErrore(e), 'bad'));
+    const carica = $('#tv-carica', v); if (carica) carica.onclick = () => apri(null);
+    v.querySelectorAll('[data-tv]').forEach((b) => b.addEventListener('click', () => { const l = mie.find((x) => x.id === b.dataset.tv); if (l) apri(l); }));
     v.querySelectorAll('[data-tv-del]').forEach((b) => b.addEventListener('click', () => {
       const l = mie.find((x) => x.id === b.dataset.tvDel); if (!l) return;
       L.eliminaConAnnulla({
-        domanda: 'Eliminare la tavola «' + l.titolo + '» e il suo file?', messaggio: 'Tavola eliminata', el: b.closest('tr'),
+        domanda: 'Eliminare la tavola «' + l.titolo + '»' + (conScript54 && !l.mia ? ' di ' + l.autore : '') + ' e il suo file?', messaggio: 'Tavola eliminata', el: b.closest('tr'),
         esegui: async () => {
           const path = chk(await state.sb.rpc('fratello_elimina_tavola', { p_id: l.id }));
           if (path) { try { await state.sb.storage.from('tavole').remove([path]); } catch (e) { /* file rimasto nell'archivio */ } }
