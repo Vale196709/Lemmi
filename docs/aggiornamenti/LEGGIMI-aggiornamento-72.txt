@@ -1,0 +1,26 @@
+AGGIORNAMENTO 72 (versione 0.68.0) - Caselle e rinnovi (cartella 04)
+Contiene anche l'aggiornamento 71 (archivi dei file che accettano gli ZIP).
+
+PASSO 1 (Supabase > SQL Editor) - se non l'hai già fatto, esegui sql/lemmi_aggiornamento_52.sql (ZIP negli archivi).
+PASSO 2 (Supabase > SQL Editor) - esegui sql/lemmi_aggiornamento_53.sql. Atteso: "tabella pronta".
+PASSO 3 (Supabase > Edge Functions > notifiche) - ripubblica la funzione con il contenuto di
+   supabase/functions/notifiche/index.ts (aggiunge gli avvisi dei rinnovi) e premi "Deploy".
+PASSO 4 (GitHub) - carica i file dello ZIP mantenendo le cartelle:
+   index.html, js/rinnovi.js (nuovo), js/app.js, js/consegne.js, js/registro.js, js/ripristino.js, js/backup_completo.js,
+   js/versione.js, supabase/functions/notifiche/index.ts, sql/lemmi_aggiornamento_52.sql, sql/lemmi_aggiornamento_53.sql,
+   sql/schema_completo.sql, sql/esporta_schema.sql, sql/INDICE.md, test/foto/prova_pagine.js, docs/funzioni.md,
+   docs/aggiornamenti/LEGGIMI-aggiornamento-72.txt
+   (se vuoi, elimina anche vendor/591.supabase.js: è un file caricato per errore e non viene usato)
+   Aspetta 1-2 minuti e ricarica con Ctrl+F5.
+
+Come si usa (menu "Caselle e rinnovi", dopo "Archivio cartaceo"):
+ - "+ Nuovo servizio": tipo (PEC, PEO, dominio, firma digitale, altro), nome, indirizzo, gestore, scadenza del rinnovo,
+   giorni di preavviso, rinnovo automatico, recapiti di recupero, verifica in due passaggi, ultimo cambio password,
+   dove sono custodite le credenziali, chi può accedere. LE PASSWORD NON SI SCRIVONO NELL'APP.
+ - Clic su una riga: scheda con "Password cambiata oggi", "Rinnovato: scadenza +1 anno", "Modifica", "Elimina".
+   Un servizio non più usato si può tenere togliendo la spunta "Servizio attivo".
+ - "Password da cambiare": mai registrata, più vecchia di 12 mesi o precedente all'ultima elezione delle cariche
+   (il Regolamento chiede di cambiarla a ogni rinnovo delle cariche).
+ - Avvisi: nel Cruscotto (rinnovi scaduti o entro il preavviso, password da cambiare) e sul telefono per Segretario
+   e amministratore (il giorno del preavviso, una settimana prima e il giorno della scadenza).
+ - Le caselle compaiono anche nel prospetto delle consegne tra Segretari, nei backup e nel registro delle attività.
