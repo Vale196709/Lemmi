@@ -1,9 +1,10 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.67.2',
-  data: '2026-11-25',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
+  numero: '0.68.0',
+  data: '2026-11-26',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.68.0', data: '2026-11-26', t: 'Caselle e rinnovi (cartella 04): PEC, PEO, dominio e altri servizi con gestore, scadenza, recupero, verifica in due passaggi, ultimo cambio password e custodia delle credenziali (senza password); avvisi nel Cruscotto e sul telefono; inclusi nel prospetto delle consegne e nei backup. Script SQL 53' },
     { n: '0.67.2', data: '2026-11-25', t: 'Area del Fratello, «Carica una tavola»: di nuovo visibile il campo per scegliere il file; le prove automatiche ora controllano che ogni campo file si veda' },
     { n: '0.67.1', data: '2026-11-25', t: 'Area del Fratello: le proprie tavole compaiono anche in «Tavole della Loggia» (segnate «tua»), la sezione si vede sempre con la spiegazione di cosa si può leggere in base al grado; «Le mie tavole» con titolo a tutta larghezza e pulsanti sotto' },
     { n: '0.67.0', data: '2026-11-25', t: 'Modalità «Tornata»: una schermata per la serata (dal Cruscotto il giorno stesso e dal Calendario) con scheda modificabile, promemoria di votazioni, tavole, agape e ricorrenze, presenze P/G/A e ospiti anche senza rete, Tronco della Vedova in Tesoreria e «Prepara il verbale» con tutto già compilato. Script SQL 51' },

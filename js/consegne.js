@@ -68,6 +68,18 @@
       ]);
     });
 
+    // caselle e servizi (cartella 04): al passaggio di consegne vanno cambiate le password e verificati recupero e due passaggi
+    const caselle = await leggi('caselle_rinnovi', 'nome,tipo,indirizzo,gestore,scadenza,rinnovo_automatico,ultimo_cambio_password,due_passaggi,recapiti_recupero,custodia_credenziali,attivo');
+    (caselle || []).filter((c) => c.attivo).forEach((c) => {
+      const avv = [!c.recapiti_recupero ? 'recapiti di recupero da indicare' : '', !c.due_passaggi ? 'verifica in due passaggi non attiva' : '', c.custodia_credenziali ? 'credenziali: ' + c.custodia_credenziali : 'indicare dove sono custodite le credenziali'].filter(Boolean).join('; ');
+      righe.push([
+        'Casella o servizio da passare', c.nome, 'Caselle e rinnovi', c.indirizzo || '', '', c.gestore ? 'gestore ' + c.gestore : '',
+        c.ultimo_cambio_password ? 'password cambiata il ' + fmtData(c.ultimo_cambio_password) : 'nessun cambio password registrato', 'Nuovo Venerabile e nuovo Segretario',
+        'Cambiare la password, verificare recapiti di recupero e verifica in due passaggi, togliere gli accessi non più autorizzati',
+        c.scadenza ? (c.rinnovo_automatico ? 'rinnovo automatico il ' : 'rinnovo entro il ') + fmtData(c.scadenza) : '', avv,
+      ]);
+    });
+
     // originali cartacei fuori dall'archivio (prelevati o trasmessi senza copia in cartellina)
     const originali = await leggi('originali_cartacei', 'cartellina,descrizione,riferimento,stato,destinatario,data_uscita,rientro_previsto,copia_in_cartellina');
     (originali || []).filter((o) => o.stato === 'prelevato' || (o.stato === 'trasmesso' && !o.copia_in_cartellina)).forEach((o) => {

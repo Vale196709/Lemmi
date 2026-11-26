@@ -8,7 +8,7 @@
   const { state, $, $$, esc, chk, messaggioErrore, isAdmin } = L;
   const PAG = 50;
 
-  const NOMI = { fratelli: 'Fratelli', bussanti: 'Bussanti', versamenti: 'Versamenti', scadenze: 'Scadenze', voci_quota: 'Voci di quota', conto_movimenti: 'Conto di Loggia', eventi_conto: 'Eventi del conto', conto_saldi: 'Saldi del conto', pratiche: 'Pratiche', pratiche_passi: 'Passi delle pratiche', pratiche_date: 'Date delle pratiche', originali_cartacei: 'Archivio cartaceo', originali_movimenti: 'Movimenti dell’archivio cartaceo', documenti: 'Documenti', cariche_storico: 'Cariche', profili: 'Utenti', loggia: 'Loggia' };
+  const NOMI = { fratelli: 'Fratelli', bussanti: 'Bussanti', versamenti: 'Versamenti', scadenze: 'Scadenze', voci_quota: 'Voci di quota', conto_movimenti: 'Conto di Loggia', eventi_conto: 'Eventi del conto', conto_saldi: 'Saldi del conto', pratiche: 'Pratiche', pratiche_passi: 'Passi delle pratiche', pratiche_date: 'Date delle pratiche', originali_cartacei: 'Archivio cartaceo', caselle_rinnovi: 'Caselle e rinnovi', originali_movimenti: 'Movimenti dell’archivio cartaceo', documenti: 'Documenti', cariche_storico: 'Cariche', profili: 'Utenti', loggia: 'Loggia' };
   const nomeTab = (t) => NOMI[t] || t.replace(/_/g, ' ');
   const OP = { inserimento: ['Inserimento', 'ok'], modifica: ['Modifica', 'info'], eliminazione: ['Eliminazione', 'bad'] };
   const nonPresente = (e) => /does not exist|schema cache/i.test((e && e.message) || '');

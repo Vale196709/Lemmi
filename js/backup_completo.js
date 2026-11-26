@@ -15,7 +15,7 @@
   const TABELLE = ['categorie_movimento', 'conto_saldi', 'cronologia_modifiche', 'elenco_cariche', 'fasce_eta', 'fratelli', 'import_estratti', 'loggia',
     'modelli_loggia', 'modelli_messaggio', 'parametri_quote', 'pratiche', 'registro_attivita', 'tornate', 'verbali', 'voci_quota', 'agape_adesioni',
     'agape_ospiti', 'bussanti', 'cariche_storico', 'elezioni', 'eventi_conto', 'lavori', 'messaggi', 'passaggi_grado', 'piano_rate', 'pratiche_date',
-    'pratiche_passi', 'presenze_verbale', 'profili', 'scadenze', 'conto_movimenti', 'documenti', 'messaggi_destinatari', 'agape_pagamenti', 'versamenti', 'originali_cartacei', 'originali_movimenti'];
+    'pratiche_passi', 'presenze_verbale', 'profili', 'scadenze', 'conto_movimenti', 'documenti', 'messaggi_destinatari', 'agape_pagamenti', 'versamenti', 'originali_cartacei', 'originali_movimenti', 'caselle_rinnovi'];
   // non leggibili dall'app (nessuna regola di lettura) e comunque da non esportare: chiavi delle notifiche e dispositivi iscritti
   const ESCLUSE = ['push_chiavi', 'push_inviati', 'push_iscrizioni', 'backup_esecuzioni', 'backup_righe'];
   const CHIAVI = { elenco_cariche: ['nome'], pratiche_date: ['pratica_id', 'chiave'], pratiche_passi: ['pratica_id', 'indice'], profili: ['user_id'] };
