@@ -907,3 +907,16 @@ a.tn-link:hover b { text-decoration: underline; }
 .tv-mie td.act { padding-top: 0; text-align: left; }
 .tv-mie tr + tr td:first-child { border-top: 1px solid var(--line); }
 .scarica-tavola { white-space: nowrap; }
+
+/* ---------- v0.70: diario della segreteria ---------- */
+.dg-ric { display: grid; gap: 8px; }
+.dg-ric-v { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.dg-ric-v:last-child { border-bottom: 0; }
+.dg-cart { font-size: .78rem; overflow-wrap: anywhere; }
+.dg-cart-box { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 10px; font-size: .86rem; overflow-wrap: anywhere; }
+.dg-cron { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.dg-cron li { display: grid; grid-template-columns: 92px 1fr auto; gap: 10px; align-items: start; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.dg-cron li:last-child { border-bottom: 0; }
+.dg-data { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .86rem; padding-top: 2px; }
+/* Utenti del sistema: l'avviso «nessun accesso da…» va a capo invece di finire sopra la colonna Azioni */
+.tab-utenti td[data-label="Ultimo accesso"] .badge { white-space: normal; line-height: 1.3; display: inline-block; max-width: 100%; }
