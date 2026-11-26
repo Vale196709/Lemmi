@@ -199,6 +199,18 @@ async function avvisiDelGiorno() {
   }
 
   void oggi;
+  // caselle e servizi da rinnovare (cartella 04): il giorno del preavviso, una settimana prima e il giorno della scadenza
+  const { data: rinn } = await db.from('caselle_rinnovi').select('id, nome, scadenza, preavviso_giorni, rinnovo_automatico').eq('attivo', true).not('scadenza', 'is', null);
+  for (const r of rinn || []) {
+    const quando = [[traGiorni(Number(r.preavviso_giorni ?? 30)), 'tra ' + Number(r.preavviso_giorni ?? 30) + ' giorni'], [tra7, 'tra una settimana'], [oggi, 'oggi']]
+      .find(([d]) => d === r.scadenza);
+    if (!quando) continue;
+    for (const p of profili.filter((x) => ['amministratore', 'segretario'].includes(String(x.ruolo)))) {
+      add(p.user_id, { chiave: `rinnovo|${r.id}|${r.scadenza}|${quando[1]}|${p.user_id}`, titolo: r.rinnovo_automatico ? 'Rinnovo automatico in arrivo' : 'Rinnovo da fare',
+        testo: `${r.nome}: scade ${quando[1]} (${it(r.scadenza)})`, url: '#/rinnovi' });
+    }
+  }
+
   return avvisi;
 }
 
