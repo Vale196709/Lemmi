@@ -170,8 +170,8 @@
     v.innerHTML = `
       <div class="page-head"><div><h1>Libro Matricola</h1><p>Registro cronologico dei Fratelli (art. 37 del Regolamento dell’Ordine) · modello del Corso Segretari 2024</p></div>
         <div class="right actions"><button class="btn gold" id="lm-pdf" type="button">${L.IC.pdf} PDF da stampare</button><button class="btn ghost" id="lm-xls" type="button">Excel</button></div></div>
-      <div class="actions" style="margin-bottom:14px"><label class="lbl" for="lm-f">Fratelli</label>
-        <select id="lm-f" style="width:auto"><option value="tutti">Tutti (registro completo)</option><option value="attivi">Solo attivi</option><option value="altri">Solo non attivi</option></select>
+      <div class="actions mb-14"><label class="lbl" for="lm-f">Fratelli</label>
+        <select id="lm-f" class="w-auto"><option value="tutti">Tutti (registro completo)</option><option value="attivi">Solo attivi</option><option value="altri">Solo non attivi</option></select>
         <span class="hint">Il numero progressivo segue la data di iniziazione e vale anche come numero del fascicolo. Numeri di brevetto e giudizi restano da compilare a mano.</span></div>
       <div id="lm-corpo"></div>`;
     $('#lm-f', v).value = st.filtro;

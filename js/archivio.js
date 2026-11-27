@@ -81,9 +81,9 @@
     const ov = document.createElement('div');
     ov.className = 'modal-ov';
     ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(titolo)}">
-      <div class="modal-h"><h2 style="margin:0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
-      <div class="modal-b"><form novalidate>${corpo}<div class="err" data-err style="margin-top:10px"></div>
-        ${opt.senzaSalva ? '' : `<div class="actions" style="margin-top:14px"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button>${opt.extra || ''}</div>`}</form></div></div>`;
+      <div class="modal-h"><h2 class="m-0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
+      <div class="modal-b"><form novalidate>${corpo}<div class="err mt-10" data-err></div>
+        ${opt.senzaSalva ? '' : `<div class="actions mt-14"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button>${opt.extra || ''}</div>`}</form></div></div>`;
     document.body.appendChild(ov);
     const tasto = (e) => { if (e.key === 'Escape') chiudi(); };
     const chiudi = () => { document.removeEventListener('keydown', tasto); ov.remove(); };
@@ -139,7 +139,7 @@
   /* uscita (prelievo o trasmissione) e rientro */
   function movimento(r, tipo) {
     const rientro = tipo === 'rientro';
-    finestra(rientro ? 'Registra il rientro' : 'Registra un’uscita', `<p style="margin:0 0 10px"><b>${esc(r.descrizione)}</b>${r.riferimento ? ' · ' + esc(r.riferimento) : ''}</p><div class="form-grid">
+    finestra(rientro ? 'Registra il rientro' : 'Registra un’uscita', `<p class="m-b10"><b>${esc(r.descrizione)}</b>${r.riferimento ? ' · ' + esc(r.riferimento) : ''}</p><div class="form-grid">
       ${rientro ? '' : `<div class="f s12"><label for="m-tipo">Che cosa succede</label><select id="m-tipo" name="tipo"><option value="prelievo">Prelievo temporaneo per la pratica (deve rientrare)</option><option value="trasmissione">Trasmissione a un organo (nella cartellina resta una copia)</option></select></div>
       <div class="f s12"><label for="m-dest">A chi o dove va</label><input id="m-dest" name="destinatario" maxlength="120" placeholder="Es. Gran Segreteria, Collegio dei MM.VV., Agenzia delle Entrate, il Venerabile"></div>`}
       ${campoData('m-data', rientro ? 'Rientrato il' : 'Uscito il', oggi())}
@@ -178,10 +178,10 @@
     const r = st.righe.find((x) => x.id === id); if (!r) return;
     let mov = [];
     try { mov = chk(await sb().from('originali_movimenti').select('*').eq('originale_id', id).order('data', { ascending: false }).order('creato_il', { ascending: false })); } catch (e) { /* lo storico è facoltativo */ }
-    const w = finestra(r.descrizione, `<div class="muted" style="margin-bottom:8px">${esc(nomeCart(r.cartellina))}${r.riferimento ? ' · ' + esc(r.riferimento) : ''}${r.data_ricezione ? ' · ricevuto il ' + esc(fmtData(r.data_ricezione)) : ''}</div>
-      <div style="margin-bottom:10px">${badgeStato(r)} <span class="badge ${r.scansionato ? 'ok' : 'gray'}">${r.scansionato ? 'Con scansione' : 'Senza scansione'}</span></div>
+    const w = finestra(r.descrizione, `<div class="muted mb-8">${esc(nomeCart(r.cartellina))}${r.riferimento ? ' · ' + esc(r.riferimento) : ''}${r.data_ricezione ? ' · ricevuto il ' + esc(fmtData(r.data_ricezione)) : ''}</div>
+      <div class="mb-10">${badgeStato(r)} <span class="badge ${r.scansionato ? 'ok' : 'gray'}">${r.scansionato ? 'Con scansione' : 'Senza scansione'}</span></div>
       ${fuori(r) ? `<div class="notice ${scaduto(r) ? 'bad' : 'warn'}" style="margin-bottom:10px"><b>${esc(r.destinatario)}</b> dal ${esc(fmtData(r.data_uscita))}${r.rientro_previsto ? ' · rientro previsto il ' + esc(fmtData(r.rientro_previsto)) : ''}${r.stato === 'trasmesso' ? '<br>' + (r.copia_in_cartellina ? 'Nella cartellina c’è la copia.' : 'Nella cartellina manca ancora la copia con data e destinatario.') : ''}</div>` : ''}
-      ${r.note ? `<p style="margin:0 0 10px">${esc(r.note)}</p>` : ''}
+      ${r.note ? `<p class="m-b10">${esc(r.note)}</p>` : ''}
       <h3 style="margin:12px 0 6px;font-size:1rem">Storico dei movimenti</h3>
       ${mov.length ? `<div class="table-wrap"><table><tbody>${mov.map((m) => `<tr><td>${esc(fmtData(m.data))}</td><td>${esc(EVENTO[m.evento] || m.evento)}</td><td>${esc(m.destinatario || '')}${m.note ? `<div class="muted">${esc(m.note)}</div>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="muted">Nessun movimento: l’originale non si è mai spostato dall’archivio.</div>'}
       ${scrive() ? `<div class="actions" style="margin-top:14px;flex-wrap:wrap">
@@ -229,11 +229,11 @@
   L.viste.archivio = async function (v) {
     v.innerHTML = `<div class="page-head"><div><h1>Archivio cartaceo</h1><p>Dove si trova ogni originale · Regolamento della segreteria, Parte II</p></div>
       <div class="actions">${scrive() ? '<button class="btn gold" type="button" id="ar-nuovo">+ Nuovo originale</button>' : ''}<button class="btn ghost" type="button" id="ar-xls">Scarica l’elenco (Excel)</button></div></div>
-      <div class="notice" style="margin-bottom:14px">La scansione di un documento non sostituisce l’originale. Se un originale esce dall’archivio (prelievo per la pratica o trasmissione a un organo) annota dove va e quando deve rientrare; se lo trasmetti, nella cartellina resta una copia con data e destinatario.</div>
+      <div class="notice mb-14">La scansione di un documento non sostituisce l’originale. Se un originale esce dall’archivio (prelievo per la pratica o trasmissione a un organo) annota dove va e quando deve rientrare; se lo trasmetti, nella cartellina resta una copia con data e destinatario.</div>
       <div id="ar-riep"></div>
-      <div class="actions" style="margin-bottom:14px"><div class="searchbar">${IC().search || ''}<input id="ar-q" type="search" placeholder="Cerca documento, persona, destinatario…"></div>
-        <select id="ar-cart" style="width:auto"><option value="">Tutte le cartelline</option>${Object.keys(CART).map((k) => `<option value="${k}">${esc(nomeCart(k))}</option>`).join('')}</select>
-        <select id="ar-stato" style="width:auto"><option value="">Tutti gli stati</option><option value="in_archivio">In archivio</option><option value="fuori">Fuori sede</option></select></div>
+      <div class="actions mb-14"><div class="searchbar">${IC().search || ''}<input id="ar-q" type="search" placeholder="Cerca documento, persona, destinatario…"></div>
+        <select id="ar-cart" class="w-auto"><option value="">Tutte le cartelline</option>${Object.keys(CART).map((k) => `<option value="${k}">${esc(nomeCart(k))}</option>`).join('')}</select>
+        <select id="ar-stato" class="w-auto"><option value="">Tutti gli stati</option><option value="in_archivio">In archivio</option><option value="fuori">Fuori sede</option></select></div>
       <div id="ar-lista"><div class="empty">Caricamento…</div></div>`;
     $('#ar-q', v).addEventListener('input', (e) => { st.q = e.target.value; disegna(); });
     $('#ar-cart', v).addEventListener('change', (e) => { st.cart = e.target.value; disegna(); });

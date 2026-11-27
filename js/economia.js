@@ -66,7 +66,7 @@
       <div class="drillable mese-col" data-drill="eco" data-a="mese" data-i="${i}" role="button" tabindex="0" style="flex:1;min-width:0;text-align:center;border-radius:8px" title="${MESI[i]}: entrate ${eur(m.e)}, uscite ${eur(m.u)} · clicca per il dettaglio">
         <div style="display:flex;gap:2px;align-items:flex-end;justify-content:center;height:124px"><div style="width:42%;height:${Math.round(m.e / maxM * 124)}px;background:var(--ok);border-radius:3px 3px 0 0;min-height:${m.e ? 2 : 0}px"></div><div style="width:42%;height:${Math.round(m.u / maxM * 124)}px;background:var(--bad);border-radius:3px 3px 0 0;min-height:${m.u ? 2 : 0}px"></div></div>
         <div class="muted" style="font-size:.72rem;margin-top:4px"><span class="m3">${MESI[i]}</span><span class="m1">${MESI[i].charAt(0)}</span></div></div>`).join('')}</div></div>
-      <div class="muted" style="font-size:.8rem;margin-top:6px"><span style="color:var(--ok)">■</span> entrate &nbsp; <span style="color:var(--bad)">■</span> uscite &nbsp;· clicca su un mese per il dettaglio</div>`;
+      <div class="muted" style="font-size:.8rem;margin-top:6px"><span class="t-ok">■</span> entrate &nbsp; <span class="t-bad">■</span> uscite &nbsp;· clicca su un mese per il dettaglio</div>`;
 
     const elencoCat = (lista, colore, segno) => { const tot = lista.reduce((a, [, v]) => a + v, 0); const max = lista.length ? lista[0][1] : 0;
       return lista.length ? lista.slice(0, 8).map(([k, v]) => `<div class="drillable riga-d" data-drill="eco" data-a="cat" data-seg="${segno}" data-k="${esc(k)}" role="button" tabindex="0" title="Clicca per i movimenti" style="margin:3px 0;padding:6px 8px"><div style="display:flex;justify-content:space-between;gap:10px;font-size:.92rem"><span>${esc(k)}</span><b>${eur(v)}${tot ? ` <span class="muted" style="font-weight:400">${Math.round(v / tot * 100)}%</span>` : ''}</b></div>${barra(v, max, colore)}</div>`).join('') : '<div class="empty"><div>Nessun movimento.</div></div>'; };
@@ -86,8 +86,8 @@
     const senzaCat = mov.filter((x) => num(x.importo) < 0 && !x.categoria_id && x.stato_riconciliazione !== 'ignorato').length;
 
     return `
-      <div class="actions" style="justify-content:space-between;margin:6px 0 12px"><h2 style="margin:0">Vista economica</h2>
-        <span><label class="lbl" for="eco-anno">Anno</label> <select id="eco-anno" style="width:auto">${anni.map((a) => `<option ${a === anno ? 'selected' : ''}>${a}</option>`).join('')}</select></span></div>
+      <div class="actions" style="justify-content:space-between;margin:6px 0 12px"><h2 class="m-0">Vista economica</h2>
+        <span><label class="lbl" for="eco-anno">Anno</label> <select id="eco-anno" class="w-auto">${anni.map((a) => `<option ${a === anno ? 'selected' : ''}>${a}</option>`).join('')}</select></span></div>
       <div class="grid stats">
         <div class="stat drillable" data-drill="eco" data-a="kpi" data-k="liq" role="button" tabindex="0" title="Clicca per il dettaglio"><div class="n" style="font-size:1.8rem">${d.liquidita === null ? '—' : eur(d.liquidita)}</div><div class="l">Liquidità stimata<br><span style="font-size:.75rem">${d.liquidita === null ? 'dati del conto non disponibili' : d.saldo ? (d.saldo.conti.length > 1 ? 'saldi di banca (' + d.saldo.conti.join(', ') + ')' : 'saldo banca al ' + fmtData(d.saldo.data)) + ' + movimenti successivi' : 'somma dei movimenti importati: importa un estratto PDF per avere il saldo di banca'}</span></div></div>
         <div class="stat drillable" data-drill="eco" data-a="kpi" data-k="ent" role="button" tabindex="0" title="Clicca per il dettaglio"><div class="n" style="font-size:1.8rem;color:var(--ok)">${eur(entrate)}</div><div class="l">Entrate ${anno}</div></div>
@@ -101,12 +101,12 @@
             <div class="stat drillable" data-drill="eco" data-a="quote" role="button" tabindex="0" title="Clicca per l’elenco delle quote" style="box-shadow:none;padding:0 0 8px"><div class="n" style="font-size:1.5rem">${eur(versato)} <span class="muted" style="font-size:.9rem;font-weight:400">su ${eur(dovuto)} (${dovuto ? Math.round(versato / dovuto * 100) : 0}%)</span></div></div>${barra(versato, dovuto, 'var(--ok)')}
             <div class="actions drillable riga-d" data-drill="eco" data-a="aperte" role="button" tabindex="0" title="Clicca per vedere chi deve versare" style="justify-content:space-between;margin:10px 0;padding:4px 8px"><span>Residuo da incassare</span><b>${eur(residuo)}</b></div>
             <div class="actions drillable riga-d" data-drill="eco" data-a="scadute" role="button" tabindex="0" title="Clicca per vedere le quote scadute" style="justify-content:space-between;padding:4px 8px"><span>Di cui già scaduto</span><b style="color:${scaduto ? 'var(--bad)' : 'inherit'}">${eur(scaduto)}</b></div>
-            ${voci.length ? `<div style="margin-top:12px">${voci.map(([k, x]) => `<div class="drillable riga-d" data-drill="eco" data-a="voce" data-k="${esc(k)}" role="button" tabindex="0" title="Clicca per l’elenco di questa voce" style="margin:4px 0;padding:6px 8px"><div style="display:flex;justify-content:space-between;font-size:.9rem"><span>${esc(k)}</span><span>${eur(x.ver)} / ${eur(x.dov)}</span></div>${barra(x.ver, x.dov, 'var(--gold)')}</div>`).join('')}</div>` : ''}
-            <div style="margin-top:12px"><a href="#/pagamenti/scadenze">Vai a Tesoreria</a></div></div>` },
+            ${voci.length ? `<div class="mt-12">${voci.map(([k, x]) => `<div class="drillable riga-d" data-drill="eco" data-a="voce" data-k="${esc(k)}" role="button" tabindex="0" title="Clicca per l’elenco di questa voce" style="margin:4px 0;padding:6px 8px"><div style="display:flex;justify-content:space-between;font-size:.9rem"><span>${esc(k)}</span><span>${eur(x.ver)} / ${eur(x.dov)}</span></div>${barra(x.ver, x.dov, 'var(--gold)')}</div>`).join('')}</div>` : ''}
+            <div class="mt-12"><a href="#/pagamenti/scadenze">Vai a Tesoreria</a></div></div>` },
           { vuoto: !perCategoria(mov, 1).length, nome: 'Entrate', html: `<div class="card"><h2>Da dove arrivano i soldi</h2>${elencoCat(perCategoria(mov, 1), 'var(--ok)', 1)}</div>` },
           { vuoto: !perCategoria(mov, -1).length, nome: 'Uscite', html: `<div class="card"><h2>Dove vanno i soldi</h2>${elencoCat(perCategoria(mov, -1), 'var(--bad)', -1)}</div>` },
           { vuoto: !morosi.length, nome: 'Quote scadute', html: `<div class="card"><h2>Quote scadute <small>${morosi.length}</small></h2>
-            <div class="table-wrap"><table><tbody>${morosi.slice(0, 8).map((m) => `<tr class="click" data-drill="eco" data-a="fr" data-id="${esc(m.id)}" tabindex="0" title="Clicca per il dettaglio"><td><b>${esc(m.nome)}</b><div class="hint">dal ${fmtData(m.da)}</div></td><td class="num" style="color:var(--bad)"><b>${eur(m.res)}</b></td><td class="act">${L.wa ? L.wa.sollecito(m.id, '') : ''}</td></tr>`).join('')}</tbody></table></div>${morosi.length > 8 ? `<div class="muted" style="margin-top:6px">… e altri ${morosi.length - 8}</div>` : ''}</div>` },
+            <div class="table-wrap"><table><tbody>${morosi.slice(0, 8).map((m) => `<tr class="click" data-drill="eco" data-a="fr" data-id="${esc(m.id)}" tabindex="0" title="Clicca per il dettaglio"><td><b>${esc(m.nome)}</b><div class="hint">dal ${fmtData(m.da)}</div></td><td class="num t-bad"><b>${eur(m.res)}</b></td><td class="act">${L.wa ? L.wa.sollecito(m.id, '') : ''}</td></tr>`).join('')}</tbody></table></div>${morosi.length > 8 ? `<div class="muted mt-6">… e altri ${morosi.length - 8}</div>` : ''}</div>` },
           { vuoto: !eventi.length, nome: 'Eventi ' + anno, html: `<div class="card"><h2>Eventi ${anno}</h2>
             <div class="table-wrap"><table><thead><tr><th>Evento</th><th class="num">Entrate</th><th class="num">Uscite</th><th class="num">Risultato</th></tr></thead><tbody>${eventi.map((e) => `<tr class="click" data-drill="eco" data-a="ev" data-id="${esc(e.id)}" tabindex="0" title="Clicca per i movimenti"><td><b>${esc(e.nome)}</b></td><td class="num">${eur(e.en)}</td><td class="num">${eur(e.us)}</td><td class="num" style="color:${e.ris >= 0 ? 'var(--ok)' : 'var(--bad)'}"><b>${eur(e.ris)}</b></td></tr>`).join('')}</tbody></table></div></div>` },
         ];
@@ -115,7 +115,7 @@
         return `<div class="grid cols-2">${pieni.map((r) => r.html).join('')}</div>`
           + (vuoti.length ? `<div class="eco-vuoti" aria-label="Sezioni senza dati">${vuoti.map((r) => `<span class="chip" title="Nessun dato registrato">${esc(r.nome)}: nessun dato</span>`).join('')}</div>` : '');
       })()}
-      ${(daRic || senzaCat) ? `<div class="notice" style="margin-bottom:14px"><b>Da sistemare nel Conto di Loggia:</b> ${daRic ? daRic + (daRic === 1 ? ' movimento da riconciliare' : ' movimenti da riconciliare') : ''}${daRic && senzaCat ? ', ' : ''}${senzaCat ? senzaCat + (senzaCat === 1 ? ' uscita senza categoria' : ' uscite senza categoria') : ''}. <a href="#/pagamenti/conto">Apri il Conto di Loggia</a></div>` : ''}`;
+      ${(daRic || senzaCat) ? `<div class="notice mb-14"><b>Da sistemare nel Conto di Loggia:</b> ${daRic ? daRic + (daRic === 1 ? ' movimento da riconciliare' : ' movimenti da riconciliare') : ''}${daRic && senzaCat ? ', ' : ''}${senzaCat ? senzaCat + (senzaCat === 1 ? ' uscita senza categoria' : ' uscite senza categoria') : ''}. <a href="#/pagamenti/conto">Apri il Conto di Loggia</a></div>` : ''}`;
   }
 
 
@@ -153,7 +153,7 @@
     return {
       t, titolo,
       html: () => L.drill.kpi([{ l: 'Entrate', v: eur(en), c: 'var(--ok)' }, { l: 'Uscite', v: eur(us), c: 'var(--bad)' }, { l: 'Saldo', v: eur(en - us), c: L.drill.colore(en - us) }])
-        + sezE + sezU + '<div style="margin-top:14px"><button type="button" class="btn ghost small" data-go="tutti">Tutti i movimenti</button></div>',
+        + sezE + sezU + '<div class="mt-14"><button type="button" class="btn ghost small" data-go="tutti">Tutti i movimenti</button></div>',
       vai: {
         ce: (el) => { const k = ent[Number(el.dataset.i)].etichetta; return livMovimenti(k, t + ' · entrate · ' + k, del(1, k)); },
         cu: (el) => { const k = usc[Number(el.dataset.i)].etichetta; return livMovimenti(k, t + ' · uscite · ' + k, del(-1, k)); },
@@ -166,7 +166,7 @@
     const dov = righe.reduce((a, r) => a + num(r.importo_dovuto), 0), ver = righe.reduce((a, r) => a + num(r.versato), 0), res = righe.reduce((a, r) => a + num(r.residuo), 0);
     return {
       t, titolo,
-      html: L.drill.kpi([{ l: 'Dovuto', v: eur(dov) }, { l: 'Versato', v: eur(ver), c: 'var(--ok)' }, { l: 'Residuo', v: eur(res), c: res > 0 ? 'var(--bad)' : '' }, { l: 'Scadenze', v: righe.length }]) + (nota ? `<div class="hint" style="margin-bottom:8px">${esc(nota)}</div>` : ''),
+      html: L.drill.kpi([{ l: 'Dovuto', v: eur(dov) }, { l: 'Versato', v: eur(ver), c: 'var(--ok)' }, { l: 'Residuo', v: eur(res), c: res > 0 ? 'var(--bad)' : '' }, { l: 'Scadenze', v: righe.length }]) + (nota ? `<div class="hint mb-8">${esc(nota)}</div>` : ''),
       bind: (corpo) => L.drill.tabella(corpo, {
         righe: righe.slice().sort((a, b) => String(a.data_scadenza).localeCompare(String(b.data_scadenza)) || String(a.fratello).localeCompare(String(b.fratello), 'it')),
         colonne: [
@@ -179,7 +179,7 @@
           { t: 'Stato', v: (r) => esc(r.stato || '—') },
         ],
         filtri: [{ t: 'Stato', v: (r) => r.stato || 'n/d' }, { t: 'Voce', v: (r) => r.voce }],
-        totali: (rr) => `<div class="drill-tot"><span>Dovuto <b>${eur(rr.reduce((a, r) => a + num(r.importo_dovuto), 0))}</b></span><span>Versato <b style="color:var(--ok)">${eur(rr.reduce((a, r) => a + num(r.versato), 0))}</b></span><span>Residuo <b style="color:var(--bad)">${eur(rr.reduce((a, r) => a + num(r.residuo), 0))}</b></span></div>`,
+        totali: (rr) => `<div class="drill-tot"><span>Dovuto <b>${eur(rr.reduce((a, r) => a + num(r.importo_dovuto), 0))}</b></span><span>Versato <b class="t-ok">${eur(rr.reduce((a, r) => a + num(r.versato), 0))}</b></span><span>Residuo <b class="t-bad">${eur(rr.reduce((a, r) => a + num(r.residuo), 0))}</b></span></div>`,
         vuoto: 'Nessuna scadenza.',
       }),
     };
@@ -200,7 +200,7 @@
       else {
         liv = livMovimenti('Movimenti ' + anno, 'Movimenti del ' + anno, mov, [filtroMese]);
         const base = liv.html;
-        liv.html = base + `<div class="hint" style="margin-bottom:8px">${ultimo.d.saldo ? 'La liquidità parte dal saldo di banca del ' + fmtData(ultimo.d.saldo.data) + ' e somma i movimenti successivi.' : 'La liquidità è la somma dei movimenti importati.'} Qui sotto i movimenti del ${anno}.</div>`;
+        liv.html = base + `<div class="hint mb-8">${ultimo.d.saldo ? 'La liquidità parte dal saldo di banca del ' + fmtData(ultimo.d.saldo.data) + ' e somma i movimenti successivi.' : 'La liquidità è la somma dei movimenti importati.'} Qui sotto i movimenti del ${anno}.</div>`;
       }
     } else if (a === 'cat') {
       const segno = Number(el.dataset.seg), k = el.dataset.k;

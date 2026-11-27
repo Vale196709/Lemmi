@@ -84,9 +84,9 @@
     const ov = document.createElement('div');
     ov.className = 'modal-ov';
     ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(titolo)}">
-      <div class="modal-h"><h2 style="margin:0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
-      <div class="modal-b"><form novalidate>${corpo}<div class="err" data-err style="margin-top:10px"></div>
-        ${opt.senzaSalva ? '' : `<div class="actions" style="margin-top:14px"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button></div>`}</form></div></div>`;
+      <div class="modal-h"><h2 class="m-0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
+      <div class="modal-b"><form novalidate>${corpo}<div class="err mt-10" data-err></div>
+        ${opt.senzaSalva ? '' : `<div class="actions mt-14"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button></div>`}</form></div></div>`;
     document.body.appendChild(ov);
     const tasto = (e) => { if (e.key === 'Escape') chiudi(); };
     const chiudi = () => { document.removeEventListener('keydown', tasto); ov.remove(); };
@@ -113,7 +113,7 @@
     const nuovo = !r;
     const x = r || { tipo: 'pec', nome: '', preavviso_giorni: 30, attivo: true };
     finestra(nuovo ? 'Nuovo servizio' : 'Modifica: ' + x.nome, `
-      <div class="notice warn" style="margin-bottom:12px">Non scrivere qui le password: indica solo <b>dove</b> sono custodite (es. busta chiusa nella cartella 04).</div>
+      <div class="notice warn mb-12">Non scrivere qui le password: indica solo <b>dove</b> sono custodite (es. busta chiusa nella cartella 04).</div>
       <div class="form-grid">
       <div class="f s4"><label for="r-tipo">Tipo</label><select id="r-tipo" name="tipo">${Object.keys(TIPI).map((k) => `<option value="${k}" ${k === x.tipo ? 'selected' : ''}>${esc(TIPI[k])}</option>`).join('')}</select></div>
       <div class="f s8"><label for="r-nome">Nome</label><input id="r-nome" name="nome" maxlength="120" placeholder="Es. PEC della Loggia, Casella del Segretario, Dominio lemmi812.it" value="${esc(x.nome)}"></div>
@@ -121,9 +121,9 @@
       <div class="f s4"><label for="r-gest">Gestore</label><input id="r-gest" name="gestore" maxlength="80" placeholder="Es. Aruba" value="${esc(x.gestore || '')}"></div>
       ${campoData('r-scad', 'Scadenza del rinnovo', x.scadenza, '', 's4')}
       <div class="f s4"><label for="r-prea">Avvisami (giorni prima)</label><input id="r-prea" name="preavviso" type="number" min="0" max="365" value="${esc(String(x.preavviso_giorni ?? 30))}"></div>
-      <div class="f s4" style="align-self:end"><label><input type="checkbox" name="automatico" ${x.rinnovo_automatico ? 'checked' : ''}> Rinnovo automatico</label></div>
+      <div class="f s4 self-end"><label><input type="checkbox" name="automatico" ${x.rinnovo_automatico ? 'checked' : ''}> Rinnovo automatico</label></div>
       <div class="f s8"><label for="r-rec">Recapiti di recupero</label><input id="r-rec" name="recupero" maxlength="200" placeholder="E-mail o cellulare per recuperare l’accesso" value="${esc(x.recapiti_recupero || '')}"></div>
-      <div class="f s4" style="align-self:end"><label><input type="checkbox" name="due" ${x.due_passaggi ? 'checked' : ''}> Verifica in due passaggi attiva</label></div>
+      <div class="f s4 self-end"><label><input type="checkbox" name="due" ${x.due_passaggi ? 'checked' : ''}> Verifica in due passaggi attiva</label></div>
       ${campoData('r-pw', 'Ultimo cambio password', x.ultimo_cambio_password, '', 's4')}
       <div class="f s8"><label for="r-cust">Dove sono custodite le credenziali</label><input id="r-cust" name="custodia" maxlength="160" placeholder="Es. busta chiusa nella cartella 04, presso il Segretario" value="${esc(x.custodia_credenziali || '')}"></div>
       <div class="f s12"><label for="r-chi">Chi può accedere</label><input id="r-chi" name="chi" maxlength="200" placeholder="Es. Venerabile e Segretario in carica" value="${esc(x.chi_accede || '')}"></div>
@@ -165,9 +165,9 @@
     const r = st.righe.find((x) => x.id === id); if (!r) return;
     const s = statoScadenza(r), pw = passwordDaCambiare(r);
     const kv = (k, val) => `<div><span>${esc(k)}</span><b>${val}</b></div>`;
-    const w = finestra(r.nome, `<div class="muted" style="margin-bottom:10px">${esc(TIPI[r.tipo] || r.tipo)}${r.indirizzo ? ' · ' + esc(r.indirizzo) : ''}${r.attivo ? '' : ' · <b>dismesso</b>'}</div>
+    const w = finestra(r.nome, `<div class="muted mb-10">${esc(TIPI[r.tipo] || r.tipo)}${r.indirizzo ? ' · ' + esc(r.indirizzo) : ''}${r.attivo ? '' : ' · <b>dismesso</b>'}</div>
       ${r.attivo && (s === 'scaduto' || s === 'vicino') ? `<div class="notice ${s === 'scaduto' ? 'bad' : 'warn'}" style="margin-bottom:10px">${s === 'scaduto' ? 'Rinnovo scaduto' : 'Rinnovo in scadenza'} il ${esc(fmtData(r.scadenza))}${r.rinnovo_automatico ? ': il rinnovo è automatico, controlla che sia andato a buon fine.' : '.'}</div>` : ''}
-      ${r.attivo && pw ? `<div class="notice warn" style="margin-bottom:10px">Password da cambiare: ${r.ultimo_cambio_password ? 'l’ultimo cambio registrato è del ' + esc(fmtData(r.ultimo_cambio_password)) + (st.ultimaElezione && r.ultimo_cambio_password < st.ultimaElezione ? ', prima del rinnovo delle cariche del ' + esc(fmtData(st.ultimaElezione)) : ', più di un anno fa') : 'nessun cambio registrato'}. Il Regolamento chiede di cambiarla a ogni rinnovo delle cariche e di verificare recapiti di recupero e verifica in due passaggi.</div>` : ''}
+      ${r.attivo && pw ? `<div class="notice warn mb-10">Password da cambiare: ${r.ultimo_cambio_password ? 'l’ultimo cambio registrato è del ' + esc(fmtData(r.ultimo_cambio_password)) + (st.ultimaElezione && r.ultimo_cambio_password < st.ultimaElezione ? ', prima del rinnovo delle cariche del ' + esc(fmtData(st.ultimaElezione)) : ', più di un anno fa') : 'nessun cambio registrato'}. Il Regolamento chiede di cambiarla a ogni rinnovo delle cariche e di verificare recapiti di recupero e verifica in due passaggi.</div>` : ''}
       <div class="kv">
         ${kv('Gestore', esc(r.gestore || '—'))}${kv('Scadenza', r.scadenza ? esc(fmtData(r.scadenza)) + (r.rinnovo_automatico ? ' (automatico)' : '') : '—')}
         ${kv('Recapiti di recupero', esc(r.recapiti_recupero || '—'))}${kv('Verifica in due passaggi', r.due_passaggi ? 'Sì' : 'No')}
@@ -212,9 +212,9 @@
   L.viste.rinnovi = async function (v) {
     v.innerHTML = `<div class="page-head"><div><h1>Caselle e rinnovi</h1><p>PEC, PEO, dominio e altri servizi della Loggia · Regolamento della segreteria, cartella 04</p></div>
       <div class="actions">${scrive() ? '<button class="btn gold" type="button" id="rn-nuovo">+ Nuovo servizio</button>' : ''}</div></div>
-      <div class="notice" style="margin-bottom:14px">Le password <b>non</b> si scrivono nell’app: qui si annota dove sono custodite. A ogni rinnovo delle cariche il nuovo Venerabile e il nuovo Segretario cambiano le password, verificano recapiti di recupero e verifica in due passaggi e tolgono gli accessi non più autorizzati: poi qui si preme «Password cambiata oggi».</div>
+      <div class="notice mb-14">Le password <b>non</b> si scrivono nell’app: qui si annota dove sono custodite. A ogni rinnovo delle cariche il nuovo Venerabile e il nuovo Segretario cambiano le password, verificano recapiti di recupero e verifica in due passaggi e tolgono gli accessi non più autorizzati: poi qui si preme «Password cambiata oggi».</div>
       <div id="rn-riep"></div>
-      <div class="actions" style="margin-bottom:12px"><label style="margin:0"><input type="checkbox" id="rn-dism"> Mostra anche i servizi dismessi</label></div>
+      <div class="actions mb-12"><label class="m-0"><input type="checkbox" id="rn-dism"> Mostra anche i servizi dismessi</label></div>
       <div id="rn-lista"><div class="empty">Caricamento…</div></div>`;
     const nu = $('#rn-nuovo', v); if (nu) nu.onclick = () => modulo(null);
     st.dismessi = false;

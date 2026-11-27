@@ -216,12 +216,12 @@
     ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="cs-t" style="width:min(520px,100%)">
       <div class="modal-h"><h2 id="cs-t">Prospetto pendenze e inventario</h2></div>
       <div class="modal-b">
-        <p style="margin:0 0 10px">Indica il periodo di gestione a cui si riferisce la consegna. Verrà creato un file Excel con pendenze, inventario e verifica congiunta, da conservare nella cartella 08.</p>
+        <p class="m-b10">Indica il periodo di gestione a cui si riferisce la consegna. Verrà creato un file Excel con pendenze, inventario e verifica congiunta, da conservare nella cartella 08.</p>
         <div class="form-grid">
           <div class="f s6"><label for="cs-dal">Dal</label><input id="cs-dal" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off" value="${esc(L.isoToIt(anno + '-01-01'))}"></div>
           <div class="f s6"><label for="cs-al">Al</label><input id="cs-al" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off" value="${esc(L.isoToIt(oggi()))}"></div>
         </div>
-        <div class="dlg-az" style="margin-top:14px"><button type="button" class="btn ghost" data-r="no">Annulla</button><button type="button" class="btn gold" data-r="si">Crea il file Excel</button></div>
+        <div class="dlg-az mt-14"><button type="button" class="btn ghost" data-r="no">Annulla</button><button type="button" class="btn gold" data-r="si">Crea il file Excel</button></div>
       </div></div>`;
     document.body.appendChild(ov);
     L.mascheraDate(ov);

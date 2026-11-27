@@ -133,6 +133,9 @@ async function spedisci(userIds: string[] | null, avvisi: Map<string, Avviso[]>)
   return { inviati, rimossi };
 }
 
+// aggiornare a ogni modifica di questo file (aaaa-mm-gg): «Stato del sistema» la confronta con quella attesa dall'app
+const VERSIONE_FUNZIONE = '2026-11-26';
+
 const GRADI = ['apprendista', 'compagno', 'maestro'];
 
 async function avvisiDelGiorno() {
@@ -219,6 +222,8 @@ Deno.serve(async (req) => {
   try {
     const b = await req.json().catch(() => ({}));
     const azione = String(b.azione || '');
+    // versione della funzione pubblicata: la usa «Stato del sistema» per dire se va ripubblicata
+    if (azione === 'versione') return risposta({ versione: VERSIONE_FUNZIONE });
     if (azione === 'chiave') return risposta({ chiave: (await chiavi()).pubblica });
 
     if (azione === 'prova') {

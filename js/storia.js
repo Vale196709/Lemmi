@@ -91,8 +91,8 @@
     const lega = () => $$('[data-mod]', c).forEach((b) => b.addEventListener('click', () => apriCarica(st.cariche.find((x) => x.id === b.dataset.mod))));
 
     if (st.modo === 'anno') {
-      c.innerHTML = `<div class="actions" style="margin-bottom:14px"><label class="lbl" for="h-anno">Anno</label>
-        <select id="h-anno" style="width:auto">${anni.map((a) => `<option value="${a}" ${a === st.anno ? 'selected' : ''}>${a}</option>`).join('')}</select><span class="muted" id="h-conta"></span></div>
+      c.innerHTML = `<div class="actions mb-14"><label class="lbl" for="h-anno">Anno</label>
+        <select id="h-anno" class="w-auto">${anni.map((a) => `<option value="${a}" ${a === st.anno ? 'selected' : ''}>${a}</option>`).join('')}</select><span class="muted" id="h-conta"></span></div>
         <div class="table-wrap"><table><thead><tr><th>Carica</th><th>Fratello</th><th>Periodo</th><th>Note</th><th></th></tr></thead><tbody id="h-righe"></tbody></table></div>`;
       const disegna = () => {
         const lista = st.cariche.filter((x) => x.anno_dal <= st.anno && (x.anno_al || x.anno_dal) >= st.anno)
@@ -105,7 +105,7 @@
       $('#h-anno').addEventListener('change', (e) => { st.anno = Number(e.target.value); disegna(); });
       disegna();
     } else {
-      c.innerHTML = `<div class="form-grid" style="margin-bottom:14px">${P.campoFratello(st.frat, { id: 'h-sel', label: 'Fratello', req: false, cls: 's6' })}</div><div id="h-fr"></div>`;
+      c.innerHTML = `<div class="form-grid mb-14">${P.campoFratello(st.frat, { id: 'h-sel', label: 'Fratello', req: false, cls: 's6' })}</div><div id="h-fr"></div>`;
       const inp = $('#h-sel'); inp.value = st.fratello;
       const disegna = () => {
         st.fratello = inp.value;

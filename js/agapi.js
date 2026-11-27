@@ -104,12 +104,12 @@
           <select name="tipo" aria-label="Tipo di ospite">${Object.keys(TIPO_OSP).map((k) => `<option value="${k}">${esc(TIPO_OSP[k])}</option>`).join('')}</select>
           <select name="invitato_da" aria-label="Invitato da"><option value="">Invitato da…</option>${attivi.map((f) => `<option value="${esc(f.id)}">${esc(f.cognome + ' ' + f.nome)}</option>`).join('')}</select>
           <input name="contatto" placeholder="Cellulare (facoltativo)" inputmode="tel" aria-label="Cellulare dell’ospite" maxlength="40">
-          <button class="btn small" type="submit">Aggiungi ospite</button></form>` : `<div class="notice" style="margin-top:14px">Per l’obiettivo di coperti e gli ospiti con nome esegui prima lo script <b>sql/lemmi_aggiornamento_43.sql</b> nell’editor SQL di Supabase.</div>`;
+          <button class="btn small" type="submit">Aggiungi ospite</button></form>` : `<div class="notice mt-14">Per l’obiettivo di coperti e gli ospiti con nome esegui prima lo script <b>sql/lemmi_aggiornamento_43.sql</b> nell’editor SQL di Supabase.</div>`;
 
     const ov = document.createElement('div');
     ov.className = 'modal-ov';
     ov.innerHTML = `<div class="modal wide" role="dialog" aria-modal="true" aria-label="Adesioni all’agape">
-      <div class="modal-h"><div><h2 style="margin:0">Agape del ${fmtData(t.data)}</h2>
+      <div class="modal-h"><div><h2 class="m-0">Agape del ${fmtData(t.data)}</h2>
         <div class="hint">${quota ? 'Quota ' + eur(quota) + ' a persona' : 'Quota non indicata'}${t.adesioni_entro ? ' · adesioni entro il ' + fmtData(t.adesioni_entro) : ''}${t.luogo ? ' · ' + esc(t.luogo) : ''}</div></div>
         <button class="btn ghost small" type="button" data-x>Chiudi</button></div>
       <div class="modal-b">
@@ -117,15 +117,15 @@
         ${ospOk ? `<div class="ag-ob"><label for="ag-ob">Obiettivo coperti</label><input id="ag-ob" type="number" min="1" max="500" inputmode="numeric" value="${num(t.obiettivo_coperti) || ''}" placeholder="es. 25"><div class="ag-prog" id="ag-prog" hidden><i></i></div><span class="hint" id="ag-prog-t"></span></div>` : ''}
         <div class="ag-cassa" id="ag-cassa" hidden></div>
         <div class="ag-banca" id="ag-banca" hidden></div>
-        <div class="actions" style="margin-bottom:12px">
+        <div class="actions mb-12">
           <div class="searchbar" style="flex:1 1 220px">${L.IC.search}<input id="ag-q" type="search" placeholder="Cerca un Fratello…"></div>
-          <select id="ag-f" style="width:auto"><option value="">Tutti</option><option value="si">Partecipano</option><option value="no">Non partecipano</option><option value="nr">Senza risposta</option></select>
+          <select id="ag-f" class="w-auto"><option value="">Tutti</option><option value="si">Partecipano</option><option value="no">Non partecipano</option><option value="nr">Senza risposta</option></select>
           <button class="btn ghost small" type="button" id="ag-copia">Copia elenco per il ristorante</button>
           ${L.wa ? `<button class="btn ghost small wa" type="button" id="ag-wa">Invito su WhatsApp</button>` : ''}
         </div>
-        ${chiusa ? '<div class="notice" style="margin-bottom:10px">L’agape si è già svolta: puoi ancora correggere presenze e incassi.</div>' : ''}
+        ${chiusa ? '<div class="notice mb-10">L’agape si è già svolta: puoi ancora correggere presenze e incassi.</div>' : ''}
         <div class="table-wrap"><table><thead><tr><th>Fratello</th><th>Risposta</th><th>Ospiti</th><th>Note</th><th class="num">Incassato</th></tr></thead><tbody id="ag-righe"></tbody></table></div>
-        <p class="hint" style="margin-top:10px">Ogni modifica si salva da sola. Le risposte date dal Fratello nella sua area sono segnate con «dall’app».</p>
+        <p class="hint mt-10">Ogni modifica si salva da sola. Le risposte date dal Fratello nella sua area sono segnate con «dall’app».</p>
         ${sezOspiti}
       </div></div>`;
     document.body.appendChild(ov);
@@ -362,7 +362,7 @@
       const sub = document.createElement('div');
       sub.className = 'modal-ov';
       sub.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Pagamenti di ${esc(nome)}">
-        <div class="modal-h"><div><h2 style="margin:0">Pagamenti</h2><div class="hint">${esc(nome)}</div></div><button class="btn ghost small" type="button" data-x2>Chiudi</button></div>
+        <div class="modal-h"><div><h2 class="m-0">Pagamenti</h2><div class="hint">${esc(nome)}</div></div><button class="btn ghost small" type="button" data-x2>Chiudi</button></div>
         <div class="modal-b"><div class="ag-kpi" id="pg-kpi"></div>
           <div class="table-wrap"><table><thead><tr><th>Data</th><th>Metodo</th><th class="num">Importo</th><th>Nota</th><th></th></tr></thead><tbody id="pg-righe"></tbody></table></div>
           <form id="pg-form" class="ag-osp-form" autocomplete="off">
@@ -473,10 +473,10 @@
       const sub = document.createElement('div');
       sub.className = 'modal-ov';
       sub.innerHTML = `<div class="modal wide" role="dialog" aria-modal="true" aria-label="Abbina movimenti">
-        <div class="modal-h"><div><h2 style="margin:0">Abbina movimenti</h2><div class="hint">Entrate in banca di «${esc(evento.nome)}» non ancora attribuite a chi ha pagato</div></div><button class="btn ghost small" type="button" data-x2>Chiudi</button></div>
+        <div class="modal-h"><div><h2 class="m-0">Abbina movimenti</h2><div class="hint">Entrate in banca di «${esc(evento.nome)}» non ancora attribuite a chi ha pagato</div></div><button class="btn ghost small" type="button" data-x2>Chiudi</button></div>
         <div class="modal-b"><label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-bottom:10px"><input type="checkbox" id="ab-extra"> Mostra anche le entrate degli ultimi 120 giorni non collegate a nessun evento</label>
           <div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrizione</th><th class="num">Importo</th><th class="num">Da abbinare</th><th>Chi ha pagato</th><th></th></tr></thead><tbody id="ab-righe"></tbody></table></div>
-          <p class="hint" style="margin-top:10px">Per un bonifico si registra un pagamento «Bonifico» alla persona scelta. Per un «Versamento di contanti» tutti i contanti ancora da versare risultano versati con la data del movimento. Se un bonifico copre più persone, abbinalo una volta per ciascuna cambiando l’importo.</p></div></div>`;
+          <p class="hint mt-10">Per un bonifico si registra un pagamento «Bonifico» alla persona scelta. Per un «Versamento di contanti» tutti i contanti ancora da versare risultano versati con la data del movimento. Se un bonifico copre più persone, abbinalo una volta per ciascuna cambiando l’importo.</p></div></div>`;
       document.body.appendChild(sub);
       const righeDa = () => [
         ...movs.filter((m) => num(m.importo) > 0).map((m) => ({ m, dentro: true, res: num(m.importo) - alloc(m) })),
@@ -554,7 +554,7 @@
     return `<div class="ag-box" data-agbox="${esc(t.id)}"><b>Agape</b>${t.quota_agape ? ' · ' + eur(t.quota_agape) : ''}${t.adesioni_entro ? ` · rispondi entro il ${fmtData(t.adesioni_entro)}` : ''}
       ${chiuse ? `<span>${v === 'si' ? 'Hai confermato la partecipazione' + (a && a.ospiti ? ' con ' + a.ospiti + (a.ospiti === 1 ? ' ospite' : ' ospiti') : '') : v === 'no' ? 'Hai indicato che non parteciperai' : 'Adesioni chiuse: rivolgiti al Segretario'}</span>`
         : `<div class="ag-seg" role="group" aria-label="La tua risposta"><button type="button" class="si" data-agr="si" aria-pressed="${v === 'si'}">Partecipo</button><button type="button" class="no" data-agr="no" aria-pressed="${v === 'no'}">Non partecipo</button></div>
-        <label style="display:flex;gap:6px;align-items:center;font-weight:500">Ospiti <select data-agosp style="width:auto;padding:5px 8px">${[0, 1, 2, 3, 4, 5].map((n) => `<option ${a && a.partecipa && num(a.ospiti) === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>`}</div>`;
+        <label class="chk-riga">Ospiti <select data-agosp style="width:auto;padding:5px 8px">${[0, 1, 2, 3, 4, 5].map((n) => `<option ${a && a.partecipa && num(a.ospiti) === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>`}</div>`;
   }
   // chiamata dall'area del Fratello dopo aver disegnato la pagina
   async function montaFratello(v, tornate) {

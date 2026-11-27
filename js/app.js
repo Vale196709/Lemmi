@@ -659,7 +659,7 @@
     v.innerHTML = `
       <div class="page-head"><div><h1>Bussanti</h1><p>Domande di iniziazione, riammissione e regolarizzazione</p></div>
         <div class="right actions">${canEdit() ? `<a class="btn gold" href="#/bussanti/nuovo">${IC.plus} Nuovo bussante</a>` : ''}</div></div>
-      <div class="actions" style="margin-bottom:14px"><div class="searchbar">${IC.search}<input id="q" type="search" placeholder="Cerca per cognome o nome…"></div>
+      <div class="actions mb-14"><div class="searchbar">${IC.search}<input id="q" type="search" placeholder="Cerca per cognome o nome…"></div>
         <span class="muted" id="conta"></span></div>
       <div class="table-wrap"><table><thead><tr><th>Nominativo</th><th>Domanda</th><th>Presentata il</th><th>1ª votazione</th><th>2ª votazione</th></tr></thead>
       <tbody id="righe"></tbody></table></div>`;
@@ -750,18 +750,18 @@
           <option value="sede_lavoro" ${b.competenza_territoriale === 'sede_lavoro' ? 'selected' : ''}>Di avere la sede di lavoro in…</option></select></div>
         ${campo('competenza_luogo', 'Luogo (come scritto sul modulo)', b.competenza_luogo, { cls: 's8' })}
 
-        <div id="blocco-prov" class="form-grid" style="grid-column:span 12">
-          <div class="section-title" style="grid-column:span 12">Provenienza (solo per il C/1)</div>
-          <div data-p="regolarizzazione" class="form-grid" style="grid-column:span 12">
+        <div id="blocco-prov" class="form-grid col-12">
+          <div class="section-title col-12">Provenienza (solo per il C/1)</div>
+          <div data-p="regolarizzazione" class="form-grid col-12">
             ${campo('p_obbedienza', 'Proveniente dall’Obbedienza', pv.obbedienza, { cls: 's6' })}
             ${campo('p_grado', 'Con il grado di', pv.grado, { cls: 's6' })}
           </div>
-          <div data-p="cancellazione_pena" class="form-grid" style="grid-column:span 12">
+          <div data-p="cancellazione_pena" class="form-grid col-12">
             ${campo('p_espulso_sentenza_del', 'Espulso con sentenza del', pv.espulso_sentenza_del, { type: 'date', cls: 's4', req: 1 })}
             ${campo('p_espulso_definitiva_il', 'Definitiva il', pv.espulso_definitiva_il, { type: 'date', cls: 's4', req: 1 })}
             ${campo('p_grado_ricoperto', 'Ricopriva il grado di', pv.grado_ricoperto, { cls: 's4' })}
           </div>
-          <div data-p="affiliazione_estero" class="form-grid" style="grid-column:span 12">
+          <div data-p="affiliazione_estero" class="form-grid col-12">
             ${campo('p_rl_nome', 'Proveniente dalla R∴L∴', pv.rl_nome, { cls: 's4' })}
             ${campo('p_rl_oriente', 'N. e Oriente', pv.rl_oriente, { cls: 's4' })}
             ${campo('p_gran_loggia', 'All’obbedienza della Gran Loggia', pv.gran_loggia, { cls: 's4' })}
@@ -932,7 +932,7 @@
           <a class="btn gold" href="#/template/modulo/${b.tipo_domanda === 'regolarizzazione' ? 'AR' : 'A2'}/${esc(id)}">${IC.pdf} Modello ${b.tipo_domanda === 'regolarizzazione' ? 'A/R' : 'A/2'}</a>
           <button class="btn gold" data-gen="C1">${IC.pdf} Modello C/1</button>
           <label class="check" style="margin-left:6px"><input type="checkbox" id="x-collegio"> Copia per il Collegio</label>
-        </div><p class="hint" style="margin-top:8px">Per questo tipo di domanda il modello è ${b.tipo_domanda === 'regolarizzazione' ? 'A/R (regolarizzazione)' : 'A/2 (riammissione / cancellazione della pena / affiliazione dall’estero)'}: si compila nella sezione Template, dove si aggiungono i dati che la scheda non contiene.</p>`}</div>
+        </div><p class="hint mt-8">Per questo tipo di domanda il modello è ${b.tipo_domanda === 'regolarizzazione' ? 'A/R (regolarizzazione)' : 'A/2 (riammissione / cancellazione della pena / affiliazione dall’estero)'}: si compila nella sezione Template, dove si aggiungono i dati che la scheda non contiene.</p>`}</div>
 
       <div class="card"><h2>Dati della pratica</h2><div class="kv">
         ${kv('Nato a', [b.luogo_nascita, b.provincia_nascita ? '(' + b.provincia_nascita + ')' : ''].filter(Boolean).join(' '))}
@@ -1103,7 +1103,7 @@
   API.estensioniLoggia.push(schedaPassword);
 
   function schedaPassword(v) {
-    v.insertAdjacentHTML('beforeend', `<div class="card" style="margin-top:18px"><h2>Il tuo accesso</h2>
+    v.insertAdjacentHTML('beforeend', `<div class="card mt-18"><h2>Il tuo accesso</h2>
       <form id="f-pw" class="form-grid">
         <div class="f s4"><label for="pw1">Nuova password (almeno 8 caratteri)</label><input id="pw1" name="p1" type="password" autocomplete="new-password"></div>
         <div class="f s4"><label for="pw2">Ripeti la password</label><input id="pw2" name="p2" type="password" autocomplete="new-password"></div>

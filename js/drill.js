@@ -31,7 +31,7 @@
     if (!ov) {
       ov = document.createElement('div');
       ov.className = 'modal-ov';
-      ov.innerHTML = '<div class="modal wide" role="dialog" aria-modal="true"><div class="modal-h"><div class="drill-head"><nav class="drill-crumb" aria-label="Percorso"></nav><h2 style="margin:0"></h2></div><button class="btn ghost small" type="button" data-x>Chiudi</button></div><div class="modal-b"></div></div>';
+      ov.innerHTML = '<div class="modal wide" role="dialog" aria-modal="true"><div class="modal-h"><div class="drill-head"><nav class="drill-crumb" aria-label="Percorso"></nav><h2 class="m-0"></h2></div><button class="btn ghost small" type="button" data-x>Chiudi</button></div><div class="modal-b"></div></div>';
       document.body.appendChild(ov);
       ov.addEventListener('mousedown', (e) => { if (e.target === ov) chiudi(); });
       $('[data-x]', ov).addEventListener('click', chiudi);
@@ -94,7 +94,7 @@
       cont.innerHTML = `${bollini}<div class="table-wrap"><table><thead><tr>${cfg.colonne.map((c) => `<th${c.num ? ' class="num"' : ''}>${esc(c.t)}</th>`).join('')}</tr></thead>
         <tbody>${righe.length ? righe.map((r) => `<tr>${cfg.colonne.map((c) => `<td${c.num ? ' class="num"' : ''}>${c.v(r)}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${cfg.colonne.length}"><div class="empty"><div>${esc(cfg.vuoto || 'Nessun elemento.')}</div></div></td></tr>`}</tbody>
         ${cfg.totali && righe.length ? `<tfoot><tr><td colspan="${cfg.colonne.length}">${cfg.totali(righe)}</td></tr></tfoot>` : ''}</table></div>
-        <div class="hint" style="margin-top:8px">${righe.length} ${righe.length === 1 ? 'elemento' : 'elementi'} · clicca sull’intestazione di una colonna per ordinare</div>`;
+        <div class="hint mt-8">${righe.length} ${righe.length === 1 ? 'elemento' : 'elementi'} · clicca sull’intestazione di una colonna per ordinare</div>`;
       $$('.chip', cont).forEach((b) => b.addEventListener('click', () => { sel[Number(b.dataset.f)] = b.dataset.v; disegnaT(); }));
     };
     disegnaT();
@@ -117,10 +117,10 @@
       totali: (rr) => {
         const en = rr.filter((x) => num(x.importo) > 0).reduce((a, x) => a + num(x.importo), 0);
         const us = rr.filter((x) => num(x.importo) < 0).reduce((a, x) => a - num(x.importo), 0);
-        return `<div class="drill-tot"><span>Entrate <b style="color:var(--ok)">${eur(en)}</b></span><span>Uscite <b style="color:var(--bad)">${eur(us)}</b></span><span>Saldo <b style="color:${colore(en - us)}">${eur(en - us)}</b></span></div>`;
+        return `<div class="drill-tot"><span>Entrate <b class="t-ok">${eur(en)}</b></span><span>Uscite <b class="t-bad">${eur(us)}</b></span><span>Saldo <b style="color:${colore(en - us)}">${eur(en - us)}</b></span></div>`;
       },
     });
-    corpo.insertAdjacentHTML('beforeend', '<div style="margin-top:10px"><a href="#/pagamenti/conto">Apri il Conto di Loggia</a></div>');
+    corpo.insertAdjacentHTML('beforeend', '<div class="mt-10"><a href="#/pagamenti/conto">Apri il Conto di Loggia</a></div>');
   }
 
   /* ---------- registrazione dei gestori e clic ---------- */

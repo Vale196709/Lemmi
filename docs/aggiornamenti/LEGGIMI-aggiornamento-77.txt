@@ -1,0 +1,40 @@
+LEMMI - AGGIORNAMENTO 77 (v0.73.0, 26/11/2026)
+=============================================
+
+CONTENUTO
+Questo pacchetto contiene anche l'aggiornamento 76 (v0.72.0), che sul repository non
+risulta ancora caricato. Basta caricare questo.
+
+1) v0.72.0 - Stato del sistema controlla da solo gli script SQL eseguiti e la versione
+   della funzione «notifiche» (vedi LEGGIMI-aggiornamento-76.txt).
+2) v0.73.0 - Riordino degli stili, SENZA CAMBI VISIBILI:
+   - css/style.css riscritto in 15 sezioni con indice in testa; regole per il telefono
+     in un solo punto; colori solo nelle variabili; tolte regole doppie o mai usate;
+   - 331 stili scritti nel codice (style="margin-top:14px" e simili) sostituiti da
+     classi brevi (mt-14, w-auto, ta-r...);
+   - verifica: foto di tutte le pagine prima e dopo (4 profili, computer e telefono,
+     tema chiaro e scuro, anche con i caratteri larghi di GitHub): identiche.
+
+FILE DA CARICARE SU GITHUB (sostituendo quelli esistenti)
+- index.html, sw.js
+- css/style.css
+- js/ : tutti i file .js del pacchetto (molti hanno solo le classi al posto degli stili;
+        js/verifica_script.js è nuovo)
+- supabase/functions/notifiche/index.ts
+- docs/funzioni.md, docs/aggiornamenti/LEGGIMI-aggiornamento-76.txt e -77.txt
+
+DA FARE SU SUPABASE (dall'aggiornamento 76)
+- Se non già fatto: eseguire gli script SQL 54, 55 e 56 (cartella sql/).
+- Ripubblicare la funzione «notifiche» (Edge Functions) con il nuovo index.ts.
+
+PULIZIA DEL REPOSITORY (cancellare su GitHub)
+- vendor/591.supabase.js             (copia rimasta per errore)
+- supabase/functions/notifiche/notifiche/   (cartella doppia caricata per errore:
+                                              la funzione giusta è notifiche/index.ts)
+
+CONTROLLO FINALE
+- In fondo al menu: «Versione 0.73.0».
+- Info di sistema > Stato del sistema: «Aggiornamenti del database» e «Funzione delle
+  notifiche» verdi.
+- GitHub > Actions: prova automatica verde.
+- Se sul telefono la grafica sembra strana, chiudere e riaprire l'app due volte.

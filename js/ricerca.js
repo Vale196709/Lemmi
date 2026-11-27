@@ -35,7 +35,7 @@
     };
   }
 
-  const sez = (titolo, righe) => (righe.length ? `<div class="card" style="margin-bottom:14px"><h2>${esc(titolo)} <small>${righe.length}</small></h2><div class="table-wrap"><table><tbody>${righe.join('')}</tbody></table></div></div>` : '');
+  const sez = (titolo, righe) => (righe.length ? `<div class="card mb-14"><h2>${esc(titolo)} <small>${righe.length}</small></h2><div class="table-wrap"><table><tbody>${righe.join('')}</tbody></table></div></div>` : '');
   const riga = (href, a, b) => `<tr class="click" data-go="${esc(href)}"><td><b>${a}</b></td><td class="muted">${b || ''}</td></tr>`;
 
   L.viste.cerca = async function (v) {

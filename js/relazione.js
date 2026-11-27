@@ -123,12 +123,12 @@
     let anno = ora;
     v.innerHTML = `<div class="page-head"><div><h1>Relazione annuale</h1><p>Bozza della relazione del Maestro Venerabile, scritta con i dati dell’anno · da rileggere e completare</p></div></div>
       <div class="card"><div class="actions" style="margin-bottom:12px;flex-wrap:wrap"><label class="lbl" for="rl-anno">Anno</label>
-        <select id="rl-anno" style="width:auto">${[ora - 2, ora - 1, ora].map((x) => `<option ${x === ora ? 'selected' : ''}>${x}</option>`).join('')}</select>
+        <select id="rl-anno" class="w-auto">${[ora - 2, ora - 1, ora].map((x) => `<option ${x === ora ? 'selected' : ''}>${x}</option>`).join('')}</select>
         <button class="btn ghost" type="button" id="rl-rigenera">Riscrivi dai dati</button></div>
-        <div class="notice" style="margin-bottom:12px"><b>Controlla i numeri.</b> Il testo si ricava da Calendario, Verbali, Fratelli, Storia, Lavori e Conto di Loggia: se un dato non è stato registrato, non compare. Le righe che iniziano con «##» sono titoli di sezione. Completa le parti tra parentesi quadre.</div>
+        <div class="notice mb-12"><b>Controlla i numeri.</b> Il testo si ricava da Calendario, Verbali, Fratelli, Storia, Lavori e Conto di Loggia: se un dato non è stato registrato, non compare. Le righe che iniziano con «##» sono titoli di sezione. Completa le parti tra parentesi quadre.</div>
         <textarea id="rl-testo" rows="22" style="width:100%;font-family:inherit;line-height:1.5" aria-label="Testo della relazione"></textarea>
-        <div class="err" id="rl-err" style="margin-top:8px"></div>
-        <div class="actions" style="margin-top:12px"><button class="btn gold" type="button" id="rl-docx">Scarica in Word (.docx)</button>
+        <div class="err mt-8" id="rl-err"></div>
+        <div class="actions mt-12"><button class="btn gold" type="button" id="rl-docx">Scarica in Word (.docx)</button>
           <button class="btn ghost" type="button" id="rl-stampa">Stampa</button></div></div>`;
     const ta = $('#rl-testo', v), err = $('#rl-err', v);
     let modificato = false;

@@ -1,0 +1,8 @@
+AGGIORNAMENTO 76 (versione 0.72.0) - Controllo degli aggiornamenti in "Stato del sistema"
+
+PASSO 1 (GitHub) - carica i file dello ZIP mantenendo le cartelle (js/verifica_script.js è nuovo).
+PASSO 2 (Supabase > Edge Functions > notifiche) - ripubblica la funzione con supabase/functions/notifiche/index.ts:
+   ora risponde anche alla domanda "che versione sei?".
+PASSO 3 - apri Info di sistema > Stato del sistema: nel riquadro "Aggiornamenti del database" vedi per ogni script
+   "Applicato" o "Da eseguire" e, in rosso in alto, l'elenco dei file da lanciare su Supabase in ordine.
+   Eseguili, ricarica la pagina e verifica che diventino tutti verdi.

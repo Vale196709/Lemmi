@@ -68,8 +68,8 @@
 
   L.estensioniLoggia.push((v) => {
     if (!isAdmin()) return;
-    v.insertAdjacentHTML('beforeend', `<div class="card" style="margin-top:18px"><h2>Copia di sicurezza</h2>
-      <p class="muted" style="margin:0 0 14px">Scarica tutti i dati dell’app in un unico file Excel (un foglio per ogni tabella). Conviene farlo una volta al mese e prima di ogni aggiornamento.</p>
+    v.insertAdjacentHTML('beforeend', `<div class="card mt-18"><h2>Copia di sicurezza</h2>
+      <p class="muted m-b14">Scarica tutti i dati dell’app in un unico file Excel (un foglio per ogni tabella). Conviene farlo una volta al mese e prima di ogni aggiornamento.</p>
       <div class="notice">Il file contiene dati personali dei Fratelli e dei bussanti: conservalo in un luogo sicuro e non inviarlo per e-mail. I documenti caricati (certificati, foto, moduli firmati) non sono inclusi: restano nell’archivio privato.</div>
       <div class="actions"><button class="btn ghost" id="b-backup" type="button">Scarica la copia di sicurezza</button><span class="muted" id="backup-stato"></span></div></div>`);
     $('#b-backup').addEventListener('click', (e) => esporta(e.currentTarget, $('#backup-stato')).catch((err) => { toast(messaggioErrore(err), 'bad'); e.currentTarget.disabled = false; }));

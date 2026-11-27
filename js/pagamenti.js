@@ -78,8 +78,8 @@
     ov.className = 'modal-ov';
     ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(titolo)}">
       <div class="modal-h"><h2>${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
-      <form class="modal-b" novalidate>${corpo}<div class="err" data-err style="margin-top:10px"></div>
-        <div class="actions" style="margin-top:14px">
+      <form class="modal-b" novalidate>${corpo}<div class="err mt-10" data-err></div>
+        <div class="actions mt-14">
           ${op.senzaConferma ? '' : `<button class="btn gold" type="submit">${esc(op.conferma || 'Salva')}</button>`}
           ${op.extra || ''}
           <button class="btn ghost" type="button" data-x>${op.senzaConferma ? 'Chiudi' : 'Annulla'}</button>
@@ -330,10 +330,10 @@
   function tabScadenze() {
     const c = $('#p-corpo');
     const voci = Array.from(new Set(pag.righe.map((r) => r.voce)));
-    c.innerHTML = `<div class="actions" style="margin-bottom:14px">
+    c.innerHTML = `<div class="actions mb-14">
       <div class="searchbar">${IC.search}<input id="p-q" type="search" placeholder="Cerca un Fratello…" value="${esc(pag.filtri.q)}"></div>
-      <select id="p-stato" style="width:auto"><option value="">Tutti gli stati</option>${opzioni(STATI.map((x) => ({ v: x, t: x })), pag.filtri.stato)}</select>
-      <select id="p-voce" style="width:auto"><option value="">Tutte le voci</option>${opzioni(voci.map((x) => ({ v: x, t: x })), pag.filtri.voce)}</select>
+      <select id="p-stato" class="w-auto"><option value="">Tutti gli stati</option>${opzioni(STATI.map((x) => ({ v: x, t: x })), pag.filtri.stato)}</select>
+      <select id="p-voce" class="w-auto"><option value="">Tutte le voci</option>${opzioni(voci.map((x) => ({ v: x, t: x })), pag.filtri.voce)}</select>
       <span class="muted" id="p-conta"></span></div>
       <div class="table-wrap"><table><thead><tr><th>Fratello</th><th>Voce</th><th>Età</th><th class="num">Dovuto</th><th class="num">Versato</th><th class="num">Residuo</th><th>Scadenza</th><th>Stato</th><th></th></tr></thead><tbody id="p-righe"></tbody></table></div>`;
     const disegna = () => {
@@ -420,7 +420,7 @@
     v.innerHTML = `
       <div class="page-head"><div><h1>Tesoreria</h1><p>Capitazione, aumenti di salario, iniziazioni e Tronco della Vedova</p></div>
         <div class="right actions">
-          <label class="lbl" for="p-anno">Anno</label><select id="p-anno" style="width:auto">${pag.anni.map((a) => `<option value="${a}" ${a === pag.anno ? 'selected' : ''}>${a}</option>`).join('')}</select>
+          <label class="lbl" for="p-anno">Anno</label><select id="p-anno" class="w-auto">${pag.anni.map((a) => `<option value="${a}" ${a === pag.anno ? 'selected' : ''}>${a}</option>`).join('')}</select>
           ${canPay() ? `<button class="btn gold" id="b-nver">${IC.plus} Nuovo versamento</button><button class="btn ghost" id="b-nsc">Nuova scadenza</button><button class="btn ghost" id="b-gen">Genera capitazione</button>` : ''}
         </div></div>
       ${tabExtra && tabExtra.senzaKpi ? '' : kpi()}

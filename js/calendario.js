@@ -58,9 +58,9 @@
     const ov = document.createElement('div');
     ov.className = 'modal-ov';
     ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(titolo)}">
-      <div class="modal-h"><h2 style="margin:0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
-      <div class="modal-b"><form novalidate>${corpo}<div class="err" data-err style="margin-top:10px"></div>
-        <div class="actions" style="margin-top:14px"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button>${opt.extra || ''}</div></form></div></div>`;
+      <div class="modal-h"><h2 class="m-0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
+      <div class="modal-b"><form novalidate>${corpo}<div class="err mt-10" data-err></div>
+        <div class="actions mt-14"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button>${opt.extra || ''}</div></form></div></div>`;
     document.body.appendChild(ov);
     const chiudi = () => { document.removeEventListener('keydown', esc_); ov.remove(); };
     const esc_ = (e) => { if (e.key === 'Escape') chiudi(); };
@@ -94,8 +94,8 @@
       <div class="f s6" id="w-link"><label for="t-link">Collegamento online (https://…)</label><input id="t-link" name="link_online" value="${esc(x.link_online || '')}" placeholder="https://"></div>
       <div class="f s6"><label for="t-rel">Relatore / titolare del lavoro</label><input id="t-rel" name="relatore" value="${esc(x.relatore || '')}"></div>
       <div class="f s6"><label>&nbsp;</label><div class="actions" style="gap:18px;align-items:center;min-height:40px">
-        <label style="display:flex;gap:6px;align-items:center;font-weight:500"><input type="checkbox" name="di_famiglia" ${x.di_famiglia ? 'checked' : ''}> Tornata di Famiglia</label>
-        <label style="display:flex;gap:6px;align-items:center;font-weight:500"><input type="checkbox" name="formazione" ${x.formazione ? 'checked' : ''}> Formazione / esoterismo</label></div></div>
+        <label class="chk-riga"><input type="checkbox" name="di_famiglia" ${x.di_famiglia ? 'checked' : ''}> Tornata di Famiglia</label>
+        <label class="chk-riga"><input type="checkbox" name="formazione" ${x.formazione ? 'checked' : ''}> Formazione / esoterismo</label></div></div>
       <div class="f s12"><label for="t-odg">Ordine del giorno</label><textarea id="t-odg" name="ordine_del_giorno" rows="4">${esc(x.ordine_del_giorno || '')}</textarea>
         <span class="hint">Le iniziazioni, le riammissioni e le affiliazioni hanno la precedenza (art. 54 del Regolamento).</span></div>
       <div class="f s12"><label for="t-note">Note</label><input id="t-note" name="note" value="${esc(x.note || '')}"></div>
@@ -208,7 +208,7 @@
     const it = (m, g, anno) => pad(g) + '/' + pad(m) + '/' + (anno || a);
     const FE = festivita(a);
     const feste = [].concat(...lunedi(a).map((l) => l.slice(0, 4))).filter((d) => FE[d]);
-    const corpo = `<p class="muted" style="margin-top:0">Crea le tornate del ${a}: <b>rituali</b> (1° e 3° lunedì del mese) e <b>conferenze via web</b> (2° e 4° lunedì), escluse le sospensioni. Le tornate già presenti non vengono duplicate.
+    const corpo = `<p class="muted mt-0">Crea le tornate del ${a}: <b>rituali</b> (1° e 3° lunedì del mese) e <b>conferenze via web</b> (2° e 4° lunedì), escluse le sospensioni. Le tornate già presenti non vengono duplicate.
         Il quinto lunedì, quando c’è, è a scelta del Venerabile. Straordinarie e agapi si aggiungono a mano con “Nuova tornata”.</p>
       ${feste.length ? `<div class="notice bad" style="margin:10px 0"><b>Attenzione, queste date cadono in un giorno di festa</b> (saranno create ma evidenziate in rosso, da spostare o annullare):<br>
         ${feste.map((d) => `${fmtData(d)} · ${esc(FE[d])}`).join('<br>')}</div>` : ''}
@@ -257,10 +257,10 @@
         <div class="right actions">${puoScrivere() ? `<button class="btn ghost" id="c-gen">Genera calendario</button><button class="btn gold" id="c-new">${IC.plus} Nuova tornata</button>` : ''}</div></div>
       <div class="actions" style="margin-bottom:14px;flex-wrap:wrap">
         <label class="lbl" for="c-anno">Anno</label>
-        <select id="c-anno" style="width:auto">${anni.map((a) => `<option ${a === st.anno ? 'selected' : ''}>${a}</option>`).join('')}</select>
+        <select id="c-anno" class="w-auto">${anni.map((a) => `<option ${a === st.anno ? 'selected' : ''}>${a}</option>`).join('')}</select>
         <label class="lbl" for="c-tipo">Tipo</label>
-        <select id="c-tipo" style="width:auto">${opzioni(TIPI, st.tipo, 'Tutti')}</select>
-        <label style="display:flex;gap:6px;align-items:center;font-weight:500"><input type="checkbox" id="c-ann" ${st.nascondiAnnullate ? 'checked' : ''}> Nascondi annullate</label>
+        <select id="c-tipo" class="w-auto">${opzioni(TIPI, st.tipo, 'Tutti')}</select>
+        <label class="chk-riga"><input type="checkbox" id="c-ann" ${st.nascondiAnnullate ? 'checked' : ''}> Nascondi annullate</label>
         <span class="muted" id="c-conta"></span></div>
       <div id="c-pross"></div>
       <div id="c-corpo"></div>`;
@@ -300,7 +300,7 @@
             <td>${t.tipo === 'informale' ? '—' : (t.grado ? esc(GRADI[t.grado]) : '<span class="muted">da stabilire</span>')}</td>
             <td>${dove}</td>
             <td>${segni}${segni && extra ? '<br>' : ''}${extra ? `<span class="muted" style="font-size:.85rem">${extra}</span>` : ''}</td>
-            <td>${L.badgeStato(t.stato, STATI[t.stato])}${passata && t.stato === 'programmata' ? '<br><span class="muted" style="font-size:.8rem">da aggiornare</span>' : ''}</td>
+            <td>${L.badgeStato(t.stato, STATI[t.stato])}${passata && t.stato === 'programmata' ? '<br><span class="muted t-small">da aggiornare</span>' : ''}</td>
             <td class="act">${L.wa ? (L.wa.tornate[t.id] = t, L.wa.tornata(t)) : ''} ${puoScrivere() ? `<button class="btn ghost small" data-mod="${esc(t.id)}">Modifica</button>` : ''}</td></tr>`;
         }).join('')}</tbody></table></div>`;
       $$('[data-mod]', c).forEach((b) => b.addEventListener('click', () => apriTornata(st.righe.find((x) => x.id === b.dataset.mod))));

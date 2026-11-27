@@ -16,7 +16,7 @@
       const punti = (o.punti || []).map((p) => '<li>' + esc(p) + '</li>').join('');
       ov.innerHTML = '<div class="modal dlg" role="alertdialog" aria-modal="true" aria-labelledby="dlg-t" style="width:min(520px,100%)">' +
         '<div class="modal-h"><h2 id="dlg-t">' + esc(o.titolo || 'Confermi?') + '</h2></div><div class="modal-b">' +
-        (o.testo ? '<p style="margin:0 0 6px">' + esc(o.testo) + '</p>' : '') +
+        (o.testo ? '<p class="m-b6">' + esc(o.testo) + '</p>' : '') +
         (punti ? '<ul class="dlg-punti">' + punti + '</ul>' : '') +
         '<div class="dlg-az"><button type="button" class="btn ghost" data-r="no">' + esc(o.annulla || 'Annulla') + '</button>' +
         '<button type="button" class="btn' + (o.pericolo ? ' danger' : '') + '" data-r="si">' + esc(o.ok || 'Conferma') + '</button></div></div></div>';

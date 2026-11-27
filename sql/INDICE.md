@@ -31,13 +31,14 @@ Si eseguono in **Supabase › SQL Editor › Run**. Salvo dove indicato, si poss
 | `lemmi_aggiornamento_54.sql` | Tavole caricate da un Fratello per conto di un altro autore (colonna `caricata_da`, `elenco_autori_tavole`, nuove `fratello_salva_tavola` e `tavole_per_grado`) |
 | `lemmi_aggiornamento_55.sql` | Diario della segreteria (cartella 08): attività verso Loggia e GOI con cronologia di invii, riscontri e solleciti |
 | `lemmi_aggiornamento_56.sql` | Registro delle operazioni sugli utenti del sistema (`registra_operazione_utente`, voce «utenti_sistema» del Registro attività) |
+| `lemmi_aggiornamento_57.sql` | «Novità» nel Cruscotto: ultimi documenti pubblicati (tavole e Biblioteca) con le stesse regole di lettura (`novita_documenti`) |
 | `pulizia_bussanti.sql` | Da usare solo dopo aver eliminato un bussante dall'app: toglie i dati rimasti |
 
 ## Attenzione alla numerazione
 
 - Il numero **43** è stato usato due volte: per le agapi (obiettivo coperti e ospiti, v0.44.0) e per gli utenti (v0.58.0). In questa cartella c'è solo quello degli utenti.
 - Gli script **44** e **45** delle agapi (pagamenti, collegamento con la Tesoreria) e le funzioni per disattivare ed eliminare gli utenti non sono più qui. I loro effetti sono nel database in uso; vanno verificati nello `schema_completo.sql` (vedi sotto).
-- Da ora in avanti ogni script nuovo prende il numero successivo all'ultimo (il prossimo è il **57**), e va aggiunto a questa tabella.
+- Da ora in avanti ogni script nuovo prende il numero successivo all'ultimo (il prossimo è il **58**), e va aggiunto a questa tabella.
 
 ## Come tenere allineato lo schema
 

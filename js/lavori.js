@@ -56,9 +56,9 @@
     const ov = document.createElement('div');
     ov.className = 'modal-ov';
     ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(titolo)}">
-      <div class="modal-h"><h2 style="margin:0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
-      <div class="modal-b"><form novalidate>${corpo}<div class="err" data-err style="margin-top:10px"></div>
-        <div class="actions" style="margin-top:14px"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button>${opt.extra || ''}</div></form></div></div>`;
+      <div class="modal-h"><h2 class="m-0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
+      <div class="modal-b"><form novalidate>${corpo}<div class="err mt-10" data-err></div>
+        <div class="actions mt-14"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button>${opt.extra || ''}</div></form></div></div>`;
     document.body.appendChild(ov);
     const tasto = (e) => { if (e.key === 'Escape') chiudi(); };
     const chiudi = () => { document.removeEventListener('keydown', tasto); ov.remove(); };
@@ -217,7 +217,7 @@
         <div class="right actions">${puoGestire() ? `<button class="btn gold" id="lv-new">${IC.plus} Nuova tavola</button>` : ''}</div></div>
       <div class="actions" style="margin-bottom:14px;flex-wrap:wrap">
         <div class="searchbar">${IC.search}<input id="lv-q" type="search" placeholder="Cerca per titolo, tema o autore…" value="${esc(lv.q)}"></div>
-                <select id="lv-grado" style="width:auto">${opzioni(GRADI, lv.grado, 'Tutti i gradi')}</select>
+                <select id="lv-grado" class="w-auto">${opzioni(GRADI, lv.grado, 'Tutti i gradi')}</select>
         <span class="muted" id="lv-conta"></span></div>
       <div id="lv-corpo"></div>`;
     if (puoGestire()) $('#lv-new').onclick = () => apriLavoro(null).catch((e) => toast(messaggioErrore(e), 'bad'));
@@ -265,14 +265,14 @@
     card.className = 'card';
     card.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0;flex:1">Tavole <small>${righe.length}</small></h2>
         <button class="btn gold small" data-nuovo>${IC.plus} Aggiungi tavola</button></div>
-      ${righe.length ? `<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Tavola</th><th>Grado</th><th>Data</th><th>File</th><th></th></tr></thead><tbody>${righe.map((r) => `<tr>
+      ${righe.length ? `<div class="table-wrap mt-10"><table><thead><tr><th>Tavola</th><th>Grado</th><th>Data</th><th>File</th><th></th></tr></thead><tbody>${righe.map((r) => `<tr>
         <td><b>${esc(r.titolo)}</b>${r.tema ? `<div class="hint">${esc(r.tema)}</div>` : ''}</td>
         <td>${(r.grado_tornata || r.grado_autore) ? L.badgeGrado(r.grado_tornata || r.grado_autore) : '—'}</td>
         <td>${r.data_presentazione ? fmtData(r.data_presentazione) : '—'}</td>
         <td>${r.file_path ? `<button class="btn ghost small" data-dl="${esc(r.id)}" title="${esc(r.file_nome || '')}">Scarica</button>` : '<span class="muted">—</span>'}</td>
         <td class="act"><button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button></td></tr>`).join('')}</tbody></table></div>`
         : `<div class="empty">${IC.inbox}<div>Nessuna tavola registrata per questo Fratello.</div></div>`}
-      <div style="margin-top:10px"><a href="#/lavori">Vai all’elenco completo</a></div>`;
+      <div class="mt-10"><a href="#/lavori">Vai all’elenco completo</a></div>`;
     v.appendChild(card);
     $('[data-nuovo]', card).onclick = () => apriLavoro(null, { fratello_id: fratelloId }).catch((e) => toast(messaggioErrore(e), 'bad'));
     $$('[data-mod]', card).forEach((b) => b.addEventListener('click', () => apriLavoro(righe.find((x) => x.id === b.dataset.mod)).catch((e) => toast(messaggioErrore(e), 'bad'))));

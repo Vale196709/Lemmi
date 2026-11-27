@@ -122,7 +122,7 @@
       <div class="page-head"><div><h1>${oggiE ? 'Tornata di stasera' : 'Tornata del ' + fmtData(t.data)}</h1>
         <p>${esc(giorno(t.data))} ${fmtData(t.data)}${t.ora ? ' · ore ' + esc(hhmm(t.ora)) : ''} · <span class="badge info">${esc(TIPI[t.tipo] || t.tipo)}</span>${grado ? ' ' + L.badgeGrado(grado) : ''}${t.stato === 'annullata' ? ' <span class="badge bad">Annullata</span>' : ''}</p></div>
         <div class="right actions">${L.wa ? (L.wa.tornate[t.id] = t, L.wa.tornata(t)) : ''}${scrive && conPresenze(t) && grado ? '<button class="btn gold" id="tn-verbale" type="button">Prepara il verbale</button>' : ''}</div></div>
-      ${scrive ? '' : '<div class="notice" style="margin-bottom:14px">Sola lettura: presenze, Tronco e verbale li compila il Segretario.</div>'}
+      ${scrive ? '' : '<div class="notice mb-14">Sola lettura: presenze, Tronco e verbale li compila il Segretario.</div>'}
 
       <div class="grid cols-2 tn-griglia">
         <div class="card"><div class="tn-h"><h2>La serata</h2>${scrive ? '<button class="btn ghost small" id="tn-mod" type="button">Modifica</button>' : ''}</div>
@@ -139,30 +139,30 @@
       </div>
 
       ${conPresenze(t) ? `
-      <div class="card" style="margin-top:18px"><h2>Presenze</h2>
-        ${grado ? '' : `<div class="notice warn" style="margin-bottom:10px">Il grado della tornata non è indicato: sceglilo per vedere chi può partecipare.</div>`}
-        <div class="actions" style="margin:0 0 10px">
-          ${t.grado ? '' : `<label for="tn-grado" class="lbl" style="margin:0">Grado</label><select id="tn-grado" ${scrive ? '' : 'disabled'}><option value="">—</option>${Object.keys(GRADI).map((k) => `<option value="${k}" ${k === grado ? 'selected' : ''}>${GRADI[k]}</option>`).join('')}</select>`}
+      <div class="card mt-18"><h2>Presenze</h2>
+        ${grado ? '' : `<div class="notice warn mb-10">Il grado della tornata non è indicato: sceglilo per vedere chi può partecipare.</div>`}
+        <div class="actions m-b10">
+          ${t.grado ? '' : `<label for="tn-grado" class="lbl m-0">Grado</label><select id="tn-grado" ${scrive ? '' : 'disabled'}><option value="">—</option>${Object.keys(GRADI).map((k) => `<option value="${k}" ${k === grado ? 'selected' : ''}>${GRADI[k]}</option>`).join('')}</select>`}
           <span class="muted" id="tn-riep"></span>
           ${scrive && el.length ? '<button class="btn ghost small" id="tn-tutti" type="button">Tutti presenti</button>' : ''}</div>
-        ${el.length ? `<div class="hint" style="margin:0 0 8px">P presente · G assente giustificato · A assente. Tutti partono come presenti: segna solo chi manca.</div>
+        ${el.length ? `<div class="hint m-b8">P presente · G assente giustificato · A assente. Tutti partono come presenti: segna solo chi manca.</div>
         <div class="tn-pres">${el.map((f) => `<div class="tn-riga"><div class="tn-nome"><b>${esc(f.cognome)} ${esc(f.nome)}</b>${f.grado_attuale ? ' ' + L.badgeGrado(f.grado_attuale) : ''}</div>
           <div class="pres-seg" role="group" aria-label="Presenza di ${esc(f.cognome)} ${esc(f.nome)}">${PRES.map(([val, lett, nome, cl]) => `<button type="button" class="${cl}" data-fr="${esc(f.id)}" data-val="${val}" title="${nome}" aria-label="${nome}" ${scrive ? '' : 'disabled'}>${lett}</button>`).join('')}</div></div>`).join('')}</div>` : (grado ? '<div class="empty">Nessun Fratello attivo per questo grado.</div>' : '')}
-        <div class="form-grid" style="margin-top:14px">
+        <div class="form-grid mt-14">
           <div class="f s12"><label for="tn-ospiti">Ospiti (nome e cognome, separati da virgola)</label><input id="tn-ospiti" value="${esc(bozza.ospiti)}" placeholder="es. Mario Rossi, Luca Bianchi" ${scrive ? '' : 'readonly'}></div>
         </div>
-        ${scrive && el.length ? `<div class="actions" style="margin-top:12px"><button class="btn" id="tn-salva" type="button">Salva le presenze nel registro</button>
+        ${scrive && el.length ? `<div class="actions mt-12"><button class="btn" id="tn-salva" type="button">Salva le presenze nel registro</button>
           <span class="hint" id="tn-stato">${bozza.salvato ? 'Ultimo salvataggio nel registro: ' + esc(bozza.salvato) : 'Le presenze restano su questo dispositivo finché non le salvi (anche senza rete).'}</span></div>` : ''}
       </div>
 
-      <div class="card" style="margin-top:18px"><h2>Tronco della Vedova</h2>
+      <div class="card mt-18"><h2>Tronco della Vedova</h2>
         <div class="form-grid">
           <div class="f s4"><label for="tn-tronco">Raccolto stasera (€)</label><input id="tn-tronco" inputmode="decimal" value="${esc(bozza.tronco)}" placeholder="es. 25" ${scrive ? '' : 'readonly'}></div>
-          <div class="f s8" style="align-self:end"><div class="actions">${scrive ? '<button class="btn ghost" id="tn-tronco-reg" type="button">Registra in Tesoreria</button>' : ''}
+          <div class="f s8 self-end"><div class="actions">${scrive ? '<button class="btn ghost" id="tn-tronco-reg" type="button">Registra in Tesoreria</button>' : ''}
             <span class="hint" id="tn-tronco-stato">${tronco === undefined ? 'Stato in Tesoreria non disponibile.' : tronco === null ? 'Non ancora registrato in Tesoreria.' : 'Registrato in Tesoreria: <b>' + esc(eur(tronco)) + '</b>'}</span></div></div>
           <div class="f s12 hint">L’importo entra anche nel testo del verbale. In Tesoreria va come incasso collettivo in contanti della data della tornata: registrandolo di nuovo si corregge, con 0 si toglie.</div>
         </div>
-      </div>` : `<div class="notice" style="margin-top:18px">Per le ${t.tipo === 'agape' ? 'agapi' : 'conferenze via web'} non si tengono presenze né verbale.</div>`}`;
+      </div>` : `<div class="notice mt-18">Per le ${t.tipo === 'agape' ? 'agapi' : 'conferenze via web'} non si tengono presenze né verbale.</div>`}`;
 
     // --- scheda della serata: modifica rapida ---
     const bm = $('#tn-mod', v);
@@ -170,7 +170,7 @@
       const corpo = `<div class="form-grid">
         ${L.campo('ora', 'Ora', hhmm(t.ora), { cls: 's4' })}${L.campo('relatore', 'Relatore', t.relatore || '', { cls: 's8' })}
         ${L.campo('luogo', 'Luogo', t.luogo || '', { cls: 's6' })}${L.campo('link_online', 'Collegamento (link)', t.link_online || '', { cls: 's6' })}
-        <div class="f s12"><label for="f-odg">Ordine del giorno</label><textarea id="f-odg" name="ordine_del_giorno" rows="6" style="width:100%">${esc(t.ordine_del_giorno || '')}</textarea></div></div>`;
+        <div class="f s12"><label for="f-odg">Ordine del giorno</label><textarea id="f-odg" name="ordine_del_giorno" rows="6" class="w-100">${esc(t.ordine_del_giorno || '')}</textarea></div></div>`;
       const apriModale = L.pagamenti && L.pagamenti.modal;
       if (!apriModale) { toast('Modifica non disponibile: apri la tornata dal Calendario.', 'bad'); return; }
       apriModale('Serata del ' + fmtData(t.data), corpo, {

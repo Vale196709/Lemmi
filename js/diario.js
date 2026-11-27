@@ -113,9 +113,9 @@
     const ov = document.createElement('div');
     ov.className = 'modal-ov';
     ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(titolo)}">
-      <div class="modal-h"><h2 style="margin:0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
-      <div class="modal-b"><form novalidate>${corpo}<div class="err" data-err style="margin-top:10px"></div>
-        ${opt.senzaSalva ? '' : `<div class="actions" style="margin-top:14px"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button></div>`}</form></div></div>`;
+      <div class="modal-h"><h2 class="m-0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
+      <div class="modal-b"><form novalidate>${corpo}<div class="err mt-10" data-err></div>
+        ${opt.senzaSalva ? '' : `<div class="actions mt-14"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button></div>`}</form></div></div>`;
     document.body.appendChild(ov);
     const tasto = (e) => { if (e.key === 'Escape') chiudi(); };
     const chiudi = () => { document.removeEventListener('keydown', tasto); ov.remove(); };
@@ -212,8 +212,8 @@
     const r = st.righe.find((x) => x.id === id); if (!r) return;
     let ev = [];
     try { ev = chk(await sb().from('segreteria_eventi').select('*').eq('attivita_id', id).order('data').order('creato_il')); } catch (e) { /* cronologia facoltativa */ }
-    const w = finestra(r.oggetto, `<div class="muted" style="margin-bottom:8px">Dal ${esc(fmtData(r.data))}${r.destinatario ? ' · ' + esc(r.destinatario) : ''}</div>
-      <div style="margin-bottom:10px">${badgeStato(r)}${scaduta(r) ? ' <span class="badge bad">scadenza superata</span>' : ''}</div>
+    const w = finestra(r.oggetto, `<div class="muted mb-8">Dal ${esc(fmtData(r.data))}${r.destinatario ? ' · ' + esc(r.destinatario) : ''}</div>
+      <div class="mb-10">${badgeStato(r)}${scaduta(r) ? ' <span class="badge bad">scadenza superata</span>' : ''}</div>
       ${r.stato !== 'chiusa' && (r.prossimo_adempimento || r.attesa_da) ? `<div class="notice ${scaduta(r) ? 'bad' : 'warn'}" style="margin-bottom:10px"><b>Prossimo adempimento:</b> ${esc(r.prossimo_adempimento || '—')}${r.attesa_da ? ' · riscontro atteso da ' + esc(r.attesa_da) : ''}${r.scadenza ? ' · entro il ' + esc(fmtData(r.scadenza)) : ''}</div>` : ''}
       ${r.rif_archivio ? `<div class="dg-cart-box"><span>📁 Cartella 08 › ${esc(String(r.data).slice(0, 4))} › <b>${esc(r.rif_archivio)}</b></span> <button class="btn ghost small" type="button" data-az="copia">Copia il nome</button></div>` : ''}
       ${r.note ? `<p style="margin:10px 0 0">${esc(r.note)}</p>` : ''}
@@ -273,9 +273,9 @@
       <div class="actions">${scrive() ? '<button class="btn gold" type="button" id="dg-nuovo">+ Nuova attività</button>' : ''}<button class="btn ghost" type="button" id="dg-xls">Indice dell’anno (Excel)</button></div></div>
       <div id="dg-ric"></div>
       <div id="dg-riep"></div>
-      <div class="actions" style="margin-bottom:14px"><select id="dg-anno" style="width:auto" aria-label="Anno"></select>
+      <div class="actions mb-14"><select id="dg-anno" class="w-auto" aria-label="Anno"></select>
         <div class="searchbar">${(L.IC && L.IC.search) || ''}<input id="dg-q" type="search" placeholder="Cerca oggetto, destinatario, cartella…"></div>
-        <select id="dg-stato" style="width:auto" aria-label="Stato"><option value="">Tutti gli stati</option>${Object.keys(STATI).map((k) => `<option value="${k}">${esc(STATI[k])}</option>`).join('')}<option value="scadute">Con scadenza superata</option></select></div>
+        <select id="dg-stato" class="w-auto" aria-label="Stato"><option value="">Tutti gli stati</option>${Object.keys(STATI).map((k) => `<option value="${k}">${esc(STATI[k])}</option>`).join('')}<option value="scadute">Con scadenza superata</option></select></div>
       <div id="dg-lista"><div class="empty">Caricamento…</div></div>`;
     st.q = ''; st.stato = ''; st.anno = Number(oggi().slice(0, 4));
     $('#dg-anno', v).addEventListener('change', (e) => { st.anno = Number(e.target.value); const r = $('#dg-riep'); if (r) r.innerHTML = riepilogo(); riquadroRicorrenti(); disegna(); });

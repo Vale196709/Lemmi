@@ -1,9 +1,12 @@
 /* Lemmi - versione dell'app. DA AGGIORNARE a ogni aggiornamento: numero, data e una riga in "storia".
  * Compare in fondo al menu laterale (per tutti) e in Info di sistema > Stato del sistema (amministratore). */
 window.LEMMI_VERSIONE = {
-  numero: '0.71.0',
-  data: '2026-11-26',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
+  numero: '0.74.0',
+  data: '2026-11-27',               // data dell'ultimo aggiornamento (aaaa-mm-gg)
   storia: [
+    { n: '0.74.0', data: '2026-11-27', t: '«Novità» in cima al Cruscotto e alla scheda del Fratello: ultimi 3 documenti pubblicati negli ultimi 30 giorni (tavole e Biblioteca) con data e ora, solo quelli che il profilo può leggere; «Ho visto» li nasconde finché non ne arriva uno nuovo (script 57)' },
+    { n: '0.73.0', data: '2026-11-26', t: 'Riordino degli stili, senza cambi visibili: foglio di stile diviso in 15 sezioni con indice, regole per il telefono raccolte in un solo punto, colori solo nelle variabili, tolte le regole doppie o mai usate; 331 stili scritti nel codice sostituiti da classi brevi (es. mt-14, w-auto)' },
+    { n: '0.72.0', data: '2026-11-26', t: 'Stato del sistema: controllo automatico degli aggiornamenti del database (script 19, 26, 47-56) e della versione pubblicata della funzione delle notifiche, con l’elenco di cosa eseguire' },
     { n: '0.71.0', data: '2026-11-26', t: 'Utenti del sistema: ricerca e filtri per profilo e stato, evidenza di chi non accede da oltre 90 giorni o non è mai entrato, eliminazione confermata scrivendo l’e-mail, avviso all’utente via WhatsApp o e-mail dopo creazione e reimpostazione della password, registro delle ultime operazioni (senza password). Script SQL 56' },
     { n: '0.70.0', data: '2026-11-26', t: 'Diario della segreteria (cartella 08): attività verso Loggia e GOI con destinatario, stato, prossimo adempimento e cronologia di invii, riscontri e solleciti; nome della cartella d’archivio proposto come da Regolamento; adempimenti ricorrenti dell’anno (piè di lista, verbale delle elezioni, calendario dei lavori); indice Excel dell’anno; avvisi nel Cruscotto; attività aperte nel prospetto delle consegne. Script SQL 55' },
     { n: '0.69.0', data: '2026-11-26', t: 'Tavole caricate per conto di altri: ogni Fratello può caricare la tavola di un altro Fratello (anche in sonno, trasferito o all’Oriente Eterno) o di un autore non presente in anagrafica; la tavola va nel fascicolo dell’autore e la gestisce chi l’ha caricata (oltre a Segretario e amministratore). In Lavori e tavole lo stato accanto al nome dell’autore e la casella «Autore non presente in anagrafica». Script SQL 54' },

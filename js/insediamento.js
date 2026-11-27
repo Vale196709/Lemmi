@@ -115,28 +115,28 @@
     const euro = (percorso, label, ro) => `<div class="f s6"><label>${esc(label)}</label><input data-eu="${percorso}" ${ro ? 'readonly style="background:var(--bg)"' : ''} inputmode="decimal" value="${esc(prendi(ins, percorso) || '')}" placeholder="0,00"></div>`;
 
     box.innerHTML = `<div class="card"><h2>5. Insediamento delle cariche</h2>${dl}
-      <p class="muted" style="margin-top:0">Si compila dopo il Nulla Osta, a insediamento avvenuto. I modelli sono quelli GOI 2024 con l’anno massonico aggiornato; firme e date di firma restano in bianco.</p>
-      <details open><summary style="cursor:pointer;font-weight:600">Data e nomine</summary><div class="form-grid" style="margin-top:10px">
+      <p class="muted mt-0">Si compila dopo il Nulla Osta, a insediamento avvenuto. I modelli sono quelli GOI 2024 con l’anno massonico aggiornato; firme e date di firma restano in bianco.</p>
+      <details open><summary class="lnk">Data e nomine</summary><div class="form-grid mt-10">
         ${campo('dataInsediamento', 'Data dell’insediamento', { cls: 's4', data: true })}${campo('dataTornata', 'Tornata della nomina (se diversa)', { cls: 's4', data: true })}
         ${campo('segretarioNuovo', 'Segretario nominato dal Venerabile', { cls: 's4', list: true, ph: 'Cognome e nome' })}</div>
         <h3 style="margin:14px 0 6px">Ufficiali nominati</h3><div class="form-grid">${UFF.map(([k, t]) => campo('ufficiali.' + k, t, { cls: 's4', list: true })).join('')}</div></details>
-      <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">Verbale di trapasso dei poteri</summary><div class="form-grid" style="margin-top:10px">
+      <details class="mt-12"><summary class="lnk">Verbale di trapasso dei poteri</summary><div class="form-grid mt-10">
         <div class="f s4"><label>Maestro Venerabile</label><select data-ins="trapasso.tipo"><option value="nuovo" ${ins.trapasso.tipo === 'nuovo' ? 'selected' : ''}>Neoeletto (subentrante)</option><option value="confermato" ${ins.trapasso.tipo === 'confermato' ? 'selected' : ''}>Confermato</option></select></div>
         ${campo('trapasso.dataNullaOsta', 'Tavola del N.O. del', { cls: 's4', data: true })}
         ${campo('trapasso.circolare', 'Circolare GOI dell’anno (es. N. 3/EM del 5 ottobre 2026)', { cls: 's4' })}
         <div class="f hint">Se lasci vuota la circolare, nel modulo resta citata quella stampata nel modello 2024 (N. 2/EM del 1° ottobre 2024): controlla se quest’anno ne è arrivata una nuova.</div></div></details>
-      <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">Relazione sui lavori del ${Y}</summary><div style="margin-top:10px">
-        <div class="actions" style="margin-bottom:8px"><button class="btn ghost small" type="button" id="i-rel-b">Prepara la bozza dai dati dell’app</button></div>
-        <textarea data-ins="relazione" rows="9" style="width:100%" placeholder="Testo della relazione (compresi eventuali atti di beneficenza)">${esc(ins.relazione || '')}</textarea>
+      <details class="mt-12"><summary class="lnk">Relazione sui lavori del ${Y}</summary><div class="mt-10">
+        <div class="actions mb-8"><button class="btn ghost small" type="button" id="i-rel-b">Prepara la bozza dai dati dell’app</button></div>
+        <textarea data-ins="relazione" rows="9" class="w-100" placeholder="Testo della relazione (compresi eventuali atti di beneficenza)">${esc(ins.relazione || '')}</textarea>
         <div class="hint">Nel modulo c’è spazio per circa una pagina di testo.</div></div></details>
-      <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">Conto gestione ${Y}</summary><div style="margin-top:10px">
-        <div class="actions" style="margin-bottom:8px"><button class="btn ghost small" type="button" id="i-con-b">Calcola dal Conto di Loggia</button></div>
-        <div class="grid cols-2"><div><h3 style="margin:0 0 6px">Entrate</h3><div class="form-grid">${VOCI_ENT.map(([k, t]) => euro('conto.' + k, t)).join('')}${euro('conto.totEntrate', 'Totale entrate', true)}</div>
+      <details class="mt-12"><summary class="lnk">Conto gestione ${Y}</summary><div class="mt-10">
+        <div class="actions mb-8"><button class="btn ghost small" type="button" id="i-con-b">Calcola dal Conto di Loggia</button></div>
+        <div class="grid cols-2"><div><h3 class="m-b6">Entrate</h3><div class="form-grid">${VOCI_ENT.map(([k, t]) => euro('conto.' + k, t)).join('')}${euro('conto.totEntrate', 'Totale entrate', true)}</div>
           <h3 style="margin:14px 0 6px">Tronco della Vedova</h3><div class="form-grid">${euro('conto.troncoEntrate', 'Entrate')}</div></div>
-        <div><h3 style="margin:0 0 6px">Uscite</h3><div class="form-grid">${VOCI_USC.map(([k, t]) => euro('conto.' + k, t)).join('')}${euro('conto.totUscite', 'Totale uscite', true)}${euro('conto.accLoggia', 'Accantonamenti')}</div>
+        <div><h3 class="m-b6">Uscite</h3><div class="form-grid">${VOCI_USC.map(([k, t]) => euro('conto.' + k, t)).join('')}${euro('conto.totUscite', 'Totale uscite', true)}${euro('conto.accLoggia', 'Accantonamenti')}</div>
           <h3 style="margin:14px 0 6px">Tronco della Vedova</h3><div class="form-grid">${euro('conto.beneficenza', 'Beneficenza')}${euro('conto.accTronco', 'Accantonamenti')}${euro('conto.pareggio', 'Totale a pareggio', true)}</div></div></div>
-        <div id="i-con-msg" class="hint" style="margin-top:8px"></div></div></details>
-      <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">Aggiornamenti ${el.anno}</summary><div class="form-grid" style="margin-top:10px">
+        <div id="i-con-msg" class="hint mt-8"></div></div></details>
+      <details class="mt-12"><summary class="lnk">Aggiornamenti ${el.anno}</summary><div class="form-grid mt-10">
         ${campo('aggiornamenti.cf', 'Codice fiscale della Loggia', { cls: 's6' })}${campo('aggiornamenti.giorni', 'Giorni di tornata', { cls: 's6', ph: 'es. 1° e 3° mercoledì del mese' })}
         ${campo('aggiornamenti.indirizzo1', 'Indirizzo completo del luogo di riunione (riga 1)', { cls: 's12' })}${campo('aggiornamenti.indirizzo2', 'Indirizzo completo del luogo di riunione (riga 2)', { cls: 's12' })}
         <div class="f s12"><label class="muted">Indirizzo per la corrispondenza e i pacchi destinati alla Loggia</label></div>
@@ -147,9 +147,9 @@
         <button class="btn gold" type="button" data-pdf="gran">PDF per la Gran Segreteria</button>
         <button class="btn gold" type="button" data-pdf="spedizioni">PDF Aggiornamenti</button>
         <button class="btn ghost" type="button" data-pdf="tutto">Tutto in un unico PDF</button></div>
-      <div class="hint" style="margin-top:8px">Anagrafe (promessa solenne e nomina del Segretario) → ${MAIL.anagrafe}. Gran Segreteria (nomina degli Ufficiali, trapasso dei poteri, relazione e conto gestione) → ${MAIL.gran}. Aggiornamenti → GOI (${MAIL.spedizioni}) e Segreteria del Collegio dei MM.VV.</div>
+      <div class="hint mt-8">Anagrafe (promessa solenne e nomina del Segretario) → ${MAIL.anagrafe}. Gran Segreteria (nomina degli Ufficiali, trapasso dei poteri, relazione e conto gestione) → ${MAIL.gran}. Aggiornamenti → GOI (${MAIL.spedizioni}) e Segreteria del Collegio dei MM.VV.</div>
       <div id="i-esito"></div>
-      <div class="actions" style="margin-top:14px"><button class="btn ghost" type="button" id="i-cariche">Registra le cariche nella storia dei Fratelli</button><button class="btn ghost" type="button" id="i-salva">Salva l’insediamento</button></div></div>`;
+      <div class="actions mt-14"><button class="btn ghost" type="button" id="i-cariche">Registra le cariche nella storia dei Fratelli</button><button class="btn ghost" type="button" id="i-salva">Salva l’insediamento</button></div></div>`;
     mascheraDate(box);
 
     /* collegamento dei campi */
@@ -161,7 +161,7 @@
       c.totEntrate = eur2(totE); c.totUscite = eur2(totU); c.pareggio = eur2(pareggio);
       ['totEntrate', 'totUscite', 'pareggio'].forEach((k) => { const i = $(`[data-eu="conto.${k}"]`, box); if (i) i.value = c[k]; });
       const diff = Math.round((totU + n('accLoggia') + n('beneficenza') + n('accTronco') - pareggio) * 100) / 100;
-      $('#i-con-msg', box).innerHTML = Math.abs(diff) < 0.005 ? '<span style="color:var(--ok)">Il conto pareggia.</span>' : `<span style="color:var(--bad)">Il conto non pareggia: uscite + accantonamenti + beneficenza differiscono di ${L.eur(diff)} dal totale a pareggio. Correggi gli accantonamenti.</span>`;
+      $('#i-con-msg', box).innerHTML = Math.abs(diff) < 0.005 ? '<span class="t-ok">Il conto pareggia.</span>' : `<span class="t-bad">Il conto non pareggia: uscite + accantonamenti + beneficenza differiscono di ${L.eur(diff)} dal totale a pareggio. Correggi gli accantonamenti.</span>`;
     };
     box.addEventListener('input', (e) => {
       const t = e.target;
@@ -225,7 +225,7 @@
       try {
         await X.salva(true).catch(() => {});
         const manc = await generaPdf(b.dataset.pdf);
-        $('#i-esito', box).innerHTML = `<div class="notice" style="margin-top:10px">PDF generato. Stampa, fai firmare e invia. ${ins.trapasso.circolare ? '' : '<b>Nota:</b> il verbale di trapasso cita ancora la circolare del 2024.'}${manc.length ? `<br><b>Dati mancanti del Segretario in anagrafica:</b> ${esc(manc.join(', '))}.` : ''}</div>`;
+        $('#i-esito', box).innerHTML = `<div class="notice mt-10">PDF generato. Stampa, fai firmare e invia. ${ins.trapasso.circolare ? '' : '<b>Nota:</b> il verbale di trapasso cita ancora la circolare del 2024.'}${manc.length ? `<br><b>Dati mancanti del Segretario in anagrafica:</b> ${esc(manc.join(', '))}.` : ''}</div>`;
       } catch (e) { $('#i-esito', box).innerHTML = `<div class="notice" style="margin-top:10px;background:var(--bad-soft,#fde8e8);color:var(--bad,#a12)">${esc(messaggioErrore(e))}</div>`; }
       b.disabled = false;
     }));

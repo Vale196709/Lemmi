@@ -96,17 +96,17 @@
 
     v.innerHTML = `<div class="page-head"><div><h1>Dati da completare</h1><p>Fratelli attivi e bussanti con informazioni mancanti · clicca su un nome per aprire la scheda</p></div>
         <div class="right actions"><button class="btn ghost" type="button" id="dc-xls">Scarica Excel</button></div></div>
-      <div class="grid cols-3" style="margin-bottom:14px">
+      <div class="grid cols-3 mb-14">
         <div class="stat"><div class="n">${attivi.length - elF.length}<small> / ${attivi.length}</small></div><div class="l">Fratelli attivi con scheda completa</div></div>
         <div class="stat"><div class="n">${elF.length}</div><div class="l">Fratelli da completare</div></div>
         <div class="stat"><div class="n">${elB.length}</div><div class="l">Bussanti da completare</div></div></div>
       ${tutti.length ? `<div class="actions" style="margin-bottom:14px;flex-wrap:wrap">
-        <label class="lbl" for="dc-chi">Mostra</label><select id="dc-chi" style="width:auto"><option value="tutti">Fratelli e bussanti</option><option value="Fratello">Solo Fratelli</option><option value="Bussante">Solo bussanti</option></select>
-        <label class="lbl" for="dc-campo">Manca</label><select id="dc-campo" style="width:auto"><option value="">Qualunque dato</option>${Object.keys(conteggio).sort().map((t) => `<option value="${esc(t)}">${esc(t)} (${conteggio[t]})</option>`).join('')}</select>
-        <label style="display:flex;gap:6px;align-items:center;font-weight:500"><input type="checkbox" id="dc-imp"> Solo dati importanti</label>
+        <label class="lbl" for="dc-chi">Mostra</label><select id="dc-chi" class="w-auto"><option value="tutti">Fratelli e bussanti</option><option value="Fratello">Solo Fratelli</option><option value="Bussante">Solo bussanti</option></select>
+        <label class="lbl" for="dc-campo">Manca</label><select id="dc-campo" class="w-auto"><option value="">Qualunque dato</option>${Object.keys(conteggio).sort().map((t) => `<option value="${esc(t)}">${esc(t)} (${conteggio[t]})</option>`).join('')}</select>
+        <label class="chk-riga"><input type="checkbox" id="dc-imp"> Solo dati importanti</label>
         <span class="muted" id="dc-n"></span></div>
         <div class="table-wrap"><table><thead><tr><th>Nominativo</th><th>Tipo</th><th>Dati mancanti</th></tr></thead><tbody id="dc-righe"></tbody></table></div>
-        <div class="hint" style="margin-top:8px">I dati «importanti» (in grassetto) servono per moduli, capitazione e comunicazioni. Per i Fratelli si considerano solo quelli con stato «attivo».</div>`
+        <div class="hint mt-8">I dati «importanti» (in grassetto) servono per moduli, capitazione e comunicazioni. Per i Fratelli si considerano solo quelli con stato «attivo».</div>`
       : '<div class="card"><div class="empty"><div>Tutte le schede sono complete. 🎉</div></div></div>'}`;
 
     const filtrati = () => {
@@ -150,7 +150,7 @@
       <p>Dati già inseriti che non tornano: codice fiscale, luoghi, CAP, date, telefono, codici doppi · ${sosp.length} ${sosp.length === 1 ? 'scheda' : 'schede'}</p></div></div>
       ${sosp.length ? `<div class="table-wrap"><table><thead><tr><th>Nominativo</th><th>Tipo</th><th>Cosa controllare</th></tr></thead><tbody>
         ${sosp.map((x) => `<tr class="click" data-go="${esc(x.href)}"><td><b>${esc(x.nome)}</b></td><td>${x.tipo}</td><td>${x.p.map((t) => esc(t)).join('<br>')}</td></tr>`).join('')}</tbody></table></div>
-        <div class="hint" style="margin-top:8px">Sono solo segnalazioni: il dato può essere corretto (per esempio un comune soppresso o un CAP aggiornato). Nulla viene modificato in automatico.${L2 ? '' : ' L’elenco dei comuni non si è caricato: i controlli sui luoghi e sul CAP sono stati saltati.'}</div>`
+        <div class="hint mt-8">Sono solo segnalazioni: il dato può essere corretto (per esempio un comune soppresso o un CAP aggiornato). Nulla viene modificato in automatico.${L2 ? '' : ' L’elenco dei comuni non si è caricato: i controlli sui luoghi e sul CAP sono stati saltati.'}</div>`
       : '<div class="card"><div class="empty"><div>Nessun dato sospetto trovato. 🎉</div></div></div>'}</div>`);
     $$('#dc-sosp [data-go]', v).forEach((r) => r.addEventListener('click', () => { location.hash = r.dataset.go; }));
     $('#dc-xls', v).addEventListener('click', async () => {

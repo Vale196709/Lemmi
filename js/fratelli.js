@@ -41,9 +41,9 @@
     const stati = Array.from(new Set(lista.righe.map((x) => x.stato).filter(Boolean))).sort();
     v.innerHTML = `
       <div class="page-head"><div><h1>Fratelli</h1><p>Anagrafica della Loggia · clicca su un nome per aprire la scheda</p></div>${canEdit() ? `<div class="right actions"><button class="btn gold" id="f-nuovo">${IC.plus} Nuovo Fratello</button></div>` : ''}</div>
-      <div class="actions" style="margin-bottom:14px"><div class="searchbar">${IC.search}<input id="q" type="search" placeholder="Cerca per cognome, nome, matricola o città…" value="${esc(lista.q)}"></div>
-        <select id="f-stato" style="width:auto"><option value="">Tutti gli stati</option>${P.opzioni(stati.map((s) => ({ v: s, t: cap(s) })), lista.stato)}</select>
-        <select id="f-grado" style="width:auto"><option value="">Tutti i gradi</option>${P.opzioni(GRADI.map((g) => ({ v: g, t: cap(g) })), lista.grado)}</select>
+      <div class="actions mb-14"><div class="searchbar">${IC.search}<input id="q" type="search" placeholder="Cerca per cognome, nome, matricola o città…" value="${esc(lista.q)}"></div>
+        <select id="f-stato" class="w-auto"><option value="">Tutti gli stati</option>${P.opzioni(stati.map((s) => ({ v: s, t: cap(s) })), lista.stato)}</select>
+        <select id="f-grado" class="w-auto"><option value="">Tutti i gradi</option>${P.opzioni(GRADI.map((g) => ({ v: g, t: cap(g) })), lista.grado)}</select>
         <span class="muted" id="conta"></span></div>
       <div class="table-wrap"><table><thead><tr>${COLONNE.map((c) => `<th class="sort" data-col="${c.id}"${c.id === 'nominativo' ? ' data-card-title' : ''} role="button" tabindex="0" title="Clicca per ordinare">${c.t} <span class="arr"></span></th>`).join('')}</tr></thead><tbody id="righe"></tbody></table></div>`;
     const disegna = () => {

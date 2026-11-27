@@ -236,14 +236,14 @@ ${info.anomalie.length ? '\nANOMALIE DURANTE LA CREAZIONE\n' + info.anomalie.map
       <p class="muted">Un unico archivio ZIP cifrato con una password: dati, file caricati, elenco utenti, struttura del database, codice dell’app e guida di ripristino. Si apre con 7-Zip (gratuito). Si crea e si scarica qui, sul tuo dispositivo: nulla viene inviato altrove.</p>
       <div style="display:grid;gap:10px;max-width:460px;margin-top:10px">
         <label><input type="checkbox" id="bkc-file" checked> Includi i file caricati (documenti, tavole, modelli)</label>
-        <label>Password dell’archivio (almeno 12 caratteri)<br><input type="password" id="bkc-pw" autocomplete="new-password" style="width:100%"></label>
-        <label>Ripeti la password<br><input type="password" id="bkc-pw2" autocomplete="new-password" style="width:100%"></label>
+        <label>Password dell’archivio (almeno 12 caratteri)<br><input type="password" id="bkc-pw" autocomplete="new-password" class="w-100"></label>
+        <label>Ripeti la password<br><input type="password" id="bkc-pw2" autocomplete="new-password" class="w-100"></label>
         <label><input type="checkbox" id="bkc-ok"> Ho salvato la password in un posto sicuro: se la perdo, l’archivio non si può aprire</label>
         <div class="actions"><button class="btn" type="button" id="bkc-vai">Crea il backup completo</button></div>
-        <progress id="bkc-pr" max="100" value="0" hidden style="width:100%"></progress>
+        <progress id="bkc-pr" max="100" value="0" hidden class="w-100"></progress>
         <div id="bkc-st" class="muted" aria-live="polite"></div>
       </div>
-      <div class="hint" style="margin-top:10px">Conserva l’archivio fuori da Supabase (computer, chiavetta, disco esterno) e <b>mai nel repository GitHub</b>, che è pubblico. Consiglio: una copia a settimana, o dopo ogni modifica importante.</div></div>`;
+      <div class="hint mt-10">Conserva l’archivio fuori da Supabase (computer, chiavetta, disco esterno) e <b>mai nel repository GitHub</b>, che è pubblico. Consiglio: una copia a settimana, o dopo ogni modifica importante.</div></div>`;
   }
 
   function collega(radice) {

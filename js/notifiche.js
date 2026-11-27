@@ -102,7 +102,7 @@
           : ruolo === 'amministratore' ? 'della tornata del giorno dopo, delle votazioni dei bussanti e delle quote in scadenza'
             : 'della tornata del giorno dopo e delle votazioni dei bussanti';
       box.innerHTML = `<h2>Notifiche sul telefono</h2>
-        <p class="muted" style="margin:0 0 10px">Ogni mattina Lemmi ti avvisa ${cosa}. Vale per questo dispositivo: attivale su ognuno che usi.</p>
+        <p class="muted m-b10">Ogni mattina Lemmi ti avvisa ${cosa}. Vale per questo dispositivo: attivale su ognuno che usi.</p>
         <div class="actions">${stato}${azioni}</div><div class="err" id="nt-err" style="margin-top:8px"></div>`;
       const conErrore = (id, fn, ok) => { const b = $(id, box); if (b) b.addEventListener('click', async () => {
         const msg = $('#nt-err', box);
