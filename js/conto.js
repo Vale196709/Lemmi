@@ -196,25 +196,25 @@
     const daRic = cs.mov.filter((x) => x.stato_riconciliazione === 'da_riconciliare').length;
     c.innerHTML = `
       <div id="c-saldi"></div>
-      ${daRic ? `<div class="notice drillable" id="c-daric" role="button" tabindex="0" title="Mostra i movimenti da riconciliare" style="margin:0 0 14px">⚠ <b>${daRic} ${daRic === 1 ? 'movimento da riconciliare' : 'movimenti da riconciliare'}</b> · <u>mostrali</u></div>` : ''}
-      <div class="actions" style="margin-bottom:14px">
+      ${daRic ? `<div class="notice drillable m-b14" id="c-daric" role="button" tabindex="0" title="Mostra i movimenti da riconciliare">⚠ <b>${daRic} ${daRic === 1 ? 'movimento da riconciliare' : 'movimenti da riconciliare'}</b> · <u>mostrali</u></div>` : ''}
+      <div class="actions mb-14">
         <div class="searchbar">${IC.search}<input id="c-q" type="search" placeholder="Cerca nella descrizione…" value="${esc(cs.filtri.q)}"></div>
-        <select id="c-conto" style="width:auto"><option value="">Tutti i conti</option>${conti.map((k) => `<option ${cs.filtri.conto === k ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>
-        <select id="c-tipo" style="width:auto"><option value="">Entrate e uscite</option><option value="e" ${cs.filtri.tipo === 'e' ? 'selected' : ''}>Solo entrate</option><option value="u" ${cs.filtri.tipo === 'u' ? 'selected' : ''}>Solo uscite</option></select>
-        <select id="c-stato" style="width:auto"><option value="">Tutti gli stati</option>${Object.entries(STATO).map(([k, v]) => `<option value="${k}" ${cs.filtri.stato === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
-        <select id="c-cat" style="width:auto"><option value="">Tutte le categorie</option><option value="-" ${cs.filtri.cat === '-' ? 'selected' : ''}>Senza categoria</option>${cs.cat.map((k) => `<option value="${esc(k.id)}" ${cs.filtri.cat === k.id ? 'selected' : ''}>${esc(k.nome)}</option>`).join('')}</select>
+        <select id="c-conto" class="w-auto"><option value="">Tutti i conti</option>${conti.map((k) => `<option ${cs.filtri.conto === k ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>
+        <select id="c-tipo" class="w-auto"><option value="">Entrate e uscite</option><option value="e" ${cs.filtri.tipo === 'e' ? 'selected' : ''}>Solo entrate</option><option value="u" ${cs.filtri.tipo === 'u' ? 'selected' : ''}>Solo uscite</option></select>
+        <select id="c-stato" class="w-auto"><option value="">Tutti gli stati</option>${Object.entries(STATO).map(([k, v]) => `<option value="${k}" ${cs.filtri.stato === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
+        <select id="c-cat" class="w-auto"><option value="">Tutte le categorie</option><option value="-" ${cs.filtri.cat === '-' ? 'selected' : ''}>Senza categoria</option>${cs.cat.map((k) => `<option value="${esc(k.id)}" ${cs.filtri.cat === k.id ? 'selected' : ''}>${esc(k.nome)}</option>`).join('')}</select>
         <span class="muted" id="c-conta"></span>
         ${canPay() ? `<span class="right actions"><button class="btn gold" id="c-imp">${IC.up} Importa estratto conto</button><button class="btn ghost" id="c-auto">Collega in automatico</button><button class="btn ghost" id="c-man">Nuovo movimento</button><button class="btn ghost" id="c-cat-g">Categorie</button>${cs.tesoreria2 ? '<button class="btn ghost" id="c-evt-g">Eventi</button>' : ''}</span>` : ''}
       </div>
       <div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria</th><th class="num">Importo</th><th>Stato</th><th></th></tr></thead><tbody id="c-righe"></tbody><tfoot id="c-totali"></tfoot></table></div>
-      <details id="c-percat" style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Totali per categoria</summary><div id="c-percat-corpo" style="margin-top:10px"></div></details>`;
+      <details id="c-percat" class="mt-14"><summary class="lnk">Totali per categoria</summary><div id="c-percat-corpo" class="mt-10"></div></details>`;
 
     const disegnaSaldi = () => {
       const box = $('#c-saldi');
-      if (!cs.disp) { box.innerHTML = '<div class="notice" style="margin:0 0 14px">Saldi dei conti: non ci sono ancora saldi di banca. Importa un estratto (PDF BancoPosta o Lista movimenti BNL) per vederli.</div>'; return; }
+      if (!cs.disp) { box.innerHTML = '<div class="notice m-b14">Saldi dei conti: non ci sono ancora saldi di banca. Importa un estratto (PDF BancoPosta o Lista movimenti BNL) per vederli.</div>'; return; }
       const d = cs.disp, alFine = d.fine === P.pag.anno + '-12-31' ? 'al ' + fmtData(d.fine) : 'ad oggi (' + fmtData(d.fine) + ')';
       const righe = d.righe.filter((r) => !cs.filtri.conto || r.conto === cs.filtri.conto);
-      if (!righe.length) { box.innerHTML = `<div class="notice" style="margin:0 0 14px">${esc(cs.filtri.conto)}: nessun saldo e nessun movimento importato.</div>`; return; }
+      if (!righe.length) { box.innerHTML = `<div class="notice m-b14">${esc(cs.filtri.conto)}: nessun saldo e nessun movimento importato.</div>`; return; }
       const somma = (c) => righe.reduce((a, r) => a + (r[c] || 0), 0);
       const nd = (r, c) => r[c] === null;
       const manca = righe.some((r) => nd(r, 'finale'));
@@ -223,11 +223,11 @@
       const titolo = cs.filtri.conto ? 'Saldo ' + esc(cs.filtri.conto) : 'Saldi dei conti';
       box.innerHTML = `<div class="card" style="margin:0 0 14px;padding:12px 16px">
         <div class="actions" style="justify-content:space-between;align-items:baseline"><b>${titolo} ${P.pag.anno}</b><span>Disponibile ${alFine}: <b style="font-size:1.3rem;color:${fin < 0 ? 'var(--bad)' : 'inherit'}">${manca && righe.length === 1 ? 'n.d.' : eur(fin) + (manca ? '*' : '')}</b></span></div>
-        <div class="table-wrap" style="margin-top:8px"><table><thead><tr><th>Conto</th><th class="num">Saldo al ${fmtData(d.inizio)}</th><th class="num">Entrate</th><th class="num">Uscite</th>${conGiro ? '<th class="num">Giroconti</th>' : ''}<th class="num">Saldo ${alFine}</th>${canPay() ? '<th></th>' : ''}</tr></thead><tbody>
-        ${righe.map((r) => `<tr><td><b>${esc(r.conto)}</b></td><td class="num">${nd(r, 'iniziale') ? '<span class="muted">n.d.*</span>' : eur(r.iniziale)}</td><td class="num" style="color:var(--ok)">${eur(r.entrate)}</td><td class="num" style="color:var(--bad)">${eur(r.uscite)}</td>${conGiro ? `<td class="num">${r.giro ? eur(r.giro) : '—'}</td>` : ''}<td class="num"><b>${nd(r, 'finale') ? '<span class="muted">n.d.*</span>' : eur(r.finale)}</b></td>${canPay() ? `<td class="act"><button class="btn ghost small" type="button" data-sal="${esc(r.conto)}">Inserisci saldo</button></td>` : ''}</tr>`).join('')}
+        <div class="table-wrap mt-8"><table><thead><tr><th>Conto</th><th class="num">Saldo al ${fmtData(d.inizio)}</th><th class="num">Entrate</th><th class="num">Uscite</th>${conGiro ? '<th class="num">Giroconti</th>' : ''}<th class="num">Saldo ${alFine}</th>${canPay() ? '<th></th>' : ''}</tr></thead><tbody>
+        ${righe.map((r) => `<tr><td><b>${esc(r.conto)}</b></td><td class="num">${nd(r, 'iniziale') ? '<span class="muted">n.d.*</span>' : eur(r.iniziale)}</td><td class="num t-ok">${eur(r.entrate)}</td><td class="num t-bad">${eur(r.uscite)}</td>${conGiro ? `<td class="num">${r.giro ? eur(r.giro) : '—'}</td>` : ''}<td class="num"><b>${nd(r, 'finale') ? '<span class="muted">n.d.*</span>' : eur(r.finale)}</b></td>${canPay() ? `<td class="act"><button class="btn ghost small" type="button" data-sal="${esc(r.conto)}">Inserisci saldo</button></td>` : ''}</tr>`).join('')}
         ${righe.length > 1 ? `<tr><td><b>Totale</b></td><td class="num"><b>${eur(somma('iniziale'))}</b>${righe.some((r) => nd(r, 'iniziale')) ? '*' : ''}</td><td class="num">${eur(somma('entrate'))}</td><td class="num">${eur(somma('uscite'))}</td>${conGiro ? `<td class="num">${eur(somma('giro'))}</td>` : ''}<td class="num"><b>${eur(fin)}</b>${manca ? '*' : ''}</td>${canPay() ? '<td></td>' : ''}</tr>` : ''}
         <tr><td><b>Risultato ${P.pag.anno}</b><div class="hint">entrate − uscite, giroconti esclusi</div></td><td></td><td class="num" colspan="2" style="text-align:center"><b style="color:${somma('entrate') - somma('uscite') < 0 ? 'var(--bad)' : 'var(--ok)'}">${eur(somma('entrate') - somma('uscite'))}</b></td>${conGiro ? '<td></td>' : ''}<td></td>${canPay() ? '<td></td>' : ''}</tr></tbody></table></div>
-        <div class="hint" style="margin-top:6px">Saldo finale = saldo iniziale + entrate − uscite ± giroconti tra i conti della Loggia (che si annullano nel totale). Entrate e uscite sono le stesse dei riquadri in alto. Il saldo parte dall’ultimo estratto importato: i movimenti non ancora importati non sono considerati.
+        <div class="hint mt-6">Saldo finale = saldo iniziale + entrate − uscite ± giroconti tra i conti della Loggia (che si annullano nel totale). Entrate e uscite sono le stesse dei riquadri in alto. Il saldo parte dall’ultimo estratto importato: i movimenti non ancora importati non sono considerati.
         ${righe.map((r) => r.senzaSaldi ? `<br>* ${esc(r.conto)}: nessun saldo di banca registrato. Reimporta l’estratto (es. il PDF BancoPosta: i movimenti già presenti non si duplicano e vengono salvati i saldi) oppure usa «Inserisci saldo» con un saldo letto dall’estratto.`
           : nd(r, 'iniziale') ? `<br>* ${esc(r.conto)}: saldo iniziale non disponibile, il primo estratto importato parte dal ${fmtData(r.primo)}.` : '').join('')}</div></div>`;
       $$('[data-sal]', box).forEach((b) => b.addEventListener('click', () => apriSaldo(b.dataset.sal, P)));
@@ -245,8 +245,8 @@
       const fv = f.filter(reale), nGiro = f.length - fv.length;
       const tEnt = fv.filter((x) => Number(x.importo) > 0).reduce((q, x) => q + Number(x.importo), 0);
       const tUsc = fv.filter((x) => Number(x.importo) < 0).reduce((q, x) => q + Math.abs(Number(x.importo)), 0);
-      $('#c-totali').innerHTML = f.length ? `<tr><td colspan="3"><b>Totale entrate</b></td><td class="num" style="color:var(--ok)"><b>${eur(tEnt)}</b></td><td colspan="2"></td></tr>
-        <tr><td colspan="3"><b>Totale uscite</b></td><td class="num" style="color:var(--bad)"><b>${eur(tUsc)}</b></td><td colspan="2"></td></tr>
+      $('#c-totali').innerHTML = f.length ? `<tr><td colspan="3"><b>Totale entrate</b></td><td class="num t-ok"><b>${eur(tEnt)}</b></td><td colspan="2"></td></tr>
+        <tr><td colspan="3"><b>Totale uscite</b></td><td class="num t-bad"><b>${eur(tUsc)}</b></td><td colspan="2"></td></tr>
         <tr><td colspan="3"><b>Saldo (${f.length} ${f.length === 1 ? 'movimento' : 'movimenti'})</b></td><td class="num" style="color:${tEnt - tUsc < 0 ? 'var(--bad)' : 'inherit'}"><b>${eur(tEnt - tUsc)}</b></td><td colspan="2"></td></tr>${nGiro ? `<tr><td colspan="6" class="hint">${nGiro === 1 ? '1 giroconto tra i conti della Loggia è escluso' : nGiro + ' giroconti tra i conti della Loggia sono esclusi'} dai totali.</td></tr>` : ''}` : '';
       const perCat = {};
       fv.forEach((x) => { const k = x.categoria || 'Senza categoria'; const o = perCat[k] || (perCat[k] = { e: 0, u: 0 }); if (Number(x.importo) > 0) o.e += Number(x.importo); else o.u += Math.abs(Number(x.importo)); });
@@ -328,7 +328,7 @@
     const corpo = `<div class="form-grid">
       <div class="f"><label for="i-file">File dell’estratto conto (PDF di BancoPosta, oppure .xls, .xlsx o .csv)</label><input id="i-file" class="vis" type="file" accept=".pdf,.xls,.xlsx,.csv,.txt"></div>
       <div class="f s6"><label for="i-conto">Conto a cui appartiene l’estratto</label><select id="i-conto">${contiNoti().map((k) => `<option>${esc(k)}</option>`).join('')}</select></div>
-      <div class="f s6 hint" id="i-conto-h" style="align-self:end">Viene riconosciuto dal file quando possibile; controllalo prima di importare.</div>
+      <div class="f s6 hint self-end" id="i-conto-h">Viene riconosciuto dal file quando possibile; controllalo prima di importare.</div>
       <div class="f hint">Il file viene letto sul tuo computer. I movimenti già importati in precedenza vengono riconosciuti e non si duplicano.</div>
       <div class="f" id="i-esito"></div></div>`;
     const m = P.modal('Importa estratto conto', corpo, {
@@ -349,7 +349,7 @@
         const extra = await collegaAutomatico(righe, an, conto);
         chiudi();
         P.avviso('Estratto conto importato', `<div class="kv"><div><span>Movimenti nuovi</span><b>${Number(r.righe_nuove)}</b></div><div><span>Già presenti (ignorati)</span><b>${Number(r.righe_gia_presenti)}</b></div><div><span>Categorizzati in automatico</span><b>${auto}</b></div></div>
-          <div class="notice" style="margin-top:14px">Ora assegna una categoria alle uscite rimaste e collega i bonifici dei Fratelli ai versamenti con «Collega versamento».</div>${extra}`);
+          <div class="notice mt-14">Ora assegna una categoria alle uscite rimaste e collega i bonifici dei Fratelli ai versamenti con «Collega versamento».</div>${extra}`);
         L.route();
       },
     });
@@ -358,7 +358,7 @@
     const verificaBanca = () => {
       const v = an.verifica, b = an.banca;
       if (v.ok) return `<div class="notice" style="margin-top:10px;background:var(--ok-bg);color:var(--ok)"><b>Quadra con l’estratto della banca</b> (${v.verificati.join(', ')}): entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}${b.saldoFinale !== null ? ', saldo finale ' + P.eur(b.saldoFinale) : ''}.</div>`;
-      return `<div class="notice bad" style="margin-top:10px"><b>Attenzione: i movimenti letti non quadrano con i totali dell’estratto.</b> ${v.falliti.length ? 'Non tornano: ' + v.falliti.join(', ') + '. ' : ''}${v.senzaTotali ? 'Nel file non ho trovato i totali per il controllo. ' : ''}Letto: entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}.
+      return `<div class="notice bad mt-10"><b>Attenzione: i movimenti letti non quadrano con i totali dell’estratto.</b> ${v.falliti.length ? 'Non tornano: ' + v.falliti.join(', ') + '. ' : ''}${v.senzaTotali ? 'Nel file non ho trovato i totali per il controllo. ' : ''}Letto: entrate ${P.eur(v.entrate)}, uscite ${P.eur(v.uscite)}.
         <label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-top:8px"><input type="checkbox" id="i-forza"> Importa comunque (dopo aver controllato i movimenti)</label></div>`;
     };
     const disegna = () => {
@@ -369,8 +369,8 @@
         ${an.movimenti.length
           ? `<div class="notice" style="background:var(--ok-bg);color:var(--ok)"><b>${r.righe} movimenti</b> dal ${fmtData(r.dal)} al ${fmtData(r.al)} · entrate ${P.eur(r.entrate)} · uscite ${P.eur(r.uscite)}${an.scartate ? ` · ${an.scartate} righe non valide ignorate (totali, intestazioni…)` : ''}</div>`
           : '<div class="notice bad">Non sono riuscito a riconoscere i movimenti: indica qui sotto quali colonne contengono data e importo.</div>'}
-        ${an.pdf ? '' : `<details ${an.movimenti.length ? '' : 'open'} style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Controlla il riconoscimento delle colonne</summary>
-          <div class="form-grid" style="margin-top:12px">
+        ${an.pdf ? '' : `<details ${an.movimenti.length ? '' : 'open'} class="mt-10"><summary class="lnk">Controlla il riconoscimento delle colonne</summary>
+          <div class="form-grid mt-12">
             <div class="f s4"><label for="k-riga">Riga delle intestazioni</label><input id="k-riga" type="number" min="1" max="200" value="${an.rigaIntestazione + 1}"></div>
             <div class="f s4"><label for="k-data">Data dell’operazione</label><select id="k-data">${opt(mp.data)}</select></div>
             <div class="f s4"><label for="k-valuta">Data valuta</label><select id="k-valuta">${opt(mp.valuta)}</select></div>
@@ -382,7 +382,7 @@
             <div class="f s4"><label for="k-avere">Avere / entrate</label><select id="k-avere">${opt(mp.avere)}</select></div>
             <div class="f hint">Usa «Importo» se la banca ha una sola colonna con il segno, oppure «Dare» e «Avere» se sono separate.</div></div></details>`}
         ${an.verifica ? verificaBanca() : ''}
-        ${an.movimenti.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria suggerita</th><th class="num">Importo</th></tr></thead><tbody>
+        ${an.movimenti.length ? `<div class="table-wrap mt-12"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria suggerita</th><th class="num">Importo</th></tr></thead><tbody>
           ${an.movimenti.slice(0, 6).map((x) => { const cn = nomeCategoriaSuggerita(x); return `<tr><td>${fmtData(x.data_operazione)}</td><td>${esc(x.descrizione.length > 110 ? x.descrizione.slice(0, 107) + '…' : x.descrizione)}</td><td>${cn ? esc(cn) + (catPerNome(cn) ? '' : ' <span class="badge info">nuova</span>') : '<span class="muted">—</span>'}</td><td class="num">${P.eur(x.importo)}</td></tr>`; }).join('')}
           ${an.movimenti.length > 6 ? `<tr><td colspan="4" class="muted">… e altri ${an.movimenti.length - 6} movimenti</td></tr>` : ''}</tbody></table></div>` : ''}`;
       if (!an.pdf) $$('select, input', esito).forEach((el) => el.addEventListener('change', ricalcola));
@@ -458,9 +458,9 @@
         for (const id of Object.keys(perEvento)) await aggiornaPerImpronte('evento_id', id, perEvento[id]);
         for (const id of Object.keys(perBussante)) await aggiornaPerImpronte('bussante_id', id, perBussante[id]);
         const nEv = Object.values(perEvento).reduce((a, l) => a + l.length, 0), nBu = Object.values(perBussante).reduce((a, l) => a + l.length, 0);
-        if (nEv || nBu) html += `<div class="kv" style="margin-top:12px"><div><span>Assegnati a un evento</span><b>${nEv}</b></div><div><span>Collegati a un bussante</span><b>${nBu}</b></div></div>`;
+        if (nEv || nBu) html += `<div class="kv mt-12"><div><span>Assegnati a un evento</span><b>${nEv}</b></div><div><span>Collegati a un bussante</span><b>${nBu}</b></div></div>`;
       }
-    } catch (e) { html += `<div class="notice" style="margin-top:12px">Collegamenti automatici non riusciti: ${esc(messaggioErrore(e))}</div>`; }
+    } catch (e) { html += `<div class="notice mt-12">Collegamenti automatici non riusciti: ${esc(messaggioErrore(e))}</div>`; }
     try {
       if (an.banca && (an.pdf || (an.verifica && an.verifica.ok))) {
         const fonte = an.pdf ? 'estratto PDF' : 'estratto ' + conto;
@@ -468,7 +468,7 @@
         if (an.banca.saldoIniziale !== null && an.banca.dataSaldoIniziale) sal.push({ conto, data: an.banca.dataSaldoIniziale, saldo: an.banca.saldoIniziale, fonte });
         if (an.banca.saldoFinale !== null && an.banca.dataSaldoFinale) sal.push({ conto, data: an.banca.dataSaldoFinale, saldo: an.banca.saldoFinale, fonte });
         if (sal.length) chk(await state.sb.from('conto_saldi').upsert(sal, { onConflict: 'conto,data' }));
-        if (sal.length) html += `<div class="kv" style="margin-top:12px">${sal.map((x) => `<div><span>Saldo ${esc(conto)} al ${fmtData(x.data)}</span><b>${L.eur ? L.eur(x.saldo) : x.saldo}</b></div>`).join('')}</div>`;
+        if (sal.length) html += `<div class="kv mt-12">${sal.map((x) => `<div><span>Saldo ${esc(conto)} al ${fmtData(x.data)}</span><b>${L.eur ? L.eur(x.saldo) : x.saldo}</b></div>`).join('')}</div>`;
       }
     } catch (e) { /* senza la tabella dei saldi il Cruscotto userà solo i movimenti */ }
     return html;
@@ -518,10 +518,10 @@
     const righe = cs.eventi.map((ev) => { const t = totaliEvento(ev.id); return `<tr><td><b>${esc(ev.nome)}</b>${ev.data_evento ? `<div class="hint">${fmtData(ev.data_evento)}</div>` : ''}${ev.parole_chiave ? `<div class="hint">Parole chiave: ${esc(ev.parole_chiave)}</div>` : ''}</td>
       <td class="num">${t.n}</td><td class="num">${P.eur(t.ent)}</td><td class="num">${P.eur(t.usc)}</td><td class="num" style="color:${t.ris >= 0 ? 'var(--ok)' : 'var(--bad)'}"><b>${P.eur(t.ris)}</b></td>
       <td class="act"><button class="btn ghost small" data-ev-mod="${esc(ev.id)}">Modifica</button></td></tr>`; }).join('');
-    const corpo = `<p class="muted" style="margin-top:0">Un evento raggruppa entrate e uscite di una stessa occasione (agape, festa, cena) e ne mostra il risultato. Le <b>parole chiave</b> servono ad assegnare da soli i movimenti all’importazione (es. «festa della luce, bomarzo, villa grant»).</p>
+    const corpo = `<p class="muted mt-0">Un evento raggruppa entrate e uscite di una stessa occasione (agape, festa, cena) e ne mostra il risultato. Le <b>parole chiave</b> servono ad assegnare da soli i movimenti all’importazione (es. «festa della luce, bomarzo, villa grant»).</p>
       <div class="table-wrap"><table><thead><tr><th>Evento</th><th class="num">Mov.</th><th class="num">Entrate</th><th class="num">Uscite</th><th class="num">Risultato</th><th></th></tr></thead><tbody>
       ${righe || '<tr><td colspan="6"><div class="empty">Nessun evento: creane uno con «Nuovo evento».</div></td></tr>'}</tbody></table></div>
-      <div class="actions" style="margin-top:12px"><button class="btn gold" type="button" data-ev-new>Nuovo evento</button><button class="btn ghost" type="button" data-ev-appl>Applica le parole chiave ai movimenti senza evento</button></div>`;
+      <div class="actions mt-12"><button class="btn gold" type="button" data-ev-new>Nuovo evento</button><button class="btn ghost" type="button" data-ev-appl>Applica le parole chiave ai movimenti senza evento</button></div>`;
     const m = P.modal('Eventi del ' + P.pag.anno, corpo, { senzaConferma: true });
     $('[data-ev-new]', m.ov).onclick = () => { m.chiudi(); apriEventoForm(null, P); };
     $$('[data-ev-mod]', m.ov).forEach((b) => b.addEventListener('click', () => { m.chiudi(); apriEventoForm(cs.eventi.find((x) => x.id === b.dataset.evMod), P); }));
@@ -578,7 +578,7 @@
     card.innerHTML = `<h2>Pagamenti del bussante <small>${righe.length}</small></h2>
       ${righe.length ? `<div class="table-wrap"><table><tbody>${righe.map((x) => `<tr><td>${fmtData(x.data_operazione)}</td><td>${esc(x.descrizione.length > 80 ? x.descrizione.slice(0, 77) + '…' : x.descrizione)}<div class="hint">${esc(cat[x.categoria_id] || '')}</div></td>
         <td class="num" style="color:${Number(x.importo) > 0 ? 'var(--ok)' : 'var(--bad)'}"><b>${eurFmt.format(Number(x.importo))}</b></td></tr>`).join('')}</tbody></table></div>
-        <div class="kv" style="margin-top:10px"><div><span>Incassato dal bussante</span><b>${eurFmt.format(ent)}</b></div><div><span>Girato al GOI</span><b>${eurFmt.format(usc)}</b></div><div><span>Resta alla Loggia</span><b>${eurFmt.format(ent - usc)}</b></div></div>`
+        <div class="kv mt-10"><div><span>Incassato dal bussante</span><b>${eurFmt.format(ent)}</b></div><div><span>Girato al GOI</span><b>${eurFmt.format(usc)}</b></div><div><span>Resta alla Loggia</span><b>${eurFmt.format(ent - usc)}</b></div></div>`
         : '<div class="empty"><div>Nessun bonifico collegato. In Conto di Loggia, il pulsante «Evento» di un movimento permette di riferirlo a questo bussante.</div></div>'}`;
     v.appendChild(card);
   });
@@ -588,7 +588,7 @@
     const tipo = Number(mov.importo) > 0 ? 'entrata' : 'uscita';
     const lista = catPerTipo(tipo);
     const corpo = `<div class="form-grid">
-      <div class="f"><div class="kv"><div><span>Data</span><b>${fmtData(mov.data_operazione)}</b></div><div><span>Importo</span><b>${P.eur(mov.importo)}</b></div></div><div class="hint" style="margin-top:6px">${esc(mov.descrizione)}</div></div>
+      <div class="f"><div class="kv"><div><span>Data</span><b>${fmtData(mov.data_operazione)}</b></div><div><span>Importo</span><b>${P.eur(mov.importo)}</b></div></div><div class="hint mt-6">${esc(mov.descrizione)}</div></div>
       <div class="f s6"><label for="x-cat">Categoria</label><select id="x-cat" name="categoria"><option value="">— nessuna —</option>${P.opzioni(lista.map((k) => ({ v: k.id, t: k.nome })), mov.categoria_id)}</select></div>
       ${P.campoFratello(frat, { id: 'x-frat', label: 'Fratello interessato (es. rimborso)', req: false })}
       ${campo('note', 'Note', mov.note || '', { cls: 's12' })}
@@ -615,7 +615,7 @@
     const ric = riconosciFratello(frat, mov.descrizione, await caricaMemoria());
     const sug = ric ? ric.f : null;
     const corpo = `<div class="form-grid">
-      <div class="f"><div class="kv"><div><span>Data</span><b>${fmtData(mov.data_operazione)}</b></div><div><span>Importo</span><b>${P.eur(mov.importo)}</b></div></div><div class="hint" style="margin-top:6px">${esc(mov.descrizione)}</div></div>
+      <div class="f"><div class="kv"><div><span>Data</span><b>${fmtData(mov.data_operazione)}</b></div><div><span>Importo</span><b>${P.eur(mov.importo)}</b></div></div><div class="hint mt-6">${esc(mov.descrizione)}</div></div>
       ${P.campoFratello(frat, { wid: 'w-frat', id: 'l-frat' })}
       <div class="f s6"><label for="l-voce">Voce</label><select id="l-voce" name="voce">${P.opzioni(voci.map((x) => ({ v: x.id, t: x.nome })), '')}</select></div>
       <div class="f s4" id="w-anno"><label for="l-anno">Anno della quota</label><input id="l-anno" name="anno" inputmode="numeric" maxlength="4" value="${anno0}"></div>
@@ -704,12 +704,12 @@
       proposte.push({ mov, fr, voce, anno, parti, storico: ric.come === 'storico' });
     });
     const breve = (t) => { t = String(t || ''); return t.length > 70 ? t.slice(0, 67) + '…' : t; };
-    const corpo = `${proposte.length ? `<div class="hint" style="margin-bottom:8px">${proposte.length} bonifici con Fratello e scadenza riconosciuti: togli la spunta a quelli da non collegare, poi conferma. Quelli «da verificare» (Fratello riconosciuto dai bonifici simili del passato) vanno spuntati a mano.</div>
+    const corpo = `${proposte.length ? `<div class="hint mb-8">${proposte.length} bonifici con Fratello e scadenza riconosciuti: togli la spunta a quelli da non collegare, poi conferma. Quelli «da verificare» (Fratello riconosciuto dai bonifici simili del passato) vanno spuntati a mano.</div>
       <div class="table-wrap"><table><thead><tr><th></th><th>Data</th><th class="num">Importo</th><th>Fratello</th><th>Voce e ripartizione</th></tr></thead><tbody>
       ${proposte.map((p, i) => `<tr><td><input type="checkbox" data-pr="${i}" ${p.storico ? '' : 'checked'} aria-label="Collega"></td><td>${fmtData(p.mov.data_operazione)}</td><td class="num">${P.eur(p.mov.importo)}</td>
         <td><b>${esc(p.fr.cognome + ' ' + p.fr.nome)}</b>${p.storico ? ' <span class="badge warn" title="Il nome non compare nel bonifico: riconosciuto dai bonifici simili già collegati a lui">da verificare</span>' : ''}<div class="hint">${esc(breve(p.mov.descrizione))}</div></td><td>${esc(p.voce.nome)}<div class="hint">${esc(p.parti.map((x) => x.t).join(' + '))}</div></td></tr>`).join('')}
       </tbody></table></div>` : '<div class="notice">Nessun bonifico da collegare in automatico.</div>'}
-      ${aMano.length ? `<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">${aMano.length} da collegare a mano con «Collega versamento»</summary><div class="table-wrap" style="margin-top:8px"><table><tbody>
+      ${aMano.length ? `<details class="mt-12"><summary class="lnk">${aMano.length} da collegare a mano con «Collega versamento»</summary><div class="table-wrap mt-8"><table><tbody>
         ${aMano.map((x) => `<tr><td>${fmtData(x.mov.data_operazione)}</td><td class="num">${P.eur(x.mov.importo)}</td><td>${esc(breve(x.mov.descrizione))}<div class="hint">${esc(x.motivo)}</div></td></tr>`).join('')}</tbody></table></div></details>` : ''}`;
     const m = P.modal('Collega in automatico i bonifici dei Fratelli', corpo, {
       conferma: 'Collega i bonifici spuntati',
@@ -725,7 +725,7 @@
           } else fatti++;
         }
         chiudi();
-        P.avviso('Bonifici collegati', `<div class="kv"><div><span>Collegati</span><b>${fatti}</b></div><div><span>Da collegare a mano</span><b>${aMano.length + errori.length}</b></div></div>${errori.length ? `<div class="notice bad" style="margin-top:12px">${errori.map(esc).join('<br>')}</div>` : ''}`);
+        P.avviso('Bonifici collegati', `<div class="kv"><div><span>Collegati</span><b>${fatti}</b></div><div><span>Da collegare a mano</span><b>${aMano.length + errori.length}</b></div></div>${errori.length ? `<div class="notice bad mt-12">${errori.map(esc).join('<br>')}</div>` : ''}`);
         L.route();
       },
     });

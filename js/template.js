@@ -67,19 +67,19 @@
       <div class="page-head"><div><h1>Template</h1><p>Tutti i modelli della Loggia in un unico posto</p></div></div>
 
       <div class="card"><h2>${IC.lavori} Verbali di tornata</h2>
-        <p class="muted" style="margin:0 0 14px">Inserisci data, presenze e firmatari: il testo del verbale si prepara da solo secondo i vostri modelli, lo puoi correggere e scaricare in Word.</p>
+        <p class="muted m-b14">Inserisci data, presenze e firmatari: il testo del verbale si prepara da solo secondo i vostri modelli, lo puoi correggere e scaricare in Word.</p>
         <div class="grid cols-3">${Object.keys(GRADI).map((g) => `<a class="tpl-card" href="#/template/verbale/${g}">
           <span class="tpl-ic">${GRADI[g].num}</span><b>${esc(GRADI[g].n)}</b><span class="muted">${esc(GRADI[g].desc)}</span>
           <span class="btn gold small">Crea il verbale</span></a>`).join('')}</div></div>
 
-      <div class="card" style="margin-top:18px"><h2>${IC.pdf} Moduli GOI</h2>
+      <div class="card mt-18"><h2>${IC.pdf} Moduli GOI</h2>
         <p class="muted" style="margin:0 0 12px">I moduli si compilano dall’app con i dati già inseriti (firme, visti e data di trasmissione restano in bianco). Qui trovi la compilazione guidata o la scorciatoia alla scheda giusta, e i modelli vuoti ufficiali (ed. 2024 del Corso Segretari).</p>
         <div class="table-wrap"><table data-no-sort><thead><tr><th>Modello</th><th>A cosa serve</th><th>Si compila da</th><th>Modello vuoto</th></tr></thead><tbody>
           ${MODULI_GOI.map((m) => `<tr><td><b>${esc(m.t)}</b></td><td>${esc(m.d)}</td><td>${m.compila ? `<a class="btn gold small" href="#/template/modulo/${m.compila}">Compila il modulo</a>` : `<a href="${m.vai}">${esc(m.vaiT)}</a>`}</td>
             <td>${m.file.length ? m.file.map((f) => `<a class="btn ghost small" href="templates/${esc(f[0])}.pdf" download>${IC.pdf} ${esc(f[1])}</a>`).join(' ') : '<span class="muted">generato dall’app</span>'}</td></tr>`).join('')}
         </tbody></table></div></div>
 
-      <div class="card" style="margin-top:18px" id="lib"><h2>${IC.template || ''} Modelli della Loggia</h2>
+      <div class="card mt-18" id="lib"><h2>${IC.template || ''} Modelli della Loggia</h2>
         <p class="muted" style="margin:0 0 12px">L’archivio dei vostri modelli: tegolature, fogli presenze, inviti e agapi, logo e timbro, medaglie e cravatte. Conservali qui invece che sul computer del Segretario: restano al passaggio di consegne.</p>
         ${lib.ok ? '' : `<div class="notice bad"><b>Archivio non ancora attivo.</b> Esegui su Supabase lo script <code>lemmi_aggiornamento_18.sql</code>, poi ricarica la pagina.<br><span class="hint">${esc(messaggioErrore(lib.errore))}</span></div>`}
         <div id="lib-body"></div></div>`;
@@ -94,20 +94,20 @@
       const f = righe.filter((r) => !filtro || r.categoria === filtro);
       box.innerHTML = `
         ${puoCaricare ? `<details class="up-box" ${righe.length ? '' : 'open'}><summary><b>${IC.up} Carica un nuovo modello</b></summary>
-          <form id="f-mod" class="form-grid" style="margin-top:12px" novalidate>
+          <form id="f-mod" class="form-grid mt-12" novalidate>
             <div class="f s4"><label for="m-cat">Categoria</label><select id="m-cat" name="categoria">${Object.keys(CATEGORIE).map((k) => `<option value="${k}" ${filtro === k ? 'selected' : ''}>${esc(CATEGORIE[k].t)}</option>`).join('')}</select></div>
             <div class="f s8"><label for="m-nome">Nome del modello <span class="req">*</span></label><input id="m-nome" name="nome" maxlength="120" placeholder="es. Modello di tegolatura"></div>
             <div class="f s12"><label for="m-desc">Descrizione (facoltativa)</label><input id="m-desc" name="descrizione" maxlength="240" placeholder="a cosa serve, versione, note"></div>
             <div class="f s12"><label for="m-file">File <span class="req">*</span> <span class="hint">Word, Excel, PDF, immagini, SVG… fino a 10 MB</span></label><input id="m-file" name="file" type="file" class="vis" accept=".${ESTENSIONI.join(',.')}"></div>
             <div class="f s12 actions"><button class="btn gold" type="submit">${IC.up} Carica</button><span class="err" id="m-err"></span></div>
           </form></details>` : ''}
-        <div class="chips" style="margin-top:14px"><span class="chips-l">Categoria</span><button type="button" class="chip ${filtro ? '' : 'on'}" data-c="">Tutte (${righe.length})</button>
+        <div class="chips mt-14"><span class="chips-l">Categoria</span><button type="button" class="chip ${filtro ? '' : 'on'}" data-c="">Tutte (${righe.length})</button>
           ${Object.keys(CATEGORIE).filter((k) => conta[k]).map((k) => `<button type="button" class="chip ${filtro === k ? 'on' : ''}" data-c="${k}">${esc(CATEGORIE[k].t)} (${conta[k]})</button>`).join('')}</div>
         <div class="table-wrap"><table><thead><tr><th>Modello</th><th>Categoria</th><th>Caricato il</th><th>Dimensione</th><th></th></tr></thead><tbody>
           ${f.length ? f.map((r) => `<tr><td><b>${esc(r.nome)}</b>${r.descrizione ? `<div class="hint">${esc(r.descrizione)}</div>` : ''}<div class="hint">${esc(r.file_nome || '')}</div></td>
             <td><span class="badge gold">${esc((CATEGORIE[r.categoria] || CATEGORIE.altro).t)}</span></td>
             <td>${fmtData(r.creato_il)}</td><td>${r.dimensione ? Math.max(1, Math.round(r.dimensione / 1024)) + ' KB' : '—'}</td>
-            <td class="actions" style="white-space:nowrap"><button class="btn ghost small" data-sc="${esc(r.id)}">Scarica</button>
+            <td class="actions nowrap"><button class="btn ghost small" data-sc="${esc(r.id)}">Scarica</button>
               ${puoCaricare ? `<button class="btn danger small" data-del="${esc(r.id)}">Elimina</button>` : ''}</td></tr>`).join('')
             : `<tr><td colspan="5"><div class="empty">${IC.inbox}<div>${righe.length ? 'Nessun modello in questa categoria.' : 'Ancora nessun modello caricato.'}</div></div></td></tr>`}
         </tbody></table></div>`;
@@ -336,7 +336,7 @@
         ${campoT('presenti', 'Fratelli presenti (numero)', c.presenti, { cls: 's4', ph: 'es. 16', hint: 'Calcolato dalle presenze qui sotto' })}
         ${campoT('gemellata', 'Loggia gemellata (facoltativa)', c.gemellata, { cls: 's8', hint: 'Lascia vuoto se non serve. Il testo inserito viene ricordato.' })}
         <div class="f s12"><label for="v-assenti">Assenti giustificati (cognomi separati da virgola)</label><input id="v-assenti" data-k="assenti" value="${esc(c.assenti)}">
-          <div class="hint" style="margin-top:6px">Si compila dalle presenze qui sotto.</div></div>
+          <div class="hint mt-6">Si compila dalle presenze qui sotto.</div></div>
         ${campoT('ospiti', 'Ospiti (nome e cognome, separati da virgola)', c.ospiti, { cls: 's12', ph: 'es. Mario Rossi' })}
         ${campoT('sostOratore', 'Oratore sostituito da', c.sostOratore, { cls: 's4', ph: 'cognome (vuoto = titolare)' })}
         ${campoT('sost1', '1° Sorvegliante sostituito da', c.sost1, { cls: 's4', ph: 'cognome' })}
@@ -349,9 +349,9 @@
           ${campoT('prossima', 'Chiusura fino alla tornata del', c.prossima, { cls: 's4', data: 1, hint: 'Proposta dal Calendario (prossima ordinaria)' })}` : ''}
       </div></div>
 
-      <div class="card" style="margin-top:18px"><h2>Presenze</h2>
-        <p class="muted" style="margin:0 0 10px">Compaiono i Fratelli attivi che possono partecipare a questa tornata (in grado di ${esc(GRADI[g].n)}${g === 'apprendista' ? '' : ' o superiore'}). Tutti partono come presenti: segna solo chi manca.</p>
-        <div class="actions" style="margin:0 0 10px"><span class="muted" id="v-pres-riep"></span>
+      <div class="card mt-18"><h2>Presenze</h2>
+        <p class="muted m-b10">Compaiono i Fratelli attivi che possono partecipare a questa tornata (in grado di ${esc(GRADI[g].n)}${g === 'apprendista' ? '' : ' o superiore'}). Tutti partono come presenti: segna solo chi manca.</p>
+        <div class="actions m-b10"><span class="muted" id="v-pres-riep"></span>
           <button class="btn ghost small" id="v-tuttip" type="button">Tutti presenti</button></div>
         <div class="table-wrap"><table class="pres-tab"><thead><tr><th>Fratello</th><th>Grado</th><th>Presenza</th></tr></thead><tbody>
           ${eleggibili(g).map((f) => `<tr><td>${esc(f.cognome)} ${esc(f.nome)}</td><td>${esc(f.grado_attuale || '—')}</td>
@@ -359,21 +359,21 @@
               ${[['presente', 'Presente'], ['giustificato', 'Assente giustificato'], ['assente', 'Assente']].map((o) => `<option value="${o[0]}" ${statoPres(x, f.id) === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select></td></tr>`).join('')}
         </tbody></table></div></div>
 
-      <div class="card" style="margin-top:18px"><h2>Firmatari</h2><div class="form-grid">
+      <div class="card mt-18"><h2>Firmatari</h2><div class="form-grid">
         ${campoT('mv', 'Maestro Venerabile', c.mv, { cls: 's4' })}
         ${campoT('segretario', 'Segretario', c.segretario, { cls: 's4' })}
         ${campoT('oratore', 'Oratore', c.oratore, { cls: 's4' })}
         <div class="f s12 hint">Proposti dalle cariche dell’anno nella Storia dei Fratelli: correggili se la tornata ha firmatari diversi.</div>
       </div></div>
 
-      <div class="card" style="margin-top:18px"><h2>Testo del verbale</h2>
-        <p class="muted" style="margin:0 0 10px">Si compila da solo mentre inserisci i dati. Puoi correggerlo a mano: da quel momento non viene più riscritto, finché non premi «Ricrea il testo».
+      <div class="card mt-18"><h2>Testo del verbale</h2>
+        <p class="muted m-b10">Si compila da solo mentre inserisci i dati. Puoi correggerlo a mano: da quel momento non viene più riscritto, finché non premi «Ricrea il testo».
           Le parti tra parentesi quadre vanno completate (per esempio lo svolgimento dei lavori). Un paragrafo per riga vuota.</p>
         <textarea id="v-testo" rows="22" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:1rem;line-height:1.55">${esc(x.testo)}</textarea>
-        <div class="actions" style="margin-top:12px"><button class="btn gold" id="v-dl" type="button">${IC.pdf} Scarica il verbale (.docx)</button>
+        <div class="actions mt-12"><button class="btn gold" id="v-dl" type="button">${IC.pdf} Scarica il verbale (.docx)</button>
           ${canEdit() ? '<button class="btn" id="v-salva" type="button">Salva nel registro</button>' : ''}<button class="btn ghost" id="v-rec" type="button">Ricrea il testo dai dati</button><button class="btn ghost" id="v-copia" type="button">Copia il testo</button>
           <span class="err" id="v-err"></span></div>
-        <div class="hint" id="v-stato-reg" style="margin-top:8px">${canEdit() ? 'Il registro conserva data, presenze, ospiti e testo: serve per l’archivio dei verbali e per le presenze dei Fratelli.' : 'Solo amministratore e Segretario possono salvare nel registro.'}</div></div>`;
+        <div class="hint mt-8" id="v-stato-reg">${canEdit() ? 'Il registro conserva data, presenze, ospiti e testo: serve per l’archivio dei verbali e per le presenze dei Fratelli.' : 'Solo amministratore e Segretario possono salvare nel registro.'}</div></div>`;
 
     mascheraDate(v);
     const ta = $('#v-testo', v), err = $('#v-err', v);
@@ -443,7 +443,7 @@
       sel.parentNode.insertBefore(gr, sel.nextSibling); sel.classList.add('pres-nascosta'); aggiorna();
     });
     const tabP = $('.pres-tab', v);
-    if (tabP && tabP.closest('.table-wrap')) tabP.closest('.table-wrap').insertAdjacentHTML('beforebegin', '<div class="hint" style="margin:0 0 8px">P presente · G assente giustificato · A assente</div>');
+    if (tabP && tabP.closest('.table-wrap')) tabP.closest('.table-wrap').insertAdjacentHTML('beforebegin', '<div class="hint m-b8">P presente · G assente giustificato · A assente</div>');
     const tp = $('#v-tuttip', v);
     if (tp) tp.addEventListener('click', () => { x.pres = {}; $$('select[data-pres]', v).forEach((sel) => { sel.value = 'presente'; }); $$('.pres-seg', v).forEach((g) => g.dispatchEvent(new Event('aggiorna'))); sincronizza(); });
     sincronizza();
@@ -631,9 +631,9 @@
         <div class="form-grid"><div class="f s8"><label for="m-sog">${bus ? 'Scegli il bussante' : 'Scegli il Fratello'}</label>
           <select id="m-sog"><option value="">— scegli —</option>${lista.map((x) => `<option value="${esc(x.id)}" ${String(x.id) === String(vals._id) ? 'selected' : ''}>${esc(x.cognome)} ${esc(x.nome)}</option>`).join('')}</select>
           <span class="hint">I dati anagrafici si compilano da soli; quelli che mancano si scrivono qui sotto.</span></div></div></div>`}
-      ${sc ? `<div class="card" style="margin-top:18px"><h2>${esc(sc.label)}</h2><div class="radio-col">${sc.opzioni.map((o) => `<label class="check"><input type="radio" name="m-sc" value="${o.v}" ${mod.scelta[cod] === o.v ? 'checked' : ''}> ${esc(o.t)}</label>`).join('')}</div></div>` : ''}
-      ${gruppi.map((g) => `<div class="card" style="margin-top:18px"><h2>${esc(g)}</h2><div class="form-grid">${M.campi.filter((c) => (c.gruppo || 'Dati del modulo') === g).map(campoHtml).join('')}</div></div>`).join('')}
-      <div class="card" style="margin-top:18px"><p class="muted" style="margin:0 0 12px">${esc(M.invio)}<br>Il PDF si compila sopra il modello ufficiale: <b>firma del Maestro Venerabile, visto del Collegio e data di trasmissione restano in bianco</b>.</p>
+      ${sc ? `<div class="card mt-18"><h2>${esc(sc.label)}</h2><div class="radio-col">${sc.opzioni.map((o) => `<label class="check"><input type="radio" name="m-sc" value="${o.v}" ${mod.scelta[cod] === o.v ? 'checked' : ''}> ${esc(o.t)}</label>`).join('')}</div></div>` : ''}
+      ${gruppi.map((g) => `<div class="card mt-18"><h2>${esc(g)}</h2><div class="form-grid">${M.campi.filter((c) => (c.gruppo || 'Dati del modulo') === g).map(campoHtml).join('')}</div></div>`).join('')}
+      <div class="card mt-18"><p class="muted" style="margin:0 0 12px">${esc(M.invio)}<br>Il PDF si compila sopra il modello ufficiale: <b>firma del Maestro Venerabile, visto del Collegio e data di trasmissione restano in bianco</b>.</p>
         <div class="actions"><button class="btn gold" id="m-gen" type="button">${IC.pdf} Genera il PDF</button><span class="err" id="m-err"></span></div></div>`;
 
     mascheraDate(v);

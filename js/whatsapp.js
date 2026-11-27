@@ -119,7 +119,7 @@
       b.tipo_domanda === 'iniziazione' ? ['Seconda votazione', b.data_seconda_votazione] : null].filter((x) => x && x[1]);
     const testo = [`Carissimo Fratello, ti aggiorno sulla domanda di ${b.nome} ${b.cognome}, da te presentata:`, ...date.map(([l, d]) => `• ${l}: ${fmtData(d)}`), '', 'Un triplice fraterno abbraccio.'].join('\n');
     v.insertAdjacentHTML('beforeend', `<div class="card"><h2>Comunicazioni</h2>
-      <p class="muted" style="margin:0 0 10px">Messaggio già scritto con le date della pratica, da inviare al Fratello presentatore.</p>
+      <p class="muted m-b10">Messaggio già scritto con le date della pratica, da inviare al Fratello presentatore.</p>
       <div class="actions">${L.wa.fratello(b.presentatore_id, testo, 'WhatsApp al presentatore')}</div></div>`);
   });
 })();

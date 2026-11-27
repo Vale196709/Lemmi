@@ -74,7 +74,7 @@
     const oggiN = lista.filter((r) => r.giorni === 0).length;
     dest.insertAdjacentHTML('beforeend', `<div class="card compact" id="cr-ric"><h2>Ricorrenze${lista.length ? ` <small>${oggiN ? oggiN + ' oggi · ' : ''}prossimi ${GIORNI_AVANTI} giorni</small>` : ''}</h2>
       ${lista.length ? `<div class="ric-list">${lista.slice(0, MOSTRATE).map(riga).join('')}</div>
-        ${lista.length > MOSTRATE ? `<details style="margin-top:6px"><summary style="cursor:pointer;font-size:.84rem">altre ${lista.length - MOSTRATE}</summary><div class="ric-list" style="margin-top:6px">${lista.slice(MOSTRATE).map(riga).join('')}</div></details>` : ''}`
+        ${lista.length > MOSTRATE ? `<details class="mt-6"><summary style="cursor:pointer;font-size:.84rem">altre ${lista.length - MOSTRATE}</summary><div class="ric-list mt-6">${lista.slice(MOSTRATE).map(riga).join('')}</div></details>` : ''}`
         : `<div class="empty">Nessun compleanno o anniversario di iniziazione nei prossimi ${GIORNI_AVANTI} giorni.</div>`}</div>`);
   };
   extraRicorrenze.carica = () => (vedeRic() ? ricorrenze() : null);

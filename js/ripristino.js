@@ -25,11 +25,11 @@
     const diff = tab.filter((t) => r[t].eliminate > 0 || r[t].modificate > 0);
     box.innerHTML = `<div class="card"><h2>Ripristino dal backup n. ${esc(id)} <button class="btn ghost small" type="button" id="rip-chiudi" style="float:right">Chiudi</button></h2>
       <div class="notice"><b>Come funziona.</b> Si confronta il backup con i dati di oggi. Puoi <b>recuperare le righe eliminate</b> (le righe attuali non vengono toccate) oppure <b>riportare le righe modificate</b> alla versione del backup. Le righe nuove, inserite dopo il backup, non vengono mai cancellate. Prima di ogni ripristino il sistema salva da solo un backup di sicurezza. Ripristina prima le tabelle “principali” (es. Fratelli) e poi quelle collegate (es. Quote).</div>
-      ${diff.length ? `<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Dati</th><th style="text-align:right">Eliminate dopo il backup</th><th style="text-align:right">Modificate</th><th style="text-align:right">Nuove (restano)</th><th></th></tr></thead><tbody>
-        ${diff.map((t) => `<tr><td><b>${esc(nome(t))}</b><div class="hint">${esc(t)}</div></td><td style="text-align:right">${r[t].eliminate}</td><td style="text-align:right">${r[t].modificate}</td><td style="text-align:right">${r[t].nuove}</td>
+      ${diff.length ? `<div class="table-wrap mt-14"><table><thead><tr><th>Dati</th><th class="ta-r">Eliminate dopo il backup</th><th class="ta-r">Modificate</th><th class="ta-r">Nuove (restano)</th><th></th></tr></thead><tbody>
+        ${diff.map((t) => `<tr><td><b>${esc(nome(t))}</b><div class="hint">${esc(t)}</div></td><td class="ta-r">${r[t].eliminate}</td><td class="ta-r">${r[t].modificate}</td><td class="ta-r">${r[t].nuove}</td>
           <td><button class="btn small" type="button" data-esamina="${esc(t)}">Esamina…</button></td></tr>`).join('')}</tbody></table></div>`
-        : '<div class="empty" style="margin-top:14px"><div>Nessuna differenza: i dati attuali coincidono con questo backup, a parte righe nuove.</div></div>'}
-      <div id="rip-det" style="margin-top:16px"></div></div>`;
+        : '<div class="empty mt-14"><div>Nessuna differenza: i dati attuali coincidono con questo backup, a parte righe nuove.</div></div>'}
+      <div id="rip-det" class="mt-16"></div></div>`;
     $('#rip-chiudi', box).onclick = () => { box.hidden = true; box.innerHTML = ''; };
     $$('[data-esamina]', box).forEach((b) => b.addEventListener('click', () => esamina(id, b.dataset.esamina, box)));
   }
@@ -45,11 +45,11 @@
         ${d.eliminate ? `<p><b>${d.eliminate}</b> ${d.eliminate === 1 ? 'riga eliminata' : 'righe eliminate'} da recuperare${d.esempi_eliminate.length ? ', ad esempio:' : ''}</p>
           <ul class="sys-list">${d.esempi_eliminate.map((x) => `<li>${esc(dato(x))}</li>`).join('')}</ul>
           <div class="actions"><button class="btn" type="button" data-fai="eliminate">Recupera ${d.eliminate} ${d.eliminate === 1 ? 'riga eliminata' : 'righe eliminate'}</button></div>` : ''}
-        ${d.modificate ? `<p style="margin-top:14px"><b>${d.modificate}</b> ${d.modificate === 1 ? 'riga modificata' : 'righe modificate'} dopo il backup${d.esempi_modificate.length ? ', ad esempio:' : ''}</p>
+        ${d.modificate ? `<p class="mt-14"><b>${d.modificate}</b> ${d.modificate === 1 ? 'riga modificata' : 'righe modificate'} dopo il backup${d.esempi_modificate.length ? ', ad esempio:' : ''}</p>
           <ul class="sys-list">${d.esempi_modificate.map((x) => `<li>Backup: ${esc(dato(x.prima))}<br>Oggi: ${esc(dato(x.ora))}</li>`).join('')}</ul>
           ${d.con_chiave ? `<div class="actions"><button class="btn danger" type="button" data-fai="modificate">Riporta ${d.modificate} ${d.modificate === 1 ? 'riga' : 'righe'} alla versione del backup</button></div>`
             : '<div class="notice">Questa tabella non ha un identificativo: le modifiche non si possono riportare, solo recuperare le righe eliminate.</div>'}` : ''}
-        <div id="rip-conf" style="margin-top:14px"></div>`;
+        <div id="rip-conf" class="mt-14"></div>`;
       $$('[data-fai]', det).forEach((b) => b.addEventListener('click', () => conferma(id, t, b.dataset.fai, b.textContent, box)));
     } catch (e) { det.innerHTML = `<div class="notice bad">${esc(messaggioErrore(e))}</div>`; }
   }
@@ -57,7 +57,7 @@
   function conferma(id, t, modo, testo, box) {
     const c = $('#rip-conf', box);
     c.innerHTML = `<div class="notice bad"><b>Conferma.</b> Stai per eseguire: «${esc(testo)}» su ${esc(nome(t))}. Scrivi <b>RIPRISTINA</b> per procedere.
-      <div class="actions" style="margin-top:8px"><input id="rip-txt" autocomplete="off" style="max-width:180px"><button class="btn danger" type="button" id="rip-ok" disabled>Esegui</button><button class="btn ghost" type="button" id="rip-no">Annulla</button></div></div>`;
+      <div class="actions mt-8"><input id="rip-txt" autocomplete="off" style="max-width:180px"><button class="btn danger" type="button" id="rip-ok" disabled>Esegui</button><button class="btn ghost" type="button" id="rip-no">Annulla</button></div></div>`;
     const inp = $('#rip-txt', c), ok = $('#rip-ok', c);
     inp.addEventListener('input', () => { ok.disabled = inp.value.trim().toUpperCase() !== 'RIPRISTINA'; });
     $('#rip-no', c).onclick = () => { c.innerHTML = ''; };

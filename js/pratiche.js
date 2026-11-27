@@ -152,7 +152,7 @@
       <div class="modal-b"><div class="form-grid">
         ${def.rif ? `<div class="f s12"><label for="pa-p">${def.rif === 'bussante' ? 'Bussante' : 'Fratello'}</label><select id="pa-p"><option value="">— scegli —</option>${persone.map((x) => `<option value="${esc(x.id)}">${esc(x.cognome)} ${esc(x.nome)}</option>`).join('')}</select></div>` : ''}
         <div class="f s12"><label for="pa-t">Titolo della pratica</label><input id="pa-t"></div></div>
-        <div class="actions" style="margin-top:14px"><button class="btn gold" type="button" id="pa-ok">Avvia</button><button class="btn ghost" type="button" data-x>Annulla</button></div>
+        <div class="actions mt-14"><button class="btn gold" type="button" id="pa-ok">Avvia</button><button class="btn ghost" type="button" data-x>Annulla</button></div>
       </div></div>`;
     document.body.appendChild(ov);
     const chiudi = () => ov.remove();
@@ -214,10 +214,10 @@
       sottotitolo: `<a href="#/procedure/${esc(p.procedura)}">← Tutte le procedure</a> · ${esc(nomeProc(p.procedura))} · <span class="badge ${p.stato === 'in_corso' ? 'gold' : (p.stato === 'conclusa' ? 'ok' : '')}">${p.stato === 'in_corso' ? 'In corso' : (p.stato === 'conclusa' ? 'Conclusa' : 'Annullata')}</span>${p.rif_id ? ` · <a href="${p.rif_tipo === 'bussante' ? '#/bussanti/' + esc(p.rif_id) : '#/fratelli'}">${p.rif_tipo === 'bussante' ? 'Scheda del bussante' : 'Anagrafica dei Fratelli'}</a>` : ''}`,
       pannello: `<div class="card" id="pr-pannello"><h2>Date della pratica</h2>
         <div class="form-grid">${def.date.map((f) => campoHtml(f, d[f.k], !apertaSc)).join('')}</div>
-        ${apertaSc ? '<div class="actions" style="margin-top:10px"><button class="btn gold" type="button" id="pr-salva">Salva date</button></div>' : ''}
-        <h2 style="margin-top:18px">Scadenze calcolate</h2><div id="pr-scad"></div>
-        ${p.procedura === 'consegne' && scrive() ? '<h2 style="margin-top:18px">Prospetto e inventario</h2><p class="muted" style="margin:0 0 8px">Il manuale chiede inventario e prospetto delle pratiche pendenti (cartella 08).</p><button class="btn gold" type="button" id="pr-prospetto">Prospetto pendenze e inventario (Excel)</button>' : ''}
-        ${scrive() ? `<div class="actions" style="margin-top:14px">${p.stato === 'in_corso'
+        ${apertaSc ? '<div class="actions mt-10"><button class="btn gold" type="button" id="pr-salva">Salva date</button></div>' : ''}
+        <h2 class="mt-18">Scadenze calcolate</h2><div id="pr-scad"></div>
+        ${p.procedura === 'consegne' && scrive() ? '<h2 class="mt-18">Prospetto e inventario</h2><p class="muted m-b8">Il manuale chiede inventario e prospetto delle pratiche pendenti (cartella 08).</p><button class="btn gold" type="button" id="pr-prospetto">Prospetto pendenze e inventario (Excel)</button>' : ''}
+        ${scrive() ? `<div class="actions mt-14">${p.stato === 'in_corso'
           ? '<button class="btn ghost small" type="button" data-st="conclusa">Segna come conclusa</button><button class="btn ghost small" type="button" data-st="annullata">Annulla la pratica</button>'
           : '<button class="btn ghost small" type="button" data-st="in_corso">Riapri la pratica</button>'}</div>` : ''}</div>`,
       async salva(arr) {
@@ -279,10 +279,10 @@
     try { lista = await caricaTutto(true); } catch (e) { return ''; }
     lista = lista.filter((x) => x.p.procedura === k);
     const tot = passiTot(k);
-    return `<div class="card" id="pr-blocco" style="margin:0 0 14px"><div class="actions" style="justify-content:space-between;flex-wrap:wrap">
-      <h2 style="margin:0">Pratiche in corso: ${esc(nomeProc(k))}</h2><span>${k === 'consegne' && scrive() ? '<button class="btn ghost" type="button" id="pr-prospetto-b" style="margin-right:8px">Prospetto pendenze e inventario</button>' : ''}${scrive() ? '<button class="btn gold" type="button" id="pr-avvia">Avvia una pratica</button>' : ''}</span></div>
+    return `<div class="card m-b14" id="pr-blocco"><div class="actions" style="justify-content:space-between;flex-wrap:wrap">
+      <h2 class="m-0">Pratiche in corso: ${esc(nomeProc(k))}</h2><span>${k === 'consegne' && scrive() ? '<button class="btn ghost" type="button" id="pr-prospetto-b" style="margin-right:8px">Prospetto pendenze e inventario</button>' : ''}${scrive() ? '<button class="btn gold" type="button" id="pr-avvia">Avvia una pratica</button>' : ''}</span></div>
       ${lista.length ? `<div class="table-wrap"><table><tbody>${lista.map((x) => `<tr class="click" data-go="#/procedure/${esc(k)}/${esc(x.p.id)}"><td><b>${esc(x.p.titolo)}</b></td><td>${x.fatti.size} di ${tot} passi</td><td>${esc(prossimo(k, x.fatti))}</td></tr>`).join('')}</tbody></table></div>`
-        : '<div class="muted" style="margin-top:8px">Nessuna pratica avviata. Questa pagina resta una guida: le spunte sono solo sul tuo browser.</div>'}</div>`;
+        : '<div class="muted mt-8">Nessuna pratica avviata. Questa pagina resta una guida: le spunte sono solo sul tuo browser.</div>'}</div>`;
   }
   const prossimo = (k, fatti) => {
     const n = passiTot(k);
@@ -328,7 +328,7 @@
         const sc = scadenzeDi(await caricaTutto(true)).slice(0, 10);
         const corpo = $('#c-corpo', v);
         if (!sc.length || !corpo) return;
-        corpo.insertAdjacentHTML('beforebegin', `<div class="card" style="margin-bottom:14px"><h2>Scadenze delle pratiche</h2>${righeScad(sc, true)}</div>`);
+        corpo.insertAdjacentHTML('beforebegin', `<div class="card mb-14"><h2>Scadenze delle pratiche</h2>${righeScad(sc, true)}</div>`);
         collega(v);
       } catch (e) { /* facoltativo */ }
     };
@@ -341,9 +341,9 @@
     let lista;
     try { lista = (await caricaTutto(false)).filter((x) => x.p.rif_tipo === 'bussante' && x.p.rif_id === String(id) && x.p.stato !== 'annullata'); } catch (e) { return; }
     const sez = document.createElement('div'); sez.className = 'card'; sez.style.marginTop = '14px';
-    sez.innerHTML = `<div class="actions" style="justify-content:space-between;flex-wrap:wrap"><h2 style="margin:0">Pratica e procedura</h2>${scrive() && !lista.some((x) => x.p.stato === 'in_corso') ? '<button class="btn gold" type="button" id="pr-avvia-b">Avvia la pratica</button>' : ''}</div>
+    sez.innerHTML = `<div class="actions" style="justify-content:space-between;flex-wrap:wrap"><h2 class="m-0">Pratica e procedura</h2>${scrive() && !lista.some((x) => x.p.stato === 'in_corso') ? '<button class="btn gold" type="button" id="pr-avvia-b">Avvia la pratica</button>' : ''}</div>
       ${lista.length ? `<div class="table-wrap"><table><tbody>${lista.map((x) => `<tr class="click" data-go="#/procedure/${esc(x.p.procedura)}/${esc(x.p.id)}"><td><b>${esc(x.p.titolo)}</b></td><td>${x.p.stato === 'conclusa' ? 'Conclusa' : x.fatti.size + ' di ' + passiTot(x.p.procedura) + ' passi'}</td><td>${x.p.stato === 'in_corso' ? esc(prossimo(x.p.procedura, x.fatti)) : ''}</td></tr>`).join('')}</tbody></table></div>`
-        : '<div class="muted" style="margin-top:8px">Nessuna procedura avviata per questa persona.</div>'}`;
+        : '<div class="muted mt-8">Nessuna procedura avviata per questa persona.</div>'}`;
     v.appendChild(sez); collega(sez);
     const b = $('#pr-avvia-b', sez); if (b) b.onclick = () => avvia('bussante', { rif_id: id });
   });

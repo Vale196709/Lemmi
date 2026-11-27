@@ -60,6 +60,7 @@ TABELLE.segreteria_attivita = [
 ];
 TABELLE.segreteria_eventi = [{ id: 'ev1', attivita_id: 'd2', data: isoTra(-20), tipo: 'invio', mezzo: 'PEC', descrizione: 'Inviata con il verbale delle elezioni' }];
 TABELLE.elezioni = [{ id: 'e1', anno_massonico: 2027, data_elezione: isoTra(-60) }];
+const NV_ORA = Date.now();   // orario fisso per le «Novità» (non cambia tra una richiesta e l'altra)
 const RPC = {
   elenco_autori_tavole: fratelli.map((f, i) => ({ id: f.id, cognome: f.cognome, nome: f.nome, stato: i === 2 ? 'oriente_eterno' : 'attivo' })),
   tavole_per_grado: lavori.map((l) => ({ id: l.id, titolo: l.titolo, tema: l.tema || null, tipo: 'tavola', autore: l.fratello_id === fratelli[0].id ? 'Rossi Mario' : 'Neri Giorgio', grado_tornata: l.grado_tornata, stato: l.stato, data_presentazione: l.data_presentazione, file_path: l.file_path, file_nome: l.file_nome, mia: l.fratello_id === fratelli[0].id, autore_id: l.fratello_id, autore_esterno: null, caricata_da_nome: l.caricata_da ? 'Rossi Mario' : null, gestibile: l.fratello_id === fratelli[0].id || l.caricata_da === fratelli[0].id })),
@@ -105,6 +106,15 @@ function rispostaSupabase(route, ruolo) {
   const m = /^\/rest\/v1\/(rpc\/)?([a-z_0-9]+)/.exec(url.pathname);
   if (!m) return json([]);
   if (m[1] && m[2] === 'info_utenti_sistema') return json(UTENTI);
+  if (m[1] && m[2] === 'novita_documenti') {
+    const t0 = NV_ORA;   // «Novità» nel Cruscotto: il Tesoriere vede solo la Biblioteca
+    const tutte = [
+      { genere: 'tavola', id: 'nv1', titolo: 'Il silenzio come strumento di lavoro', dettaglio: 'Rossi Mario', grado: 'apprendista', categoria: null, quando: new Date(t0 - 2 * 3600e3).toISOString() },
+      { genere: 'biblioteca', id: 'nv2', titolo: 'Costituzione e Regolamento dell’Ordine', dettaglio: 'Grande Oriente d’Italia', grado: null, categoria: 'documento', quando: new Date(t0 - 3 * 86400e3).toISOString() },
+      { genere: 'tavola', id: 'nv3', titolo: 'Simbolismo della squadra e del compasso', dettaglio: 'Neri Giorgio', grado: 'compagno', categoria: null, quando: new Date(t0 - 9 * 86400e3).toISOString() },
+    ];
+    return json(ruolo === 'tesoriere' ? tutte.filter((r) => r.genere === 'biblioteca') : tutte);
+  }
   if (m[1]) return json(ruolo === 'fratello' ? (RPC[m[2]] || []) : []);
   let dati = m[2] === 'profili' ? [ruoloDi[ruolo] || { ruolo, nome_visualizzato: 'Utente di prova' }] : (TABELLE[m[2]] || []);
   const id = url.searchParams.get('id');

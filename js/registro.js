@@ -40,7 +40,7 @@
         <label>Dal<input type="date" id="rg-da"></label><label>Al<input type="date" id="rg-a"></label>
         <label>Utente<input type="search" id="rg-ut" placeholder="e-mail"></label>
         <button class="btn" type="button" id="rg-cerca">Cerca</button></div>
-        <div id="rg-ris" style="margin-top:16px"></div></div>`;
+        <div id="rg-ris" class="mt-16"></div></div>`;
     let pag = 0;
     const tabelle = Object.keys(NOMI).filter((k, i, a) => a.indexOf(k) === i);
     $('#rg-tab', v).innerHTML += tabelle.map((t) => `<option value="${esc(t)}">${esc(nomeTab(t))}</option>`).join('');
@@ -65,7 +65,7 @@
             <td><button class="btn ghost small" type="button" data-det="${i}">Dettagli</button></td></tr>
             <tr hidden data-riga="${i}"><td colspan="6">${dettaglio(r)}</td></tr>`).join('')
             : '<tr><td colspan="6"><div class="empty"><div>Nessuna attività trovata.</div></div></td></tr>'}</tbody></table></div>
-          <div class="actions" style="margin-top:12px"><button class="btn ghost small" type="button" id="rg-prec" ${pag ? '' : 'disabled'}>← Più recenti</button>
+          <div class="actions mt-12"><button class="btn ghost small" type="button" id="rg-prec" ${pag ? '' : 'disabled'}>← Più recenti</button>
             <span class="muted">Pagina ${pag + 1}</span><button class="btn ghost small" type="button" id="rg-succ" ${altre ? '' : 'disabled'}>Meno recenti →</button></div>`;
         $$('[data-det]', out).forEach((b) => b.addEventListener('click', () => { const r = $(`[data-riga="${b.dataset.det}"]`, out); r.hidden = !r.hidden; }));
         $('#rg-prec', out).onclick = () => { pag = Math.max(0, pag - 1); carica(); };

@@ -199,7 +199,7 @@
       <h2 class="ptit">${esc(p.t)}</h2>
       ${interruttore}
       ${modoCorsie ? corsie() : `<div class="pflow">${passi}</div>`}
-      <div class="hint" style="margin-top:12px">Fonte: ${esc(p.fonte)}. È una guida di consultazione: in caso di dubbio valgono Costituzione, Regolamento dell’Ordine e circolari GOI dell’anno.</div>`;
+      <div class="hint mt-12">Fonte: ${esc(p.fonte)}. È una guida di consultazione: in caso di dubbio valgono Costituzione, Regolamento dell’Ordine e circolari GOI dell’anno.</div>`;
     const aggiorna = () => {
       const n = $$('.pstep.fatto', v).length;
       $('#p-conta', v).textContent = `${n} di ${p.s.length}`;

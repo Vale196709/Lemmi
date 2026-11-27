@@ -237,10 +237,10 @@
         <div class="form-grid">
           ${m.solo ? '' : `<div class="f s12"><label for="bz-a">A</label><input id="bz-a" value=""></div><div class="f s12"><label for="bz-cc">Cc</label><input id="bz-cc" value=""></div>`}
           <div class="f s12"><label for="bz-o">Oggetto</label><input id="bz-o"></div>
-          <div class="f s12"><label for="bz-t">Testo</label><textarea id="bz-t" rows="14" style="width:100%"></textarea></div>
+          <div class="f s12"><label for="bz-t">Testo</label><textarea id="bz-t" rows="14" class="w-100"></textarea></div>
         </div>
-        <div class="hint" id="bz-hint" style="margin-top:8px"></div>
-        <div class="actions" style="margin-top:14px">
+        <div class="hint mt-8" id="bz-hint"></div>
+        <div class="actions mt-14">
           <button class="btn gold" type="button" id="bz-copia">Copia testo</button>
           ${m.solo ? '' : '<button class="btn" type="button" id="bz-mail">Apri nel programma di posta</button>'}
           <button class="btn ghost" type="button" data-x>Chiudi</button>

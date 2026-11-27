@@ -85,9 +85,9 @@
     const ov = document.createElement('div');
     ov.className = 'modal-ov';
     ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(titolo)}">
-      <div class="modal-h"><h2 style="margin:0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
-      <div class="modal-b"><form novalidate>${corpo}<div class="err" data-err style="margin-top:10px"></div>
-        <div class="actions" style="margin-top:14px"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button>${opt.extra || ''}</div></form></div></div>`;
+      <div class="modal-h"><h2 class="m-0">${esc(titolo)}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
+      <div class="modal-b"><form novalidate>${corpo}<div class="err mt-10" data-err></div>
+        <div class="actions mt-14"><button class="btn gold" type="submit">${esc(opt.testoOk || 'Salva')}</button>${opt.extra || ''}</div></form></div></div>`;
     document.body.appendChild(ov);
     let occupato = false;
     const tasto = (e) => { if (e.key === 'Escape' && !occupato) chiudi(); };
@@ -118,9 +118,9 @@
       <div class="f s12"><label for="b-desc">Descrizione</label><textarea id="b-desc" name="descrizione" rows="2"></textarea></div>
       <div class="f s12"><label for="b-vis">Chi può vederlo</label><select id="b-vis" name="visibilita">${opzioni(VISIBILITA, 'ufficio')}</select></div>
       <div class="f s12">
-        <label style="display:flex;gap:6px;align-items:center;font-weight:500"><input type="checkbox" name="zip" checked> Comprimi in ZIP prima del caricamento <span class="hint">(si tiene solo se il risparmio è almeno del 5%; al download torna il file originale)</span></label>
+        <label class="chk-riga"><input type="checkbox" name="zip" checked> Comprimi in ZIP prima del caricamento <span class="hint">(si tiene solo se il risparmio è almeno del 5%; al download torna il file originale)</span></label>
         <label style="display:flex;gap:6px;align-items:center;font-weight:500;margin-top:6px"><input type="checkbox" name="riduci"> Riduci le foto grandi <span class="hint">(lato massimo 2400 px, JPEG qualità 85%: la foto originale non si recupera)</span></label>
-        <div class="hint" id="b-prog" style="margin-top:10px"></div></div>
+        <div class="hint mt-10" id="b-prog"></div></div>
     </div>`;
     const m = finestra('Aggiungi alla Biblioteca', corpo, {
       testoOk: 'Carica',
@@ -249,7 +249,7 @@
         <div class="right actions">${puoGestire() ? `<button class="btn gold" id="bi-new">${IC.plus} Aggiungi</button>` : ''}</div></div>
       <div class="actions" style="margin-bottom:14px;flex-wrap:wrap">
         <div class="searchbar">${IC.search}<input id="bi-q" type="search" placeholder="Cerca per titolo, autore o descrizione…" value="${esc(bi.q)}"></div>
-        <select id="bi-cat" style="width:auto">${opzioni(CATEGORIE, bi.cat, 'Tutte le categorie')}</select>
+        <select id="bi-cat" class="w-auto">${opzioni(CATEGORIE, bi.cat, 'Tutte le categorie')}</select>
         <span class="muted" id="bi-conta"></span></div>
       <div id="bi-corpo"></div>`;
     if (puoGestire()) $('#bi-new').onclick = () => apriAggiunta();
@@ -278,9 +278,9 @@
           <td>${esc(r.autore || '—')}${r.anno ? `<div class="hint">${esc(r.anno)}</div>` : ''}</td>
           <td class="num">${kb(r.dimensione || 0)}${risp ? `<div class="hint">ZIP −${risp}%</div>` : ''}</td>
           ${vis ? `<td><span class="badge ${r.visibilita === 'fratelli' ? 'ok' : 'gray'}">${r.visibilita === 'fratelli' ? 'Tutti i Fratelli' : 'Solo ufficio'}</span></td>` : ''}
-          <td class="num" style="white-space:nowrap"><button class="btn ghost small" data-scarica="${esc(r.id)}">Scarica</button>${suo(r) ? ` <button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`;
+          <td class="num nowrap"><button class="btn ghost small" data-scarica="${esc(r.id)}">Scarica</button>${suo(r) ? ` <button class="btn ghost small" data-mod="${esc(r.id)}">Modifica</button>` : ''}</td></tr>`;
       }).join('')}</tbody></table></div>
-      ${puoGestire() ? `<p class="hint" style="margin-top:8px">Puoi modificare ed eliminare solo i file che hai caricato tu. Spazio usato dalla Biblioteca: ${kb(bi.righe.reduce((a, r) => a + Number(r.dimensione || 0), 0))}. Il piano gratuito di Supabase offre 1 GB in tutto, condiviso con gli altri archivi.</p>` : ''}`;
+      ${puoGestire() ? `<p class="hint mt-8">Puoi modificare ed eliminare solo i file che hai caricato tu. Spazio usato dalla Biblioteca: ${kb(bi.righe.reduce((a, r) => a + Number(r.dimensione || 0), 0))}. Il piano gratuito di Supabase offre 1 GB in tutto, condiviso con gli altri archivi.</p>` : ''}`;
       $$('[data-scarica]', c).forEach((b) => b.addEventListener('click', async () => {
         const r = bi.righe.find((x) => x.id === b.dataset.scarica); if (!r) return;
         b.disabled = true;

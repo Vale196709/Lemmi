@@ -56,11 +56,11 @@
       const ov = document.createElement('div');
       ov.className = 'modal-ov';
       ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Conferma l’eliminazione" style="max-width:520px">
-        <div class="modal-h"><h2 style="margin:0">Conferma l’eliminazione</h2><button class="btn ghost small" type="button" data-x>Annulla</button></div>
-        <div class="modal-b"><p style="margin-top:0">Per eliminare definitivamente <b>${esc(chi)}</b> scrivi qui sotto la sua e-mail:</p>
-          <p style="margin:0 0 8px"><code style="user-select:all">${esc(email)}</code></p>
+        <div class="modal-h"><h2 class="m-0">Conferma l’eliminazione</h2><button class="btn ghost small" type="button" data-x>Annulla</button></div>
+        <div class="modal-b"><p class="mt-0">Per eliminare definitivamente <b>${esc(chi)}</b> scrivi qui sotto la sua e-mail:</p>
+          <p class="m-b8"><code style="user-select:all">${esc(email)}</code></p>
           <input id="u-del-mail" type="email" autocomplete="off" spellcheck="false" aria-label="E-mail dell’utente da eliminare">
-          <div class="actions" style="margin-top:14px"><button class="btn danger" type="button" id="u-del-ok" disabled>Elimina definitivamente</button></div></div></div>`;
+          <div class="actions mt-14"><button class="btn danger" type="button" id="u-del-ok" disabled>Elimina definitivamente</button></div></div></div>`;
       document.body.appendChild(ov);
       const inp = $('#u-del-mail', ov), b = $('#u-del-ok', ov);
       const fine = (r) => { document.removeEventListener('keydown', tasto); ov.remove(); ok(r); };
@@ -103,29 +103,29 @@
         <div class="right actions"><button class="btn gold" id="b-nu" type="button">${L.IC.plus} Nuovo utente</button></div></div>
       <div class="card" id="nu-box" hidden>
         <h2>Nuovo utente</h2>
-        <p class="muted" style="margin:0 0 14px">Crea l’accesso a Lemmi: l’utente entra con la sua e-mail e la password temporanea che gli comunichi, poi può cambiarla dalla pagina Loggia.</p>
+        <p class="muted m-b14">Crea l’accesso a Lemmi: l’utente entra con la sua e-mail e la password temporanea che gli comunichi, poi può cambiarla dalla pagina Loggia.</p>
         <form id="nu-form" autocomplete="off">
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
             <div id="nu-fr-box"><label for="nu-fr">Fratello dell’anagrafica</label><select id="nu-fr"><option value="">— nessuno / dall’e-mail, se coincide —</option>${fratelli.map((f) => `<option value="${esc(f.id)}">${esc(f.cognome)} ${esc(f.nome)}</option>`).join('')}</select></div>
-            <div><label for="nu-email">E-mail</label><input id="nu-email" type="email" required placeholder="nome@esempio.it"><div id="nu-mail-sug" class="hint" style="margin-top:6px"></div></div>
+            <div><label for="nu-email">E-mail</label><input id="nu-email" type="email" required placeholder="nome@esempio.it"><div id="nu-mail-sug" class="hint mt-6"></div></div>
             <div><label for="nu-nome">Nome da mostrare</label><input id="nu-nome" type="text" required placeholder="es. Mario Rossi"></div>
             <div><label for="nu-ruolo">Profilo</label><select id="nu-ruolo">${Object.keys(PROFILI).map((k) => `<option value="${k}" ${k === 'segretario' ? 'selected' : ''}>${esc(PROFILI[k])}</option>`).join('')}</select></div>
             <div><label for="nu-pw">Password temporanea</label><input id="nu-pw" type="text" required minlength="8" autocomplete="off"></div>
           </div>
-          <div class="actions" style="margin-top:14px"><button class="btn" type="submit" id="nu-ok">Crea utente</button>
+          <div class="actions mt-14"><button class="btn" type="submit" id="nu-ok">Crea utente</button>
             <button class="btn ghost" type="button" id="nu-gen">Genera password</button>
             <button class="btn ghost" type="button" id="nu-ann">Annulla</button></div>
         </form>
         <div id="nu-esito"></div>
       </div>
-      <div class="actions" style="margin-bottom:10px">${Object.keys(PROFILI).filter((k) => conta[k]).map((k) => `<span class="badge ${BADGE[k]}">${esc(PROFILI_BREVI[k])}: ${conta[k]}</span>`).join('')}
+      <div class="actions mb-10">${Object.keys(PROFILI).filter((k) => conta[k]).map((k) => `<span class="badge ${BADGE[k]}">${esc(PROFILI_BREVI[k])}: ${conta[k]}</span>`).join('')}
         ${righe.filter((r) => !r.disattivato && inattivo(r)).length ? `<span class="badge warn">${righe.filter((r) => !r.disattivato && inattivo(r)).length} senza accessi da oltre ${GIORNI_INATTIVO} giorni</span>` : ''}
         ${righe.filter((r) => r.disattivato).length ? `<span class="badge bad">${righe.filter((r) => r.disattivato).length} disattivati</span>` : ''}
         <span class="muted">${righe.length} ${righe.length === 1 ? 'utente configurato' : 'utenti configurati'}</span></div>
-      <div class="actions u-filtri" style="margin-bottom:14px">
+      <div class="actions u-filtri mb-14">
         <div class="searchbar">${L.IC.search || ''}<input id="u-q" type="search" placeholder="Cerca nome, cognome o e-mail…" aria-label="Cerca utente"></div>
-        <select id="u-f-ruolo" style="width:auto" aria-label="Filtra per profilo"><option value="">Tutti i profili</option>${Object.keys(PROFILI).map((k) => `<option value="${k}">${esc(PROFILI_BREVI[k])}</option>`).join('')}</select>
-        <select id="u-f-stato" style="width:auto" aria-label="Filtra per stato"><option value="">Tutti</option><option value="attivi">Attivi</option><option value="inattivi">Senza accessi da tempo</option><option value="disattivati">Disattivati</option></select>
+        <select id="u-f-ruolo" class="w-auto" aria-label="Filtra per profilo"><option value="">Tutti i profili</option>${Object.keys(PROFILI).map((k) => `<option value="${k}">${esc(PROFILI_BREVI[k])}</option>`).join('')}</select>
+        <select id="u-f-stato" class="w-auto" aria-label="Filtra per stato"><option value="">Tutti</option><option value="attivi">Attivi</option><option value="inattivi">Senza accessi da tempo</option><option value="disattivati">Disattivati</option></select>
         <span class="muted" id="u-conta"></span></div>
       <div id="pw-esito"></div>
       <div class="table-wrap"><table class="tab-utenti"><thead><tr><th>Utente</th><th>Profilo</th><th>Fratello collegato</th><th>Ultimo accesso</th><th>Azioni</th></tr></thead>
@@ -153,9 +153,9 @@
               <button class="btn ghost small btn-pw" type="button" ${dati}>Password</button>
               <button class="btn ghost small btn-gu u-del" type="button" data-az="elimina" ${dati} aria-label="Elimina l’utente ${esc(r.email || '')}">Elimina</button></div>`}</td></tr>`;
         }).join('') : '<tr><td colspan="5"><div class="empty"><div>Nessun utente configurato.</div></div></td></tr>'}</tbody></table></div>
-      <div class="hint" style="margin-top:12px">Nome, cognome e grado vengono dall’anagrafica dei Fratelli: il collegamento avviene dall’e-mail (se è la stessa dell’anagrafica) oppure scegliendo il Fratello dall’elenco. Gli utenti si creano da qui con «Nuovo utente»; con «Disattiva» si sospende l’accesso (si può riattivare), con «Elimina» lo si toglie per sempre (il Fratello resta comunque in anagrafica). Il profilo si cambia dal menu della colonna «Profilo» (non si può cambiare il proprio, per non restare senza amministratore).</div>`;
+      <div class="hint mt-12">Nome, cognome e grado vengono dall’anagrafica dei Fratelli: il collegamento avviene dall’e-mail (se è la stessa dell’anagrafica) oppure scegliendo il Fratello dall’elenco. Gli utenti si creano da qui con «Nuovo utente»; con «Disattiva» si sospende l’accesso (si può riattivare), con «Elimina» lo si toglie per sempre (il Fratello resta comunque in anagrafica). Il profilo si cambia dal menu della colonna «Profilo» (non si può cambiare il proprio, per non restare senza amministratore).</div>`;
 
-    v.insertAdjacentHTML('beforeend', '<div class="card" id="u-registro" style="margin-top:18px"><h2>Ultime operazioni sugli utenti</h2><div class="empty"><div>Caricamento…</div></div></div>');
+    v.insertAdjacentHTML('beforeend', '<div class="card mt-18" id="u-registro"><h2>Ultime operazioni sugli utenti</h2><div class="empty"><div>Caricamento…</div></div></div>');
     (async () => {
       const box = $('#u-registro', v);
       let op = [];
@@ -170,7 +170,7 @@
       if (!box) return;
       if (op === null) { box.querySelector('.empty').innerHTML = '<div>Registro non disponibile.</div>'; return; }
       box.innerHTML = `<h2>Ultime operazioni sugli utenti</h2>${op.length ? `<ul class="dg-cron">${op.map((o) => `<li><span class="dg-data">${esc(dataOra(o.quando))}</span><div>${descr(o)}<div class="muted">da ${esc(o.utente_email || '—')}</div></div><span></span></li>`).join('')}</ul>` : '<div class="muted">Nessuna operazione registrata.</div>'}
-        <div class="hint" style="margin-top:8px">L’elenco completo è in <a href="#/registro">Registro attività</a>. Le password non vengono mai registrate.</div>`;
+        <div class="hint mt-8">L’elenco completo è in <a href="#/registro">Registro attività</a>. Le password non vengono mai registrate.</div>`;
     })();
 
     // ---- ricerca e filtri ----
@@ -222,8 +222,8 @@
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const body = { email: $('#nu-email', v).value.trim(), nome: $('#nu-nome', v).value.trim(), ruolo: $('#nu-ruolo', v).value, password: $('#nu-pw', v).value, fratello_id: $('#nu-fr', v).value || null };
-      if (body.ruolo === 'fratello' && !body.fratello_id && !fratelli.length) { esito.innerHTML = '<div class="notice bad" style="margin-top:14px">Per il profilo Fratello serve il collegamento a un Fratello dell’anagrafica.</div>'; return; }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) { esito.innerHTML = '<div class="notice bad" style="margin-top:14px">E-mail non valida.</div>'; return; }
+      if (body.ruolo === 'fratello' && !body.fratello_id && !fratelli.length) { esito.innerHTML = '<div class="notice bad mt-14">Per il profilo Fratello serve il collegamento a un Fratello dell’anagrafica.</div>'; return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) { esito.innerHTML = '<div class="notice bad mt-14">E-mail non valida.</div>'; return; }
       // e-mail diversa da quelle dell'anagrafica: chiede se salvarla anche nella scheda del Fratello
       let aggiornaAnag = null;
       const giaInAnag = mailFr[body.fratello_id] || [];
@@ -257,7 +257,7 @@
         }
         if (data && data.errore) throw new Error(data.errore);
         esito.innerHTML = `<div class="notice" style="margin-top:14px;background:var(--ok-bg);color:var(--ok)"><b>Utente creato.</b> Comunicagli, possibilmente a voce, questi dati di accesso:<br>
-          E-mail: <b>${esc(body.email)}</b> · Password temporanea: <b>${esc(body.password)}</b><br><span class="hint">La password non verrà più mostrata. L’utente può cambiarla dalla pagina Loggia.</span>${avvisoHtml('nuovo', (data && data.user_id) || '', body.email, body.password, (data && data.fratello_id) || body.fratello_id)}<div class="actions" style="margin-top:10px"><button class="btn ghost small" type="button" id="nu-agg">Aggiorna l’elenco</button></div></div>`;
+          E-mail: <b>${esc(body.email)}</b> · Password temporanea: <b>${esc(body.password)}</b><br><span class="hint">La password non verrà più mostrata. L’utente può cambiarla dalla pagina Loggia.</span>${avvisoHtml('nuovo', (data && data.user_id) || '', body.email, body.password, (data && data.fratello_id) || body.fratello_id)}<div class="actions mt-10"><button class="btn ghost small" type="button" id="nu-agg">Aggiorna l’elenco</button></div></div>`;
         toast('Utente creato', 'ok');
         collegaAvviso(esito);
         annota((data && data.user_id) || null, 'creazione', { email: body.email, ruolo: body.ruolo, fratello_id: body.fratello_id });
@@ -269,7 +269,7 @@
         }
         azzera();
         $('#nu-agg', v).addEventListener('click', () => L.route());
-      } catch (e) { esito.innerHTML = `<div class="notice bad" style="margin-top:14px">${esc(messaggioErrore(e))}</div>`; }
+      } catch (e) { esito.innerHTML = `<div class="notice bad mt-14">${esc(messaggioErrore(e))}</div>`; }
       ok.disabled = false;
     });
 
@@ -326,10 +326,10 @@
       try {
         chk(await state.sb.rpc('reimposta_password_utente', { p_user: btn.dataset.u, p_password: nuova }));
         const box = $('#pw-esito', v);
-        box.innerHTML = `<div class="notice ok" style="margin-bottom:14px"><b>Password reimpostata</b> per ${esc(chi)}.<br>
+        box.innerHTML = `<div class="notice ok mb-14"><b>Password reimpostata</b> per ${esc(chi)}.<br>
           Nuova password temporanea: <code id="pw-val" style="font-size:1.05rem;user-select:all">${esc(nuova)}</code>
           <button class="btn small" type="button" id="pw-copia" style="margin-left:8px">Copia</button>
-          <div class="hint" style="margin-top:6px">Comunicala all’utente in modo riservato: qui resta visibile solo finché non cambi pagina. Potrà cambiarla dalla pagina Loggia.</div>
+          <div class="hint mt-6">Comunicala all’utente in modo riservato: qui resta visibile solo finché non cambi pagina. Potrà cambiarla dalla pagina Loggia.</div>
           ${avvisoHtml('password', btn.dataset.u, btn.dataset.email, nuova, btn.dataset.fr)}</div>`;
         collegaAvviso(box);
         annota(btn.dataset.u, 'password', { email: btn.dataset.email });

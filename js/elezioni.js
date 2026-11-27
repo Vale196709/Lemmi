@@ -253,7 +253,7 @@
     v.innerHTML = `
       <div class="page-head"><div><h1>Elezioni delle cariche</h1><p>Maestro Venerabile e Dignitari · anno massonico ${esc(el.anno)}</p></div>
         <div class="right actions"><button class="btn gold" id="e-salva">Salva</button></div></div>
-      <div class="notice" style="margin-bottom:14px">Modelli GOI edizione 2024, con l’anno massonico aggiornato. Firme e date restano in bianco: i documenti si stampano e si firmano a mano.</div>
+      <div class="notice mb-14">Modelli GOI edizione 2024, con l’anno massonico aggiornato. Firme e date restano in bianco: i documenti si stampano e si firmano a mano.</div>
       <div id="e-prep"></div><div id="e-cand"></div><div id="e-voti"></div><div id="e-doc"></div>`;
 
     /* 1. preparazione */
@@ -261,9 +261,9 @@
       <div class="f s3"><label for="e-anno">Anno massonico</label><input id="e-anno" inputmode="numeric" maxlength="4" value="${esc(el.anno)}"></div>
       <div class="f s4"><label for="e-data">Data della tornata elettorale</label><input id="e-data" value="${esc(isoToIt(E))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div>
       <div class="f s5"><label>&nbsp;</label><button class="btn ghost" type="button" id="e-torn">Metti la tornata in Calendario</button></div></div>
-      ${E ? `<div class="hint" style="margin-top:8px">Convocazione da spedire entro il <b>${fmtData(scadConv)}</b> (almeno 15 giorni prima, con raccomandata, a mano o e-mail, anche al Presidente del Collegio: art. 31 del Regolamento).</div>
-      ${oggi() > scadConv ? '<div class="notice" style="margin-top:8px">La data limite per la convocazione è già passata: verifica i termini.</div>' : ''}
-      ${fuoriFinestra ? '<div class="notice" style="margin-top:8px">La data è fuori dal periodo delle elezioni di Loggia (15 novembre - 15 dicembre, art. 49 del Regolamento): verifica il decreto di quest’anno.</div>' : ''}` : '<div class="hint" style="margin-top:8px">Le elezioni di Loggia si tengono di norma tra il 15 novembre e il 15 dicembre (art. 49), in un’unica tornata di terzo grado.</div>'}</div>`;
+      ${E ? `<div class="hint mt-8">Convocazione da spedire entro il <b>${fmtData(scadConv)}</b> (almeno 15 giorni prima, con raccomandata, a mano o e-mail, anche al Presidente del Collegio: art. 31 del Regolamento).</div>
+      ${oggi() > scadConv ? '<div class="notice mt-8">La data limite per la convocazione è già passata: verifica i termini.</div>' : ''}
+      ${fuoriFinestra ? '<div class="notice mt-8">La data è fuori dal periodo delle elezioni di Loggia (15 novembre - 15 dicembre, art. 49 del Regolamento): verifica il decreto di quest’anno.</div>' : ''}` : '<div class="hint mt-8">Le elezioni di Loggia si tengono di norma tra il 15 novembre e il 15 dicembre (art. 49), in un’unica tornata di terzo grado.</div>'}</div>`;
     $('#e-anno').addEventListener('change', (e) => { const n = parseInt(e.target.value, 10); if (n > 2000 && n < 2100) { el.anno = n; L.route(); } });
     $('#e-data').addEventListener('change', (e) => { const i = itToIso(e.target.value); if (i === 'ERR') return toast('Data non valida: usa gg/mm/aaaa.', 'bad'); d.data_elezione = i; salva(true).then(() => L.route()).catch((er) => toast(messaggioErrore(er), 'bad')); });
     mascheraDate($('#e-prep'));
@@ -278,8 +278,8 @@
       const righe = el.valut.filter((x) => !q || norm(x.f.cognome + ' ' + x.f.nome).includes(q));
       const chip = (r, t) => (r.ok === true ? `<span class="badge ok">${t}: sì</span>` : r.ok === null ? `<span class="badge warn">${t}: da verificare</span>` : `<span class="badge bad" title="${esc(r.motivi.join('; '))}">${t}: no</span>`);
       $('#e-cand').innerHTML = `<div class="card"><h2>2. Chi si può eleggere <small>${el.valut.filter((x) => x.mv.ok).length} per Venerabile · ${el.valut.filter((x) => x.dig.ok).length} per Dignitario</small></h2>
-        <p class="muted" style="margin-top:0">Venerabile: almeno 3 anni da Maestro e un anno da Dignitario, massimo tre mandati consecutivi (art. 20). Dignitari: almeno un anno da Maestro (art. 21). Elettori e candidati devono essere in regola con il tesoro${el.tesoroNoto ? '' : ' (non posso verificarlo con i tuoi permessi)'}. Restano da controllare a mano le incompatibilità con altre cariche (Giunta, Consiglio dell’Ordine, ecc.).</p>
-        <div class="searchbar" style="margin-bottom:10px">${IC.search}<input id="e-q" type="search" placeholder="Cerca un Maestro…" value="${esc(el.filtro)}"></div>
+        <p class="muted mt-0">Venerabile: almeno 3 anni da Maestro e un anno da Dignitario, massimo tre mandati consecutivi (art. 20). Dignitari: almeno un anno da Maestro (art. 21). Elettori e candidati devono essere in regola con il tesoro${el.tesoroNoto ? '' : ' (non posso verificarlo con i tuoi permessi)'}. Restano da controllare a mano le incompatibilità con altre cariche (Giunta, Consiglio dell’Ordine, ecc.).</p>
+        <div class="searchbar mb-10">${IC.search}<input id="e-q" type="search" placeholder="Cerca un Maestro…" value="${esc(el.filtro)}"></div>
         <div class="table-wrap"><table><thead><tr><th>Maestro</th><th>Da Maestro</th><th>Anni da Dignitario</th><th>Venerabile</th><th>Dignitario</th><th>Note</th></tr></thead><tbody>
         ${righe.length ? righe.map((x) => `<tr><td><b>${esc(elencoNome(x.f))}</b></td><td>${x.anniM === null ? '—' : x.anniM + (x.anniM === 1 ? ' anno' : ' anni')}</td><td>${x.anniDig}</td>
           <td>${chip(x.mv, 'V')}${x.mv.motivi.length ? `<div class="hint">${esc(x.mv.motivi.join('; '))}</div>` : ''}</td><td>${chip(x.dig, 'D')}${x.dig.motivi.length ? `<div class="hint">${esc(x.dig.motivi.join('; '))}</div>` : ''}</td>
@@ -293,13 +293,13 @@
     const datalist = `<datalist id="dl-maestri">${maestri.map((f) => `<option value="${esc(elencoNome(f))}"></option>`).join('')}</datalist>`;
     const bloccoVoti = (c) => {
       const vt = votazione(c.k);
-      return `<div class="card" style="margin:12px 0 0;background:var(--surface-2,#fafafa)"><h3 style="margin:0 0 8px">${esc(c.t)} <span class="muted" data-esito="${c.k}"></span></h3><div class="form-grid">
-        ${vt.righe.map((r, i) => `<div class="f s8"><label class="muted" style="font-size:.8rem">${i + 1}° Fratello</label><input list="dl-maestri" data-n="${c.k}:${i}" value="${esc(r.n)}" autocomplete="off" placeholder="Cognome e nome"></div>
-          <div class="f s4"><label class="muted" style="font-size:.8rem">Voti</label><input data-v="${c.k}:${i}" inputmode="numeric" maxlength="3" value="${esc(r.v)}"></div>`).join('')}
-        <div class="f s4"><label class="muted" style="font-size:.8rem">Nulli o dispersi</label><input data-nul="${c.k}" inputmode="numeric" maxlength="3" value="${esc(vt.nulli)}"></div></div></div>`;
+      return `<div class="card" style="margin:12px 0 0;background:var(--surface-2,#fafafa)"><h3 class="m-b8">${esc(c.t)} <span class="muted" data-esito="${c.k}"></span></h3><div class="form-grid">
+        ${vt.righe.map((r, i) => `<div class="f s8"><label class="muted t-small">${i + 1}° Fratello</label><input list="dl-maestri" data-n="${c.k}:${i}" value="${esc(r.n)}" autocomplete="off" placeholder="Cognome e nome"></div>
+          <div class="f s4"><label class="muted t-small">Voti</label><input data-v="${c.k}:${i}" inputmode="numeric" maxlength="3" value="${esc(r.v)}"></div>`).join('')}
+        <div class="f s4"><label class="muted t-small">Nulli o dispersi</label><input data-nul="${c.k}" inputmode="numeric" maxlength="3" value="${esc(vt.nulli)}"></div></div></div>`;
     };
     $('#e-voti').innerHTML = `<div class="card"><h2>3. Votazioni</h2>${datalist}
-      <p class="muted" style="margin-top:0">Inserisci il risultato dell’ultima votazione per ogni carica (quella in cui qualcuno ha raggiunto la maggioranza assoluta). Il Segretario non si elegge: lo nomina il Venerabile. Il modello prevede fino a cinque Fratelli per carica.</p>
+      <p class="muted mt-0">Inserisci il risultato dell’ultima votazione per ogni carica (quella in cui qualcuno ha raggiunto la maggioranza assoluta). Il Segretario non si elegge: lo nomina il Venerabile. Il modello prevede fino a cinque Fratelli per carica.</p>
       <div class="form-grid">
         <div class="f s4"><label for="e-pres">Fratelli presenti</label><input id="e-pres" inputmode="numeric" maxlength="3" value="${esc(d.presenti)}"></div>
         <div class="f s4"><label for="e-giu">Assenti giustificati</label><input id="e-giu" inputmode="numeric" maxlength="3" value="${esc(d.giustificati)}"></div>
@@ -333,7 +333,7 @@
       <p class="muted">Il pacchetto contiene il processo verbale (pagine 1-3, con la pagina delle firme dei Maestri presenti) e le autocertificazioni del Maestro Venerabile e dei Dignitari (pagine 4-5), compilate con i dati dell’anagrafica. Dopo le firme, il verbale va inviato a <b>${MAIL_GRAN_SEGRETERIA}</b> per ottenere il Nulla Osta all’insediamento.</p>
       <div class="actions"><button class="btn gold" id="e-pdf">${IC.pdf || ''} Genera il pacchetto PDF</button>
         <button class="btn ghost" id="e-pdf-mod" type="button" title="Non servono votanti, voti o eletti">${IC.pdf || ''} Stampa modello precompilato</button></div>
-      <div class="hint" style="margin-top:6px">Il modello precompilato si può stampare in qualsiasi momento: riporta Loggia, anno, data (se indicata) e i nominativi inseriti; presenti, votanti, voti ed eventuali nomi mancanti restano in bianco da completare a penna.</div>
+      <div class="hint mt-6">Il modello precompilato si può stampare in qualsiasi momento: riporta Loggia, anno, data (se indicata) e i nominativi inseriti; presenti, votanti, voti ed eventuali nomi mancanti restano in bianco da completare a penna.</div>
       <div id="e-pdf-esito"></div>
       <h3 style="margin:18px 0 6px">Nulla Osta</h3><div class="form-grid"><div class="f s4"><label for="e-no">Ricevuto il</label><input id="e-no" value="${esc(isoToIt(d.nulla_osta_data))}" data-date="1" inputmode="numeric" maxlength="10" placeholder="gg/mm/aaaa" autocomplete="off"></div></div></div>`;
     mascheraDate($('#e-doc'));
@@ -343,8 +343,8 @@
       const b = ev.currentTarget; b.disabled = true; $('#e-pdf-esito').innerHTML = '';
       try {
         const manc = await generaPdf(b, modello);
-        $('#e-pdf-esito').innerHTML = `<div class="notice" style="margin-top:10px">${modello ? 'Modello precompilato generato: completa a penna i dati mancanti, poi fai firmare.' : 'PDF generato. Stampa, fai firmare e invia a ' + MAIL_GRAN_SEGRETERIA + '.'}</div>` +
-          (manc.length ? `<div class="notice" style="margin-top:8px"><b>Dati mancanti in anagrafica</b> (da completare a mano sul modulo o nella scheda del Fratello):<br>${manc.map((x) => esc(x.c + ' ' + nomeCompleto(x.f) + ': ' + x.m.join(', '))).join('<br>')}</div>` : '');
+        $('#e-pdf-esito').innerHTML = `<div class="notice mt-10">${modello ? 'Modello precompilato generato: completa a penna i dati mancanti, poi fai firmare.' : 'PDF generato. Stampa, fai firmare e invia a ' + MAIL_GRAN_SEGRETERIA + '.'}</div>` +
+          (manc.length ? `<div class="notice mt-8"><b>Dati mancanti in anagrafica</b> (da completare a mano sul modulo o nella scheda del Fratello):<br>${manc.map((x) => esc(x.c + ' ' + nomeCompleto(x.f) + ': ' + x.m.join(', '))).join('<br>')}</div>` : '');
       } catch (e) { $('#e-pdf-esito').innerHTML = `<div class="notice" style="margin-top:10px;background:var(--bad-soft,#fde8e8);color:var(--bad,#a12)">${esc(messaggioErrore(e))}</div>`; }
       b.disabled = false;
     };

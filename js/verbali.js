@@ -61,13 +61,13 @@
       ${tabs('registro')}
       <div class="actions" style="margin:14px 0"><label for="v-anno" class="muted">Anno</label>
         <select id="v-anno">${anni.map((a) => `<option ${a === st.anno ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
-      <div class="grid cols-3" style="margin-bottom:14px">
+      <div class="grid cols-3 mb-14">
         <div class="stat"><div class="n">${verbali.length}</div><div class="l">Verbali nel ${st.anno}</div></div>
         <div class="stat"><div class="n">${media || '—'}</div><div class="l">Presenti in media</div></div>
         <div class="stat"><div class="n">${mancanti.length}</div><div class="l">Tornate in Calendario senza verbale</div></div></div>
-      ${mancanti.length ? `<div class="notice" style="margin-bottom:14px"><b>Verbali ancora da registrare</b> (tornate già svolte secondo il Calendario):
+      ${mancanti.length ? `<div class="notice mb-14"><b>Verbali ancora da registrare</b> (tornate già svolte secondo il Calendario):
         ${mancanti.map((t) => `<span class="badge warn" style="margin:2px">${fmtData(t.data)} · ${esc(GRADI[t.grado])}</span>`).join(' ')}
-        <div class="hint" style="margin-top:6px">Apri il generatore con «Nuovo verbale», scegli la tornata dal Calendario e salva.</div></div>` : ''}
+        <div class="hint mt-6">Apri il generatore con «Nuovo verbale», scegli la tornata dal Calendario e salva.</div></div>` : ''}
       <div class="table-wrap"><table><thead><tr><th>Data</th><th>Grado</th><th>Presenti</th><th>Assenti giustif.</th><th>Assenti</th><th>Ospiti</th><th></th></tr></thead><tbody>
         ${verbali.length ? verbali.map((x) => { const c = conta[x.id] || { giustificato: 0, assente: 0 };
           return `<tr><td>${fmtData(x.data)}</td><td>${esc(GRADI[x.grado])}</td><td>${x.presenti}</td><td>${c.giustificato}</td>
@@ -125,7 +125,7 @@
         <label for="p-per" class="muted">Periodo</label>
         <select id="p-per"><option value="anno" ${st.periodo === 'anno' ? 'selected' : ''}>Anno in corso</option><option value="12" ${st.periodo === '12' ? 'selected' : ''}>Ultimi 12 mesi</option></select>
         <label class="check"><input type="checkbox" id="p-solo" ${st.soloAvvisi ? 'checked' : ''}> Solo Fratelli da controllare (${daControllare})</label></div>
-      ${daControllare ? `<div class="notice" style="margin-bottom:14px"><b>${daControllare} ${daControllare === 1 ? 'Fratello da controllare' : 'Fratelli da controllare'}.</b>
+      ${daControllare ? `<div class="notice mb-14"><b>${daControllare} ${daControllare === 1 ? 'Fratello da controllare' : 'Fratelli da controllare'}.</b>
         L’art. 12 della Costituzione prevede la decadenza per assenza senza giustificato motivo oltre i 6 mesi. Prima di ogni passo verifica dispense, malattie e giustificazioni,
         poi segui la procedura: <a href="#/procedure/depennamento">Procedure › Depennamento</a>.</div>` : ''}
       <div class="table-wrap"><table><thead><tr><th>Fratello</th><th>Grado</th><th>Tornate</th><th>Presente</th><th>Giustif.</th><th>Assente</th><th>% presenza</th><th>Ultima presenza o giustificazione</th><th>Stato</th></tr></thead><tbody>
@@ -137,7 +137,7 @@
           <td>${x.livello === 2 ? `<span class="badge bad">Oltre 6 mesi (${Math.round(x.giorni / 30.4)} mesi)</span>` : x.livello === 1 ? `<span class="badge warn">Vicino ai 6 mesi (${Math.round(x.giorni / 30.4)} mesi)</span>` : x.giorni === null ? '<span class="hint">nessun dato</span>' : '<span class="badge ok">Regolare</span>'}</td></tr>`).join('')
           : '<tr><td colspan="9" class="muted">Nessun dato: salva i verbali dal generatore per costruire le presenze.</td></tr>'}
       </tbody></table></div>
-      <div class="hint" style="margin-top:10px">Il conteggio parte dai verbali registrati nell’app. Il calcolo dei mesi è indicativo: non tiene conto della sospensione estiva né delle dispense dalla frequenza (art. 22 del Regolamento).</div>`;
+      <div class="hint mt-10">Il conteggio parte dai verbali registrati nell’app. Il calcolo dei mesi è indicativo: non tiene conto della sospensione estiva né delle dispense dalla frequenza (art. 22 del Regolamento).</div>`;
     $('#p-per', v).onchange = (e) => { st.periodo = e.target.value; L.route(); };
     $('#p-solo', v).onchange = (e) => { st.soloAvvisi = e.target.checked; L.route(); };
   }

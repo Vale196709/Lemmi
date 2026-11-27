@@ -42,7 +42,7 @@
     const ov = document.createElement('div');
     ov.className = 'modal-ov';
     ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${nuova ? 'Carica una tavola' : 'Modifica la tavola'}">
-      <div class="modal-h"><h2 style="margin:0">${nuova ? 'Carica una tavola' : 'Modifica la tavola'}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
+      <div class="modal-h"><h2 class="m-0">${nuova ? 'Carica una tavola' : 'Modifica la tavola'}</h2><button class="btn ghost small" type="button" data-x>Chiudi</button></div>
       <div class="modal-b"><form novalidate><div class="form-grid">
         <div class="f s12"><label for="tv-titolo">Titolo <span class="req">*</span></label><input id="tv-titolo" name="titolo" maxlength="200" autocomplete="off" value="${esc(lavoro ? lavoro.titolo : '')}"></div>
         <div class="f s12"><label for="tv-chi">Di chi è la tavola</label><select id="tv-chi" name="chi">
@@ -62,8 +62,8 @@
         <div class="f s12"><label for="tv-file">${nuova ? 'File' : 'Sostituisci il file (facoltativo)'} <span class="hint">PDF, Word, ODT o testo, fino a 10 MB</span></label>
           ${!nuova && lavoro.file_nome ? `<div class="hint" style="margin-bottom:6px">File attuale: <b>${esc(lavoro.file_nome)}</b></div>` : ''}
           <input id="tv-file" name="file" type="file" class="vis" accept=".pdf,.doc,.docx,.odt,.txt"></div></div>
-        <div class="err" data-err style="margin-top:10px"></div>
-        <div class="actions" style="margin-top:14px"><button class="btn gold" type="submit">${nuova ? 'Carica' : 'Salva'}</button></div></form></div></div>`;
+        <div class="err mt-10" data-err></div>
+        <div class="actions mt-14"><button class="btn gold" type="submit">${nuova ? 'Carica' : 'Salva'}</button></div></form></div></div>`;
     document.body.appendChild(ov);
     L.mascheraDate(ov);
     const tasto = (e) => { if (e.key === 'Escape') chiudi(); };
@@ -183,22 +183,22 @@
             <td data-tornata="${esc(t.id)}">${esc(TIPO_T[t.tipo] || cap(t.tipo))}${t.grado ? ' ' + L.badgeGrado(t.grado) : ''}
               ${t.ordine_del_giorno ? `<div class="hint">${esc(t.ordine_del_giorno)}</div>` : ''}
               ${t.link_online && /^https:\/\//i.test(t.link_online) ? `<div><a href="${esc(t.link_online)}" target="_blank" rel="noopener">Collegamento online</a></div>` : t.luogo ? `<div class="hint">${esc(t.luogo)}</div>` : ''}</td></tr>`).join('')}</tbody></table></div>
-            <div style="margin-top:10px"><a href="#/calendario">Tutto il calendario</a></div>` : '<div class="empty"><div>Nessuna tornata in calendario.</div></div>'}</div>
+            <div class="mt-10"><a href="#/calendario">Tutto il calendario</a></div>` : '<div class="empty"><div>Nessuna tornata in calendario.</div></div>'}</div>
         <div class="card"><h2>Le mie quote</h2>
           ${quote.length ? `<div class="table-wrap"><table><thead><tr><th>Voce</th><th class="num">Da versare</th><th>Stato</th></tr></thead><tbody>${quote.slice(0, 12).map((q) => `<tr>
             <td><b>${esc(q.voce)}</b> ${esc(q.anno)}${q.rate_totali > 1 ? ` <span class="muted">· rata ${q.rata_n}/${q.rate_totali}</span>` : ''}<div class="hint">${eur(q.importo_dovuto)}${q.data_scadenza ? ' · scadenza ' + fmtData(q.data_scadenza) : ''}</div></td>
             <td class="num"><b>${eur(q.residuo)}</b></td><td>${L.badgeStato(L.statoQuota(q), L.statoQuota(q))}</td></tr>`).join('')}</tbody></table></div>
-            <p class="hint" style="margin-top:8px">Per versamenti o chiarimenti rivolgiti al Tesoriere.</p>` : '<div class="empty"><div>Nessuna quota registrata.</div></div>'}</div>
+            <p class="hint mt-8">Per versamenti o chiarimenti rivolgiti al Tesoriere.</p>` : '<div class="empty"><div>Nessuna quota registrata.</div></div>'}</div>
         <div class="card"><h2>La mia storia</h2>
           ${storia.length ? `<div class="timeline tl-v">${storia.map((s) => L.vocetl({ tipo: s.tipo, etichetta: s.d, titolo: s.t, dettaglio: s.n })).join('')}</div>` : '<div class="empty"><div>Nessun dato registrato.</div></div>'}</div>
-        <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Le mie tavole</h2>
+        <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 class="m-0">Le mie tavole</h2>
             <button class="btn gold small" type="button" id="tv-carica">+ Carica una tavola</button></div>
-          ${mie.length ? `<div class="table-wrap tv-mie" style="margin-top:10px"><table><tbody>${mie.map((l) => `<tr data-riga="${esc(l.id || '')}"><td><b>${esc(l.titolo)}</b>${linkFile(l)}${conScript54 && !l.mia ? `<div class="hint">di <b>${esc(l.autore)}</b> · caricata da te</div>` : ''}
+          ${mie.length ? `<div class="table-wrap tv-mie mt-10"><table><tbody>${mie.map((l) => `<tr data-riga="${esc(l.id || '')}"><td><b>${esc(l.titolo)}</b>${linkFile(l)}${conScript54 && !l.mia ? `<div class="hint">di <b>${esc(l.autore)}</b> · caricata da te</div>` : ''}
               <div class="hint">${(l.grado_tornata || l.grado_autore) ? L.badgeGrado(l.grado_tornata || l.grado_autore) + ' · ' : ''}${l.data_presentazione ? fmtData(l.data_presentazione) : 'senza data'}${l.data_discussione ? ' · discussa il ' + fmtData(l.data_discussione) : ''}${l.tema ? ' · ' + esc(l.tema) : ''}</div></td>
             <td class="act">${l.id ? `<button class="btn ghost small" type="button" data-tv="${esc(l.id)}">Modifica</button> <button class="btn ghost small" type="button" data-tv-del="${esc(l.id)}">Elimina</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div>Nessuna tavola. Con «Carica una tavola» puoi aggiungere la tua.</div></div>'}
-          <p class="hint" style="margin-top:8px">Formati ammessi: PDF, Word, ODT o testo, fino a 10 MB. Il grado che scegli decide chi può leggere la tavola.</p></div>
+          <p class="hint mt-8">Formati ammessi: PDF, Word, ODT o testo, fino a 10 MB. Il grado che scegli decide chi può leggere la tavola.</p></div>
       </div>
-      <div class="card"><h2>Tavole della Loggia</h2><p class="hint" style="margin-bottom:8px">${mioGradoNome === 'Maestro' ? 'Come Maestro vedi tutte le tavole.' : mioGradoNome === 'Compagno' ? 'Vedi le tavole in grado di Compagno e di Apprendista, oltre alle tue.' : 'Come Apprendista vedi le tue tavole; quelle degli altri Fratelli le vedrai salendo di grado.'}</p>
+      <div class="card" id="af-tavole-loggia"><h2>Tavole della Loggia</h2><p class="hint mb-8">${mioGradoNome === 'Maestro' ? 'Come Maestro vedi tutte le tavole.' : mioGradoNome === 'Compagno' ? 'Vedi le tavole in grado di Compagno e di Apprendista, oltre alle tue.' : 'Come Apprendista vedi le tue tavole; quelle degli altri Fratelli le vedrai salendo di grado.'}</p>
         ${altre.length ? `
         <div class="table-wrap"><table><thead><tr><th>Tavola</th><th>Autore</th><th>Grado</th><th>Data</th><th>Discussa il</th></tr></thead><tbody>${altre.map((l) => `<tr><td><b>${esc(l.titolo)}</b>${linkFile(l)}${l.tema ? `<div class="hint">${esc(l.tema)}</div>` : ''}</td>
           <td>${esc(l.autore)}${l.mia ? ' <span class="badge info">tua</span>' : ''}${l.caricata_da_nome ? `<div class="hint">caricata da ${esc(l.caricata_da_nome)}</div>` : ''}</td><td>${l.grado_tornata ? L.badgeGrado(l.grado_tornata) : '—'}</td>
@@ -207,7 +207,7 @@
         ${kv('Data di nascita', fr.data_nascita ? fmtData(fr.data_nascita) : '')}${kv('Luogo di nascita', [fr.luogo_nascita, fr.provincia_nascita ? '(' + fr.provincia_nascita + ')' : ''].filter(Boolean).join(' '))}
         ${kv('Indirizzo', [fr.indirizzo, fr.cap, fr.citta, fr.provincia ? '(' + fr.provincia + ')' : ''].filter(Boolean).join(' '))}
         ${kv('Professione', fr.professione)}${kv('Cellulare', fr.cellulare)}${kv('E-mail', fr.email)}${'email_2' in fr && fr.email_2 ? kv('Seconda e-mail', fr.email_2) : ''}
-      </div><p class="hint" style="margin-top:12px">Se un dato è sbagliato o manca, comunicalo al Segretario. Le notifiche sul telefono si attivano da «Il mio accesso».</p></div>`;
+      </div><p class="hint mt-12">Se un dato è sbagliato o manca, comunicalo al Segretario. Le notifiche sul telefono si attivano da «Il mio accesso».</p></div>`;
     const gradiOk = GRADI.slice(0, mioGrado + 1);
     const apri = (l) => tavolaModulo(fr, l, gradiOk, () => L.route()).catch((e) => L.toast(L.messaggioErrore(e), 'bad'));
     const carica = $('#tv-carica', v); if (carica) carica.onclick = () => apri(null);
@@ -228,5 +228,6 @@
       } catch (e) { window.alert('Non è stato possibile scaricare il file: ' + ((e && e.message) || e)); }
     }));
     if (L.agapi) { try { await L.agapi.montaFratello(v, tornate); } catch (e) { /* facoltativo */ } }
+    if (L.novita) L.novita.inserisci(v);   // «Novità»: ultimi documenti pubblicati che il Fratello può leggere
   };
 })();
